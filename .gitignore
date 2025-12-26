@@ -1,0 +1,14 @@
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# Gradle
+.gradle/
+build/
+
+# Logs
+*.log
+
+# DB local (luego definimos ruta final)
+*.db
