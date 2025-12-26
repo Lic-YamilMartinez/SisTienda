@@ -1,0 +1,2 @@
+rootProject.name = 'SisTienda'
+include 'app-core', 'app-data', 'app-ui'

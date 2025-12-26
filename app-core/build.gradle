@@ -1,0 +1,3 @@
+dependencies {
+    // Modelo + utilidades (sin dependencias externas por ahora)
+}
