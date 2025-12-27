@@ -21,7 +21,7 @@ public final class Database {
     }
 
     /* =========================
-       INIT
+       INIT del sistema
        ========================= */
     public static void initDev() {
         try {
