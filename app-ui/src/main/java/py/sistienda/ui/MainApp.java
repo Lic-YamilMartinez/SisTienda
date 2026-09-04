@@ -14,7 +14,7 @@ public class MainApp extends Application {
     public void start(Stage stage) {
         var connectionFactory = new SqliteConnectionFactory();
         var databaseInitializer = new DatabaseInitializer(connectionFactory);
-        databaseInitializer.initializeDev();
+        databaseInitializer.initialize();
 
         var root = new StackPane(new Label("SisTienda - UI OK ✅ (DB OK)"));
         var scene = new Scene(root, 480, 240);
