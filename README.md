@@ -68,14 +68,28 @@ Responsabilidades principales:
 
 Este módulo depende de `app-core` y `app-data` para el bootstrap de la aplicación.
 
-## Flujo de dependencias
+## Dependencias entre módulos
+
+```text
+app-core   <-   app-data
+   ^              ^
+   └----------- app-ui
+```
+
+- `app-core` no depende de `app-data` ni de `app-ui`.
+- `app-data` depende de `app-core`.
+- `app-ui` depende de `app-core` y `app-data` para composición/bootstrap.
+
+## Flujo de ejecución
 
 ```text
 app-ui
    ↓
-app-core
+service / app-core
    ↓
-app-data
+repository contract / app-core
+   ↓
+repository implementation / app-data
    ↓
 SQLite
 ```
@@ -167,6 +181,8 @@ La suite de tests se ejecuta como parte de `build` y también puede ejecutarse c
 ./gradlew test
 ```
 
+Los tests de `app-data` incluyen cobertura de integración sobre una base SQLite temporal para verificar inicialización, claves foráneas y el trigger que impide stock negativo.
+
 GitHub Actions ejecuta `./gradlew clean build --no-daemon` para validar pushes de ramas de trabajo y pull requests hacia `develop`.
 
 No se debe considerar un cambio verificado hasta ejecutar el build correctamente.
@@ -225,6 +241,7 @@ Ya existe:
 - Implementación `SqliteCategoriaRepository`.
 - Inicialización y fábrica de conexiones SQLite separadas.
 - Base de tests con JUnit 5 para `app-core` y `app-data`.
+- Tests de integración SQLite sobre base temporal.
 - Workflow de CI con GitHub Actions.
 
 Pendiente para siguientes sprints:
