@@ -1,7 +1,5 @@
 package py.sistienda.data.database;
 
-import py.sistienda.data.DbPaths;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
