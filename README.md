@@ -19,6 +19,8 @@ El MVP de SisTienda contempla:
 - JavaFX 21.0.4
 - SQLite mediante `org.xerial:sqlite-jdbc`
 - Gradle 8.10.2
+- JUnit 5 para pruebas
+- GitHub Actions para CI
 
 ## Arquitectura
 SisTienda está dividido en tres módulos:
@@ -88,9 +90,15 @@ app-core/src/main/java/py/sistienda/core
 ├── repository
 └── service
 
+app-core/src/test/java/py/sistienda/core
+└── service
+
 app-data/src/main/java/py/sistienda/data
 ├── database
 └── repository
+
+app-data/src/test/java/py/sistienda/data
+└── database
 
 app-data/src/main/resources/db
 └── V1__init.sql
@@ -153,6 +161,14 @@ gradlew.bat clean build
 ./gradlew clean build
 ```
 
+La suite de tests se ejecuta como parte de `build` y también puede ejecutarse con:
+
+```bash
+./gradlew test
+```
+
+GitHub Actions ejecuta `./gradlew clean build --no-daemon` para validar pushes de ramas de trabajo y pull requests hacia `develop`.
+
 No se debe considerar un cambio verificado hasta ejecutar el build correctamente.
 
 ## Flujo de trabajo Git
@@ -182,6 +198,7 @@ refactor: reorganización interna
 chore: mantenimiento
 build: cambios de build o dependencias
 test: pruebas
+ci: automatización de integración continua
 docs: documentación
 ```
 
@@ -207,14 +224,15 @@ Ya existe:
 - Servicio `CategoriaService`.
 - Implementación `SqliteCategoriaRepository`.
 - Inicialización y fábrica de conexiones SQLite separadas.
+- Base de tests con JUnit 5 para `app-core` y `app-data`.
+- Workflow de CI con GitHub Actions.
 
 Pendiente para siguientes sprints:
 - Completar dominio.
 - Completar repositorios.
-- Incorporar tests.
+- Ampliar cobertura de tests junto con cada funcionalidad.
 - Crear navegación y pantallas JavaFX.
 - Implementar login, productos, stock, caja y ventas.
-- Incorporar CI.
 
 ## Principio rector
 SisTienda debe mantenerse simple, estable y entendible. La prioridad es construir un MVP desktop confiable sin mezclar lógica de negocio, interfaz y persistencia.
