@@ -10,6 +10,7 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
@@ -24,6 +25,7 @@ import java.util.List;
 public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
 
     private static final ButtonType GUARDAR = new ButtonType("Guardar producto", ButtonBar.ButtonData.OK_DONE);
+    private static final CategoriaProducto SIN_CATEGORIA = new CategoriaProducto(0L, "Sin categoría", true);
 
     private final TextField nombre = new TextField();
     private final ComboBox<CategoriaProducto> categoria = new ComboBox<>();
@@ -37,7 +39,8 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         setTitle(producto == null ? "Nuevo producto" : "Editar producto");
         setHeaderText(null);
 
-        categoria.getItems().setAll(categorias);
+        categoria.getItems().add(SIN_CATEGORIA);
+        categoria.getItems().addAll(categorias);
         categoria.setConverter(new StringConverter<>() {
             @Override
             public String toString(CategoriaProducto value) {
@@ -49,6 +52,7 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
                 return null;
             }
         });
+        categoria.setValue(SIN_CATEGORIA);
         unidad.getItems().setAll(UnidadMedida.values());
 
         nombre.setPromptText("Ej.: Coca Cola 2L");
@@ -67,13 +71,20 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
 
         if (producto != null) {
             nombre.setText(producto.nombre());
-            categoria.getItems().stream()
-                    .filter(item -> producto.categoriaId() != null && item.id() == producto.categoriaId())
-                    .findFirst()
-                    .ifPresent(categoria::setValue);
+            if (producto.categoriaId() != null) {
+                categoria.getItems().stream()
+                        .filter(item -> item.id() == producto.categoriaId())
+                        .findFirst()
+                        .ifPresent(categoria::setValue);
+            }
             unidad.setValue(producto.unidadMedida());
             precioVenta.setText(formatInput(producto.precioVenta()));
             costo.setText(formatInput(producto.costo()));
+
+            if (producto.stockActual() != 0d) {
+                unidad.setDisable(true);
+                unidad.setTooltip(new Tooltip("Para cambiar la unidad de venta, primero dejá el stock en cero."));
+            }
         } else {
             unidad.setValue(UnidadMedida.UN);
         }
@@ -101,7 +112,7 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
             }
             return new ProductoForm(
                     nombre.getText().trim(),
-                    categoria.getValue(),
+                    categoriaSeleccionada(),
                     unidad.getValue(),
                     parseNumero(precioVenta.getText(), "precio de venta"),
                     parseNumero(costo.getText(), "costo")
@@ -156,6 +167,11 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         if (precio < 0 || costoValue < 0) {
             throw new IllegalArgumentException("Precio y costo no pueden ser negativos.");
         }
+    }
+
+    private CategoriaProducto categoriaSeleccionada() {
+        CategoriaProducto selected = categoria.getValue();
+        return selected == null || selected.id() == SIN_CATEGORIA.id() ? null : selected;
     }
 
     private double parseNumero(String value, String campo) {
