@@ -12,9 +12,15 @@ Mantener la separación por módulos:
 - `app-data`: persistencia, SQLite, inicialización de base de datos e implementaciones de repositorios.
 - `app-ui`: JavaFX, navegación, controladores y componentes visuales.
 
-Flujo esperado:
+Dependencias entre módulos:
 
-`app-ui -> app-core -> app-data -> SQLite`
+- `app-core` no depende de `app-data` ni de `app-ui`.
+- `app-data` depende de `app-core`.
+- `app-ui` depende de `app-core` y `app-data` para composición/bootstrap.
+
+Flujo de ejecución esperado:
+
+`app-ui -> service/app-core -> repository contract/app-core -> repository implementation/app-data -> SQLite`
 
 La UI no debe ejecutar SQL ni acceder directamente a JDBC.
 `app-core` no debe depender de SQLite, JDBC, JavaFX ni clases de `app-data`.
