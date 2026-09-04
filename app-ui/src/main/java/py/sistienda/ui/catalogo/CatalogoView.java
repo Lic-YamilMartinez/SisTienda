@@ -1,5 +1,6 @@
 package py.sistienda.ui.catalogo;
 
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -137,7 +138,7 @@ public final class CatalogoView extends BorderPane {
         filtroCategoria.getStyleClass().add("filter-combo");
 
         Label count = new Label();
-        count.textProperty().bind(productosFiltrados.sizeProperty().asString("%d productos"));
+        count.textProperty().bind(Bindings.size(productosFiltrados).asString("%d productos"));
         count.getStyleClass().add("result-count");
 
         Region spacer = new Region();
@@ -161,7 +162,7 @@ public final class CatalogoView extends BorderPane {
     private void configurarTabla() {
         tabla.setItems(productosFiltrados);
         tabla.setPlaceholder(new Label("Todavía no hay productos. Creá el primero con “+ Nuevo producto”."));
-        tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         tabla.getStyleClass().add("catalog-table");
 
         TableColumn<Producto, Producto> productoColumn = new TableColumn<>("Producto");
@@ -211,8 +212,9 @@ public final class CatalogoView extends BorderPane {
                 super.updateItem(value, empty);
                 setText(empty ? null : value);
                 getStyleClass().removeAll("stock-zero", "stock-positive");
-                if (!empty && getTableRow() != null && getTableRow().getItem() instanceof Producto producto) {
-                    getStyleClass().add(producto.stockActual() <= 0 ? "stock-zero" : "stock-positive");
+                Producto rowProduct = getTableRow() == null ? null : getTableRow().getItem();
+                if (!empty && rowProduct != null) {
+                    getStyleClass().add(rowProduct.stockActual() <= 0 ? "stock-zero" : "stock-positive");
                 }
             }
         });
