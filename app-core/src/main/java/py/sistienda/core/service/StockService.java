@@ -1,7 +1,9 @@
 package py.sistienda.core.service;
 
 import py.sistienda.core.exception.ValidationException;
+import py.sistienda.core.model.Producto;
 import py.sistienda.core.model.TipoMovimientoStock;
+import py.sistienda.core.model.UnidadMedida;
 import py.sistienda.core.repository.MovimientoStockRepository;
 
 import java.util.Objects;
@@ -14,9 +16,10 @@ public final class StockService {
         this.movimientoStockRepository = Objects.requireNonNull(movimientoStockRepository);
     }
 
-    public void registrar(long productoId, TipoMovimientoStock tipo, String motivo, double cantidad,
+    public void registrar(Producto producto, TipoMovimientoStock tipo, String motivo, double cantidad,
                           String referencia, String observacion) {
-        if (productoId <= 0) {
+        Objects.requireNonNull(producto);
+        if (producto.id() <= 0) {
             throw new ValidationException("Producto inválido.");
         }
         if (tipo == null) {
@@ -28,9 +31,15 @@ public final class StockService {
         if (!Double.isFinite(cantidad) || cantidad <= 0) {
             throw new ValidationException("La cantidad debe ser mayor a cero.");
         }
+        if (producto.unidadMedida() == UnidadMedida.UN && cantidad != Math.rint(cantidad)) {
+            throw new ValidationException("Los productos por unidad deben moverse en cantidades enteras.");
+        }
+        if (tipo == TipoMovimientoStock.SALIDA && cantidad > producto.stockActual()) {
+            throw new ValidationException("No hay stock suficiente para realizar esa salida.");
+        }
 
         movimientoStockRepository.register(
-                productoId,
+                producto.id(),
                 tipo,
                 motivo.trim(),
                 cantidad,
