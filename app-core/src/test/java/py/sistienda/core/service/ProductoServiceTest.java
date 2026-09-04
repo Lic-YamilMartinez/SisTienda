@@ -11,6 +11,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProductoServiceTest {
 
@@ -46,8 +47,37 @@ class ProductoServiceTest {
         assertEquals(7L, actualizado.id());
     }
 
+    @Test
+    void actualizar_noPermiteCambiarUnidadConStock() {
+        ProductoService service = new ProductoService(new FakeProductoRepository());
+        Producto actual = new Producto(7L, "Harina", 1L, "Alimentos", UnidadMedida.KG, 1000, 600, 2.5, true);
+
+        assertThrows(ValidationException.class,
+                () -> service.actualizar(actual, "Harina", 1L, "Alimentos", UnidadMedida.UN, 1000, 600));
+    }
+
+    @Test
+    void desactivar_rechazaProductoConStock() {
+        ProductoService service = new ProductoService(new FakeProductoRepository());
+        Producto actual = new Producto(7L, "Producto", null, null, UnidadMedida.UN, 1000, 600, 1, true);
+
+        assertThrows(ValidationException.class, () -> service.desactivar(actual));
+    }
+
+    @Test
+    void desactivar_productoSinStockDelegaAlRepositorio() {
+        FakeProductoRepository repository = new FakeProductoRepository();
+        ProductoService service = new ProductoService(repository);
+        Producto actual = new Producto(7L, "Producto", null, null, UnidadMedida.UN, 1000, 600, 0, true);
+
+        service.desactivar(actual);
+
+        assertTrue(repository.deactivated);
+    }
+
     private static final class FakeProductoRepository implements ProductoRepository {
         private final List<Producto> productos = new ArrayList<>();
+        private boolean deactivated;
 
         @Override
         public List<Producto> findAllActive() {
@@ -69,6 +99,7 @@ class ProductoServiceTest {
 
         @Override
         public void deactivate(long productoId) {
+            deactivated = true;
         }
     }
 }
