@@ -42,11 +42,19 @@ public final class ProductoService {
         return productoRepository.update(actualizado);
     }
 
-    public void desactivar(Producto producto) {
-        Objects.requireNonNull(producto);
-        if (producto.id() <= 0) {
+    public void desactivar(long productoId) {
+        if (productoId <= 0) {
             throw new ValidationException("Producto inválido.");
         }
+        Producto producto = productoRepository.findAllActive().stream()
+                .filter(item -> item.id() == productoId)
+                .findFirst()
+                .orElseThrow(() -> new ValidationException("El producto ya no está disponible."));
+        desactivar(producto);
+    }
+
+    public void desactivar(Producto producto) {
+        Objects.requireNonNull(producto);
         if (producto.stockActual() > 0d) {
             throw new ValidationException("No podés desactivar un producto que todavía tiene stock. Registrá una salida o dejalo activo hasta agotarlo.");
         }
