@@ -32,16 +32,25 @@ public final class ProductoService {
                                UnidadMedida unidadMedida, double precioVenta, double costo) {
         Objects.requireNonNull(actual);
         validar(nombre, unidadMedida, precioVenta, costo);
+
+        if (actual.unidadMedida() != unidadMedida && actual.stockActual() != 0d) {
+            throw new ValidationException("Para cambiar entre unidad y kilogramo, primero dejá el stock en cero.");
+        }
+
         Producto actualizado = new Producto(actual.id(), normalizarNombre(nombre), categoriaId,
                 categoriaNombre, unidadMedida, precioVenta, costo, actual.stockActual(), actual.activo());
         return productoRepository.update(actualizado);
     }
 
-    public void desactivar(long productoId) {
-        if (productoId <= 0) {
+    public void desactivar(Producto producto) {
+        Objects.requireNonNull(producto);
+        if (producto.id() <= 0) {
             throw new ValidationException("Producto inválido.");
         }
-        productoRepository.deactivate(productoId);
+        if (producto.stockActual() > 0d) {
+            throw new ValidationException("No podés desactivar un producto que todavía tiene stock. Registrá una salida o dejalo activo hasta agotarlo.");
+        }
+        productoRepository.deactivate(producto.id());
     }
 
     private void validar(String nombre, UnidadMedida unidadMedida, double precioVenta, double costo) {
