@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.sql.Connection;
 import java.sql.Statement;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public final class DatabaseInitializer {
@@ -12,20 +14,31 @@ public final class DatabaseInitializer {
     private final SqliteConnectionFactory connectionFactory;
 
     public DatabaseInitializer(SqliteConnectionFactory connectionFactory) {
-        this.connectionFactory = connectionFactory;
+        this.connectionFactory = Objects.requireNonNull(connectionFactory);
     }
 
-    public void initializeDev() {
+    public void initialize() {
         try {
-            Files.createDirectories(DbPaths.devDataDir());
+            var parent = connectionFactory.databaseFile().getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
 
-            try (var connection = connectionFactory.open()) {
+            try (Connection connection = connectionFactory.open()) {
                 connection.setAutoCommit(false);
 
-                String sql = readResource("/db/V1__init.sql");
-                runSqlScriptSqlite(connection.createStatement(), sql);
-
-                connection.commit();
+                try {
+                    String sql = readResource("/db/V1__init.sql");
+                    runSqlScriptSqlite(connection.createStatement(), sql);
+                    connection.commit();
+                } catch (Exception e) {
+                    try {
+                        connection.rollback();
+                    } catch (Exception rollbackError) {
+                        e.addSuppressed(rollbackError);
+                    }
+                    throw e;
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Error inicializando la base de datos", e);
