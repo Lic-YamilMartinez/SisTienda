@@ -4,12 +4,15 @@ import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.CajaSesion;
 import py.sistienda.core.model.LineaVenta;
 import py.sistienda.core.model.MetodoPago;
+import py.sistienda.core.model.Producto;
 import py.sistienda.core.model.UnidadMedida;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.model.VentaResultado;
 import py.sistienda.core.repository.VentaRepository;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public final class VentaService {
@@ -48,6 +51,7 @@ public final class VentaService {
         for (LineaVenta linea : lineas) {
             validarLinea(linea);
         }
+        validarStockAcumulado(lineas);
 
         double total = lineas.stream().mapToDouble(LineaVenta::subtotal).sum();
         if (!Double.isFinite(total) || total <= 0) {
@@ -93,6 +97,24 @@ public final class VentaService {
         }
         if (linea.cantidad() - linea.producto().stockActual() > EPSILON) {
             throw new ValidationException("Stock insuficiente para “" + linea.producto().nombre() + "”.");
+        }
+    }
+
+    private void validarStockAcumulado(List<LineaVenta> lineas) {
+        Map<Long, Double> cantidades = new HashMap<>();
+        Map<Long, Producto> productos = new HashMap<>();
+
+        for (LineaVenta linea : lineas) {
+            long productoId = linea.producto().id();
+            cantidades.merge(productoId, linea.cantidad(), Double::sum);
+            productos.putIfAbsent(productoId, linea.producto());
+        }
+
+        for (var entry : cantidades.entrySet()) {
+            Producto producto = productos.get(entry.getKey());
+            if (entry.getValue() - producto.stockActual() > EPSILON) {
+                throw new ValidationException("Stock insuficiente para “" + producto.nombre() + "”.");
+            }
         }
     }
 }
