@@ -15,12 +15,20 @@ import py.sistienda.core.model.Usuario;
 public final class MainShell extends BorderPane {
 
     private final Usuario usuario;
+    private final Node catalogoView;
+    private final Node cajaView;
 
-    public MainShell(Node content, Usuario usuario) {
+    private Button catalogoButton;
+    private Button cajaButton;
+
+    public MainShell(Node catalogoView, Node cajaView, Usuario usuario) {
         this.usuario = usuario;
+        this.catalogoView = catalogoView;
+        this.cajaView = cajaView;
+
         getStyleClass().add("app-shell");
         setLeft(buildSidebar());
-        setCenter(content);
+        showCatalogo();
     }
 
     private VBox buildSidebar() {
@@ -37,10 +45,16 @@ public final class MainShell extends BorderPane {
         Label section = new Label("GESTIÓN");
         section.getStyleClass().add("sidebar-section");
 
-        Button catalogo = navButton("▦", "Catálogo & Stock", true);
-        Button caja = navButton("▣", "Caja", false);
-        Button reportes = navButton("▤", "Reportes", false);
-        Button configuracion = navButton("⚙", "Configuración", false);
+        catalogoButton = navButton("▦", "Catálogo & Stock");
+        catalogoButton.setOnAction(event -> showCatalogo());
+
+        cajaButton = navButton("▣", "Caja");
+        cajaButton.setOnAction(event -> showCaja());
+
+        Button reportes = navButton("▤", "Reportes");
+        reportes.setDisable(true);
+        Button configuracion = navButton("⚙", "Configuración");
+        configuracion.setDisable(true);
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -52,7 +66,7 @@ public final class MainShell extends BorderPane {
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,
-                brandRow, section, catalogo, caja, reportes, configuracion,
+                brandRow, section, catalogoButton, cajaButton, reportes, configuracion,
                 spacer, userLabel, version
         );
         sidebar.setPadding(new Insets(24, 18, 20, 18));
@@ -61,7 +75,7 @@ public final class MainShell extends BorderPane {
         return sidebar;
     }
 
-    private Button navButton(String icon, String text, boolean active) {
+    private Button navButton(String icon, String text) {
         Label iconLabel = new Label(icon);
         iconLabel.getStyleClass().add("nav-icon");
         Label textLabel = new Label(text);
@@ -72,11 +86,28 @@ public final class MainShell extends BorderPane {
         button.setGraphic(content);
         button.setMaxWidth(Double.MAX_VALUE);
         button.getStyleClass().add("nav-button");
-        if (active) {
-            button.getStyleClass().add("nav-button-active");
-        } else {
-            button.setDisable(true);
-        }
         return button;
+    }
+
+    private void showCatalogo() {
+        setCenter(catalogoView);
+        activate(catalogoButton);
+    }
+
+    private void showCaja() {
+        setCenter(cajaView);
+        activate(cajaButton);
+    }
+
+    private void activate(Button activeButton) {
+        if (catalogoButton != null) {
+            catalogoButton.getStyleClass().remove("nav-button-active");
+        }
+        if (cajaButton != null) {
+            cajaButton.getStyleClass().remove("nav-button-active");
+        }
+        if (activeButton != null && !activeButton.getStyleClass().contains("nav-button-active")) {
+            activeButton.getStyleClass().add("nav-button-active");
+        }
     }
 }
