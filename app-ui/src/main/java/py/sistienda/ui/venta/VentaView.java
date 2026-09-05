@@ -10,6 +10,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -68,15 +69,20 @@ public final class VentaView extends HBox {
         this.caja = caja;
 
         getStyleClass().add("pos-layout");
-        setSpacing(16);
-        setPadding(new Insets(0));
+        setSpacing(12);
+        setPadding(Insets.EMPTY);
+        setMaxHeight(Double.MAX_VALUE);
 
         VBox productPanel = buildProductPanel();
         VBox cartPanel = buildCartPanel();
+
         HBox.setHgrow(productPanel, Priority.ALWAYS);
         productPanel.setMaxWidth(Double.MAX_VALUE);
-        cartPanel.setPrefWidth(470);
-        cartPanel.setMinWidth(420);
+        productPanel.setMaxHeight(Double.MAX_VALUE);
+        cartPanel.setPrefWidth(430);
+        cartPanel.setMinWidth(390);
+        cartPanel.setMaxWidth(470);
+        cartPanel.setMaxHeight(Double.MAX_VALUE);
 
         getChildren().addAll(productPanel, cartPanel);
 
@@ -91,17 +97,22 @@ public final class VentaView extends HBox {
     private VBox buildProductPanel() {
         Label eyebrow = new Label("PUNTO DE VENTA");
         eyebrow.getStyleClass().add("eyebrow");
-        Label title = new Label("Elegí los productos");
+        Label title = new Label("Productos");
         title.getStyleClass().add("pos-section-title");
-        Label subtitle = new Label("Buscá y agregá productos al carrito. El stock se descuenta recién al cobrar.");
-        subtitle.getStyleClass().add("pos-subtitle");
-        subtitle.setWrapText(true);
+
+        VBox heading = new VBox(1, eyebrow, title);
 
         buscar.setPromptText("Buscar producto o categoría...");
         buscar.getStyleClass().add("pos-search");
+        buscar.setPrefWidth(330);
+        buscar.setMinWidth(240);
 
-        VBox header = new VBox(5, eyebrow, title, subtitle, buscar);
-        header.setPadding(new Insets(18, 18, 12, 18));
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox header = new HBox(12, heading, spacer, buscar);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setPadding(new Insets(11, 14, 9, 14));
 
         VBox panel = new VBox(0, header, tablaProductos);
         panel.getStyleClass().add("pos-panel");
@@ -112,16 +123,14 @@ public final class VentaView extends HBox {
     private VBox buildCartPanel() {
         Label title = new Label("Venta actual");
         title.getStyleClass().add("pos-section-title");
-        Label subtitle = new Label("Revisá cantidades y cobrá cuando esté todo listo.");
-        subtitle.getStyleClass().add("pos-subtitle");
 
         feedback.getStyleClass().add("pos-feedback");
         feedback.setWrapText(true);
         feedback.setVisible(false);
         feedback.setManaged(false);
 
-        VBox cartHeader = new VBox(4, title, subtitle, feedback);
-        cartHeader.setPadding(new Insets(18, 18, 10, 18));
+        VBox cartHeader = new VBox(4, title, feedback);
+        cartHeader.setPadding(new Insets(11, 14, 8, 14));
 
         metodoPago.getItems().setAll(MetodoPago.values());
         metodoPago.setValue(MetodoPago.EFECTIVO);
@@ -130,37 +139,30 @@ public final class VentaView extends HBox {
 
         recibido.setPromptText("Efectivo recibido");
         recibido.getStyleClass().add("pos-control");
+        recibido.setMaxWidth(Double.MAX_VALUE);
 
-        Label totalLabel = new Label("Total");
-        totalLabel.getStyleClass().add("pos-summary-label");
-        total.getStyleClass().add("pos-total");
+        VBox paymentMethod = compactPaymentField("Pago", metodoPago);
+        VBox receivedField = compactPaymentField("Recibido (Gs.)", recibido);
+        HBox.setHgrow(paymentMethod, Priority.ALWAYS);
+        HBox.setHgrow(receivedField, Priority.ALWAYS);
 
-        Label vueltoLabel = new Label("Vuelto");
-        vueltoLabel.getStyleClass().add("pos-summary-label");
-        vuelto.getStyleClass().add("pos-change");
+        HBox paymentFields = new HBox(8, paymentMethod, receivedField);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox totalRow = new HBox(10, totalLabel, spacer, total);
-        totalRow.setAlignment(Pos.CENTER_LEFT);
+        VBox totalBlock = summaryBlock("TOTAL", total, "pos-total");
+        VBox changeBlock = summaryBlock("VUELTO", vuelto, "pos-change");
+        HBox.setHgrow(totalBlock, Priority.ALWAYS);
+        HBox.setHgrow(changeBlock, Priority.ALWAYS);
 
-        Region spacer2 = new Region();
-        HBox.setHgrow(spacer2, Priority.ALWAYS);
-        HBox vueltoRow = new HBox(10, vueltoLabel, spacer2, vuelto);
-        vueltoRow.setAlignment(Pos.CENTER_LEFT);
+        HBox summary = new HBox(8, totalBlock, changeBlock);
 
         Button cobrar = new Button("Cobrar venta");
         cobrar.getStyleClass().add("pos-pay-button");
         cobrar.setMaxWidth(Double.MAX_VALUE);
         cobrar.setOnAction(event -> cobrar());
 
-        VBox payment = new VBox(8,
-                fieldLabel("Método de pago"), metodoPago,
-                fieldLabel("Recibido (Gs.)"), recibido,
-                totalRow, vueltoRow, cobrar
-        );
+        VBox payment = new VBox(8, paymentFields, summary, cobrar);
         payment.getStyleClass().add("pos-payment");
-        payment.setPadding(new Insets(14, 18, 18, 18));
+        payment.setPadding(new Insets(10, 14, 12, 14));
 
         VBox panel = new VBox(0, cartHeader, tablaCarrito, payment);
         panel.getStyleClass().add("pos-panel");
@@ -168,10 +170,22 @@ public final class VentaView extends HBox {
         return panel;
     }
 
-    private Label fieldLabel(String text) {
+    private VBox compactPaymentField(String text, Control control) {
         Label label = new Label(text);
-        label.getStyleClass().add("form-label");
-        return label;
+        label.getStyleClass().add("pos-field-label");
+        VBox field = new VBox(3, label, control);
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
+    }
+
+    private VBox summaryBlock(String labelText, Label value, String valueStyle) {
+        Label label = new Label(labelText);
+        label.getStyleClass().add("pos-summary-label");
+        value.getStyleClass().add(valueStyle);
+        VBox block = new VBox(2, label, value);
+        block.getStyleClass().add("pos-summary-block");
+        block.setMaxWidth(Double.MAX_VALUE);
+        return block;
     }
 
     private void configurarFiltros() {
@@ -196,7 +210,7 @@ public final class VentaView extends HBox {
         productoCol.setCellFactory(column -> new TableCell<>() {
             private final Label name = new Label();
             private final Label category = new Label();
-            private final VBox box = new VBox(2, name, category);
+            private final VBox box = new VBox(1, name, category);
             {
                 name.getStyleClass().add("product-name");
                 category.getStyleClass().add("product-category");
@@ -271,7 +285,7 @@ public final class VentaView extends HBox {
         actionCol.setCellFactory(column -> new TableCell<>() {
             private final Button edit = smallCartButton("Cant.");
             private final Button remove = smallCartButton("Quitar");
-            private final HBox box = new HBox(5, edit, remove);
+            private final HBox box = new HBox(4, edit, remove);
             {
                 remove.getStyleClass().add("pos-remove-button");
                 box.setAlignment(Pos.CENTER);
@@ -383,7 +397,7 @@ public final class VentaView extends HBox {
             carrito.clear();
             recibido.clear();
             recargarProductos();
-            feedback.setText("Venta registrada correctamente. Ticket #" + result.nroTicket());
+            feedback.setText("Venta registrada · Ticket #" + result.nroTicket());
             feedback.setVisible(true);
             feedback.setManaged(true);
         });
@@ -488,7 +502,12 @@ public final class VentaView extends HBox {
     }
 
     private void applyDialogStyle(javafx.scene.control.DialogPane pane) {
-        var css = VentaView.class.getResource("/styles/app.css");
+        addDialogStyle(pane, "/styles/app.css");
+        addDialogStyle(pane, "/styles/venta.css");
+    }
+
+    private void addDialogStyle(javafx.scene.control.DialogPane pane, String path) {
+        var css = VentaView.class.getResource(path);
         if (css != null) {
             pane.getStylesheets().add(css.toExternalForm());
         }
