@@ -31,6 +31,23 @@ El módulo de catálogo e inventario incluye:
 
 El stock no se edita directamente en el producto: toda variación se registra como un movimiento para conservar trazabilidad.
 
+## Sprint 2 — Login, Caja & Ventas
+
+El flujo operativo del MVP incorpora:
+
+- Primera configuración del usuario dueño.
+- Login obligatorio antes de acceder al sistema.
+- Contraseñas protegidas con PBKDF2-HMAC-SHA256 y salt aleatorio.
+- Apertura de caja con fondo inicial.
+- Cierre de caja con monto contado.
+- Punto de venta con productos y carrito en paralelo.
+- Checkout compacto con método de pago, recibido, total, vuelto y cobro siempre visibles.
+- Barra compacta de estado de caja y cierre mediante diálogo, sin desplazamiento vertical durante cada venta.
+- Métodos de pago en efectivo, tarjeta y transferencia.
+- Ticket correlativo.
+- Registro atómico de venta, detalle y movimientos de stock.
+- Refresco del catálogo y caja al navegar entre módulos.
+
 ## Stack tecnológico
 
 - Java 21
@@ -114,41 +131,6 @@ SQLite
 
 La UI no debe ejecutar SQL directamente. Los contratos de repositorio pertenecen a `app-core` y sus implementaciones SQLite pertenecen a `app-data`.
 
-## Estructura actual relevante
-
-```text
-app-core/src/main/java/py/sistienda/core
-├── exception
-├── model
-├── repository
-└── service
-
-app-core/src/test/java/py/sistienda/core
-└── service
-
-app-data/src/main/java/py/sistienda/data
-├── database
-└── repository
-
-app-data/src/test/java/py/sistienda/data
-├── database
-└── repository
-
-app-data/src/main/resources/db
-└── V1__init.sql
-
-app-ui/src/main/java/py/sistienda/ui
-├── MainApp.java
-├── MainShell.java
-└── catalogo
-    ├── CatalogoView.java
-    ├── ProductoDialog.java
-    └── StockDialog.java
-
-app-ui/src/main/resources/styles
-└── app.css
-```
-
 ## Base de datos
 La base de desarrollo se almacena dentro del directorio del usuario en:
 
@@ -209,8 +191,6 @@ La suite de tests se ejecuta como parte de `build` y también puede ejecutarse c
 ./gradlew test
 ```
 
-Los tests de `app-data` incluyen cobertura de integración sobre una base SQLite temporal para verificar inicialización, persistencia de categorías/productos, movimientos de stock y el control de stock negativo.
-
 GitHub Actions ejecuta `./gradlew clean build --no-daemon` para validar pushes de ramas de trabajo y pull requests hacia `develop`.
 
 No se debe considerar un cambio verificado hasta ejecutar el build correctamente.
@@ -226,7 +206,7 @@ Para cambios nuevos se utilizan ramas dedicadas, por ejemplo:
 
 ```text
 feature/sprint-1-catalog-stock
-feature/ventas
+feature/sprint-2-login-caja-ventas
 fix/stock-negativo
 ```
 
@@ -260,12 +240,14 @@ Completado:
 - Sprint 0: arquitectura, documentación, tests base y CI.
 - Sprint 1: catálogo de productos, categorías y movimientos de stock.
 
+En validación:
+- Sprint 2: login, caja, ventas y experiencia compacta de punto de venta.
+
 Pendiente para siguientes sprints:
-- Login y usuarios.
-- Caja y sesiones de caja.
-- Ventas y detalle de ventas.
-- Ticket.
+- Ticket imprimible.
 - Informe diario y ganancia.
+- Reportes.
+- Configuración de empresa.
 - Ampliar cobertura de tests junto con cada funcionalidad.
 
 ## Principio rector

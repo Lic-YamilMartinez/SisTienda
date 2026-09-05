@@ -1,0 +1,106 @@
+.auth-screen {
+    -fx-background-color: linear-gradient(to bottom right, #fff7ed, #f8fafc 42%, #eef2ff);
+}
+
+.auth-brand-mark {
+    -fx-background-color: #f97316;
+    -fx-background-radius: 16;
+    -fx-text-fill: white;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+    -fx-alignment: center;
+    -fx-min-width: 58;
+    -fx-min-height: 58;
+    -fx-max-width: 58;
+    -fx-max-height: 58;
+}
+
+.auth-eyebrow {
+    -fx-text-fill: #ea580c;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+}
+
+.auth-hero-title {
+    -fx-text-fill: #111827;
+    -fx-font-size: 38px;
+    -fx-font-weight: 900;
+    -fx-line-spacing: 3;
+}
+
+.auth-hero-subtitle {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 15px;
+    -fx-line-spacing: 3;
+}
+
+.auth-card {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 20;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 28, 0.14, 0, 12);
+}
+
+.auth-card-title {
+    -fx-text-fill: #111827;
+    -fx-font-size: 24px;
+    -fx-font-weight: 900;
+}
+
+.auth-card-subtitle {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 12px;
+}
+
+.auth-label {
+    -fx-text-fill: #344054;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-padding: 7 0 0 0;
+}
+
+.auth-input {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 10;
+    -fx-border-color: #dce1e8;
+    -fx-border-radius: 10;
+    -fx-padding: 11 13 11 13;
+    -fx-min-height: 44;
+    -fx-font-size: 13px;
+}
+
+.auth-input:focused {
+    -fx-background-color: white;
+    -fx-border-color: #f97316;
+    -fx-effect: dropshadow(gaussian, rgba(249, 115, 22, 0.13), 9, 0, 0, 0);
+}
+
+.auth-primary-button {
+    -fx-background-color: #f97316;
+    -fx-background-radius: 10;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-padding: 12 16 12 16;
+    -fx-cursor: hand;
+}
+
+.auth-primary-button:hover {
+    -fx-background-color: #ea580c;
+}
+
+.auth-error {
+    -fx-background-color: #fef2f2;
+    -fx-background-radius: 8;
+    -fx-text-fill: #b42318;
+    -fx-padding: 9 11 9 11;
+    -fx-font-size: 11px;
+}
+
+.sidebar-user {
+    -fx-text-fill: #cbd5e1;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 8 10 0 10;
+}
