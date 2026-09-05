@@ -43,6 +43,7 @@ public final class VentaView extends HBox {
     private final VentaService ventaService;
     private final Usuario usuario;
     private final CajaSesion caja;
+    private final Runnable onVentaRegistrada;
 
     private final ObservableList<Producto> productos = FXCollections.observableArrayList();
     private final FilteredList<Producto> filtrados = new FilteredList<>(productos, value -> true);
@@ -63,10 +64,21 @@ public final class VentaView extends HBox {
             Usuario usuario,
             CajaSesion caja
     ) {
+        this(productoService, ventaService, usuario, caja, () -> { });
+    }
+
+    public VentaView(
+            ProductoService productoService,
+            VentaService ventaService,
+            Usuario usuario,
+            CajaSesion caja,
+            Runnable onVentaRegistrada
+    ) {
         this.productoService = productoService;
         this.ventaService = ventaService;
         this.usuario = usuario;
         this.caja = caja;
+        this.onVentaRegistrada = onVentaRegistrada == null ? () -> { } : onVentaRegistrada;
 
         getStyleClass().add("pos-layout");
         setSpacing(12);
@@ -79,9 +91,9 @@ public final class VentaView extends HBox {
         HBox.setHgrow(productPanel, Priority.ALWAYS);
         productPanel.setMaxWidth(Double.MAX_VALUE);
         productPanel.setMaxHeight(Double.MAX_VALUE);
-        cartPanel.setPrefWidth(430);
-        cartPanel.setMinWidth(390);
-        cartPanel.setMaxWidth(470);
+        cartPanel.setPrefWidth(470);
+        cartPanel.setMinWidth(440);
+        cartPanel.setMaxWidth(520);
         cartPanel.setMaxHeight(Double.MAX_VALUE);
 
         getChildren().addAll(productPanel, cartPanel);
@@ -99,7 +111,6 @@ public final class VentaView extends HBox {
         eyebrow.getStyleClass().add("eyebrow");
         Label title = new Label("Productos");
         title.getStyleClass().add("pos-section-title");
-
         VBox heading = new VBox(1, eyebrow, title);
 
         buscar.setPromptText("Buscar producto o categoría...");
@@ -135,13 +146,17 @@ public final class VentaView extends HBox {
         metodoPago.getItems().setAll(MetodoPago.values());
         metodoPago.setValue(MetodoPago.EFECTIVO);
         metodoPago.getStyleClass().add("pos-control");
+        metodoPago.setMinWidth(220);
+        metodoPago.setPrefWidth(230);
         metodoPago.setMaxWidth(Double.MAX_VALUE);
 
         recibido.setPromptText("Efectivo recibido");
         recibido.getStyleClass().add("pos-control");
+        recibido.setMinWidth(160);
         recibido.setMaxWidth(Double.MAX_VALUE);
 
         VBox paymentMethod = compactPaymentField("Pago", metodoPago);
+        paymentMethod.setMinWidth(220);
         VBox receivedField = compactPaymentField("Recibido (Gs.)", recibido);
         HBox.setHgrow(paymentMethod, Priority.ALWAYS);
         HBox.setHgrow(receivedField, Priority.ALWAYS);
@@ -152,7 +167,6 @@ public final class VentaView extends HBox {
         VBox changeBlock = summaryBlock("VUELTO", vuelto, "pos-change");
         HBox.setHgrow(totalBlock, Priority.ALWAYS);
         HBox.setHgrow(changeBlock, Priority.ALWAYS);
-
         HBox summary = new HBox(8, totalBlock, changeBlock);
 
         Button cobrar = new Button("Cobrar venta");
@@ -397,6 +411,11 @@ public final class VentaView extends HBox {
             carrito.clear();
             recibido.clear();
             recargarProductos();
+            try {
+                onVentaRegistrada.run();
+            } catch (RuntimeException ignored) {
+                // La venta ya fue confirmada. El resumen se refrescará al volver a entrar a Caja.
+            }
             feedback.setText("Venta registrada · Ticket #" + result.nroTicket());
             feedback.setVisible(true);
             feedback.setManaged(true);
