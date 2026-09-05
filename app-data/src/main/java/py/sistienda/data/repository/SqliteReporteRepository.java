@@ -13,6 +13,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -161,6 +163,9 @@ public final class SqliteReporteRepository implements ReporteRepository {
     }
 
     private LocalDateTime parseDate(String value) {
-        return LocalDateTime.parse(value, SQLITE_DATE);
+        LocalDateTime utc = LocalDateTime.parse(value, SQLITE_DATE);
+        return utc.atZone(ZoneOffset.UTC)
+                .withZoneSameInstant(ZoneId.systemDefault())
+                .toLocalDateTime();
     }
 }
