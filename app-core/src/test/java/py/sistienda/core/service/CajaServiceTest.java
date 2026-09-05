@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.CajaSesion;
 import py.sistienda.core.model.EstadoCaja;
+import py.sistienda.core.model.ResumenVentasCaja;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.repository.CajaRepository;
 
@@ -62,6 +63,11 @@ class CajaServiceTest {
             current = new CajaSesion(current.id(), current.usuarioId(), current.fechaApertura(), LocalDateTime.now(),
                     current.montoApertura(), montoCierre, EstadoCaja.CERRADA, notas);
             return current;
+        }
+
+        @Override
+        public ResumenVentasCaja salesSummary(long cajaSesionId) {
+            return ResumenVentasCaja.vacio();
         }
     }
 }
