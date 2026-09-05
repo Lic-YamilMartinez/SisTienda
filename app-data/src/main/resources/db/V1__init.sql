@@ -76,6 +76,24 @@ CREATE TABLE IF NOT EXISTS caja_sesion (
   FOREIGN KEY (usuario_id) REFERENCES usuario(id)
 );
 
+-- MOVIMIENTOS DE CAJA
+CREATE TABLE IF NOT EXISTS caja_movimiento (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  caja_sesion_id   INTEGER NOT NULL,
+  usuario_id       INTEGER NOT NULL,
+  fecha            TEXT NOT NULL DEFAULT (datetime('now')),
+  tipo             TEXT NOT NULL CHECK (tipo IN ('INGRESO','EGRESO')),
+  categoria        TEXT NOT NULL,
+  concepto         TEXT NOT NULL,
+  monto            REAL NOT NULL CHECK (monto > 0),
+  referencia       TEXT,
+  FOREIGN KEY (caja_sesion_id) REFERENCES caja_sesion(id),
+  FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_caja_movimiento_sesion_fecha
+ON caja_movimiento(caja_sesion_id, fecha DESC);
+
 -- COMPRA
 CREATE TABLE IF NOT EXISTS compra (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
