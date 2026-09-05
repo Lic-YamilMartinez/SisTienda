@@ -27,9 +27,26 @@
     -fx-background-radius: 8;
     -fx-border-color: #dce1e8;
     -fx-border-radius: 8;
-    -fx-padding: 6 10 6 10;
-    -fx-min-height: 34;
-    -fx-pref-height: 34;
+    -fx-min-height: 38;
+    -fx-pref-height: 38;
+}
+
+.pos-search,
+.text-field.pos-control {
+    -fx-padding: 7 10 7 10;
+}
+
+.combo-box.pos-control {
+    -fx-padding: 0;
+}
+
+.combo-box.pos-control > .list-cell {
+    -fx-padding: 0 10 0 10;
+    -fx-alignment: center-left;
+}
+
+.combo-box.pos-control > .arrow-button {
+    -fx-padding: 0 10 0 8;
 }
 
 .pos-search:focused,
