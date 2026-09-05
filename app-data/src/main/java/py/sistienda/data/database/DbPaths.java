@@ -12,4 +12,8 @@ public final class DbPaths {
     public static Path devDbFile() {
         return devDataDir().resolve("sistienda.db");
     }
+
+    public static Path backupDir() {
+        return devDataDir().resolve("backups");
+    }
 }
