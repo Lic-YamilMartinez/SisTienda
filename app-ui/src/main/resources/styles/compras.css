@@ -1,0 +1,119 @@
+.purchase-metric-card {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 14;
+    -fx-padding: 13 16 13 16;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.035), 12, 0.08, 0, 4);
+}
+
+.purchase-metric-title {
+    -fx-text-fill: #667085;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.purchase-metric-value {
+    -fx-text-fill: #111827;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+}
+
+.purchase-metric-hint {
+    -fx-text-fill: #98a2b3;
+    -fx-font-size: 10px;
+}
+
+.purchase-history-card {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 14;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.035), 12, 0.08, 0, 4);
+}
+
+.purchase-search {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 8;
+    -fx-border-color: #dce1e8;
+    -fx-border-radius: 8;
+    -fx-padding: 8 10 8 10;
+}
+
+.purchase-search:focused {
+    -fx-background-color: white;
+    -fx-border-color: #fb923c;
+}
+
+.purchase-table {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.purchase-table .column-header-background {
+    -fx-background-color: #f8fafc;
+}
+
+.purchase-table .column-header,
+.purchase-table .filler {
+    -fx-background-color: transparent;
+    -fx-size: 38px;
+}
+
+.purchase-table .column-header .label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.purchase-table .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #eef2f6 transparent;
+    -fx-cell-size: 48px;
+}
+
+.purchase-table .table-row-cell:hover {
+    -fx-background-color: #fffaf5;
+}
+
+.purchase-detail-button,
+.purchase-add-button {
+    -fx-background-color: #fff3e8;
+    -fx-text-fill: #ea580c;
+    -fx-background-radius: 8;
+    -fx-font-weight: 800;
+    -fx-padding: 7 10 7 10;
+}
+
+.purchase-remove-button {
+    -fx-background-color: #fff1f2;
+    -fx-text-fill: #be123c;
+    -fx-background-radius: 7;
+    -fx-font-size: 10px;
+}
+
+.purchase-danger-button {
+    -fx-background-color: transparent;
+    -fx-border-color: #fecaca;
+    -fx-border-radius: 8;
+    -fx-text-fill: #b42318;
+    -fx-padding: 7 10 7 10;
+}
+
+.purchase-feedback {
+    -fx-background-color: #fff7ed;
+    -fx-text-fill: #c2410c;
+    -fx-padding: 7 10 7 10;
+    -fx-font-size: 10px;
+}
+
+.purchase-total {
+    -fx-text-fill: #111827;
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+}
+
+.purchase-detail-meta {
+    -fx-text-fill: #667085;
+    -fx-font-size: 11px;
+}

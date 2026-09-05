@@ -9,8 +9,10 @@ import py.sistienda.core.service.AuthService;
 import py.sistienda.core.service.BackupService;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.CategoriaService;
+import py.sistienda.core.service.CompraService;
 import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.ProductoService;
+import py.sistienda.core.service.ProveedorService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.StockService;
 import py.sistienda.core.service.VentaService;
@@ -19,15 +21,18 @@ import py.sistienda.data.database.SqliteConnectionFactory;
 import py.sistienda.data.repository.SqliteBackupRepository;
 import py.sistienda.data.repository.SqliteCajaRepository;
 import py.sistienda.data.repository.SqliteCategoriaRepository;
+import py.sistienda.data.repository.SqliteCompraRepository;
 import py.sistienda.data.repository.SqliteEmpresaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
 import py.sistienda.data.repository.SqliteProductoRepository;
+import py.sistienda.data.repository.SqliteProveedorRepository;
 import py.sistienda.data.repository.SqliteReporteRepository;
 import py.sistienda.data.repository.SqliteUsuarioRepository;
 import py.sistienda.data.repository.SqliteVentaRepository;
 import py.sistienda.ui.auth.LoginView;
 import py.sistienda.ui.caja.CajaView;
 import py.sistienda.ui.catalogo.CatalogoView;
+import py.sistienda.ui.compras.ComprasView;
 import py.sistienda.ui.configuracion.ConfiguracionView;
 import py.sistienda.ui.reportes.ReportesView;
 
@@ -73,11 +78,14 @@ public class MainApp extends Application {
         var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
         var reporteService = new ReporteService(new SqliteReporteRepository(connectionFactory));
         var empresaService = new EmpresaService(new SqliteEmpresaRepository(connectionFactory));
+        var proveedorService = new ProveedorService(new SqliteProveedorRepository(connectionFactory));
+        var compraService = new CompraService(new SqliteCompraRepository(connectionFactory));
 
         var root = new MainShell(
                 () -> new CatalogoView(categoriaService, productoService, stockService),
                 () -> new CajaView(cajaService, productoService, ventaService, reporteService, empresaService, usuario),
                 () -> new ReportesView(reporteService, empresaService),
+                () -> new ComprasView(proveedorService, productoService, compraService, usuario),
                 () -> new ConfiguracionView(empresaService, backupService),
                 usuario
         );
@@ -97,6 +105,7 @@ public class MainApp extends Application {
         addStyle(scene, "/styles/caja.css");
         addStyle(scene, "/styles/venta.css");
         addStyle(scene, "/styles/reportes.css");
+        addStyle(scene, "/styles/compras.css");
         addStyle(scene, "/styles/configuracion.css");
         addStyle(scene, "/styles/ticket.css");
     }

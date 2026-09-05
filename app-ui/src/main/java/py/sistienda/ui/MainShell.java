@@ -21,17 +21,20 @@ public final class MainShell extends BorderPane {
     private final Supplier<Node> catalogoSupplier;
     private final Supplier<Node> cajaSupplier;
     private final Supplier<Node> reportesSupplier;
+    private final Supplier<Node> comprasSupplier;
     private final Supplier<Node> configuracionSupplier;
 
     private Button catalogoButton;
     private Button cajaButton;
     private Button reportesButton;
+    private Button comprasButton;
     private Button configuracionButton;
 
     public MainShell(
             Supplier<Node> catalogoSupplier,
             Supplier<Node> cajaSupplier,
             Supplier<Node> reportesSupplier,
+            Supplier<Node> comprasSupplier,
             Supplier<Node> configuracionSupplier,
             Usuario usuario
     ) {
@@ -39,6 +42,7 @@ public final class MainShell extends BorderPane {
         this.catalogoSupplier = Objects.requireNonNull(catalogoSupplier);
         this.cajaSupplier = Objects.requireNonNull(cajaSupplier);
         this.reportesSupplier = Objects.requireNonNull(reportesSupplier);
+        this.comprasSupplier = Objects.requireNonNull(comprasSupplier);
         this.configuracionSupplier = Objects.requireNonNull(configuracionSupplier);
 
         getStyleClass().add("app-shell");
@@ -69,6 +73,9 @@ public final class MainShell extends BorderPane {
         reportesButton = navButton("▤", "Reportes");
         reportesButton.setOnAction(event -> showReportes());
 
+        comprasButton = navButton("▥", "Compras");
+        comprasButton.setOnAction(event -> showCompras());
+
         configuracionButton = navButton("⚙", "Configuración");
         configuracionButton.setOnAction(event -> showConfiguracion());
 
@@ -78,11 +85,11 @@ public final class MainShell extends BorderPane {
         Label userLabel = new Label("Sesión: " + usuario.username());
         userLabel.getStyleClass().add("sidebar-user");
 
-        Label version = new Label("MVP · Sprint 4");
+        Label version = new Label("MVP · Sprint 6");
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,
-                brandRow, section, catalogoButton, cajaButton, reportesButton, configuracionButton,
+                brandRow, section, catalogoButton, cajaButton, reportesButton, comprasButton, configuracionButton,
                 spacer, userLabel, version
         );
         sidebar.setPadding(new Insets(24, 18, 20, 18));
@@ -120,23 +127,19 @@ public final class MainShell extends BorderPane {
         activate(reportesButton);
     }
 
+    private void showCompras() {
+        setCenter(comprasSupplier.get());
+        activate(comprasButton);
+    }
+
     private void showConfiguracion() {
         setCenter(configuracionSupplier.get());
         activate(configuracionButton);
     }
 
     private void activate(Button activeButton) {
-        if (catalogoButton != null) {
-            catalogoButton.getStyleClass().remove("nav-button-active");
-        }
-        if (cajaButton != null) {
-            cajaButton.getStyleClass().remove("nav-button-active");
-        }
-        if (reportesButton != null) {
-            reportesButton.getStyleClass().remove("nav-button-active");
-        }
-        if (configuracionButton != null) {
-            configuracionButton.getStyleClass().remove("nav-button-active");
+        for (Button button : new Button[]{catalogoButton, cajaButton, reportesButton, comprasButton, configuracionButton}) {
+            if (button != null) button.getStyleClass().remove("nav-button-active");
         }
         if (activeButton != null && !activeButton.getStyleClass().contains("nav-button-active")) {
             activeButton.getStyleClass().add("nav-button-active");

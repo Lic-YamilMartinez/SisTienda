@@ -48,6 +48,21 @@ CREATE TABLE IF NOT EXISTS producto (
 
 CREATE INDEX IF NOT EXISTS idx_producto_nombre ON producto(nombre);
 
+-- PROVEEDORES
+CREATE TABLE IF NOT EXISTS proveedor (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  nombre           TEXT NOT NULL,
+  ruc              TEXT,
+  telefono         TEXT,
+  email            TEXT,
+  direccion        TEXT,
+  activo           INTEGER NOT NULL DEFAULT 1,
+  creado_en        TEXT NOT NULL DEFAULT (datetime('now')),
+  actualizado_en   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_proveedor_nombre ON proveedor(nombre COLLATE NOCASE);
+
 -- CAJA SESION
 CREATE TABLE IF NOT EXISTS caja_sesion (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,6 +74,37 @@ CREATE TABLE IF NOT EXISTS caja_sesion (
   estado           TEXT NOT NULL DEFAULT 'ABIERTA' CHECK (estado IN ('ABIERTA','CERRADA')),
   notas            TEXT,
   FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+);
+
+-- COMPRA
+CREATE TABLE IF NOT EXISTS compra (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  proveedor_id     INTEGER NOT NULL,
+  usuario_id       INTEGER NOT NULL,
+  fecha            TEXT NOT NULL DEFAULT (datetime('now')),
+  nro_documento    TEXT,
+  total            REAL NOT NULL CHECK (total >= 0),
+  observacion      TEXT,
+  FOREIGN KEY (proveedor_id) REFERENCES proveedor(id),
+  FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_compra_proveedor_documento
+ON compra(proveedor_id, nro_documento)
+WHERE nro_documento IS NOT NULL AND trim(nro_documento) <> '';
+
+CREATE INDEX IF NOT EXISTS idx_compra_fecha ON compra(fecha DESC);
+
+-- COMPRA DETALLE
+CREATE TABLE IF NOT EXISTS compra_detalle (
+  id               INTEGER PRIMARY KEY AUTOINCREMENT,
+  compra_id        INTEGER NOT NULL,
+  producto_id      INTEGER NOT NULL,
+  cantidad         REAL NOT NULL CHECK (cantidad > 0),
+  costo_unitario   REAL NOT NULL CHECK (costo_unitario >= 0),
+  subtotal         REAL NOT NULL CHECK (subtotal >= 0),
+  FOREIGN KEY (compra_id) REFERENCES compra(id) ON DELETE CASCADE,
+  FOREIGN KEY (producto_id) REFERENCES producto(id)
 );
 
 -- VENTA
@@ -117,7 +163,6 @@ BEGIN
   SELECT RAISE(ABORT, 'Stock insuficiente para realizar la venta')
   WHERE (SELECT stock_actual FROM producto WHERE id = NEW.producto_id) < NEW.cantidad;
 END;
-
 
 -- ACTUALIZA STOCK
 CREATE TRIGGER IF NOT EXISTS trg_mov_stock_insert
