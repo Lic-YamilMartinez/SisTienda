@@ -11,6 +11,7 @@ import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.CategoriaService;
 import py.sistienda.core.service.CompraService;
 import py.sistienda.core.service.EmpresaService;
+import py.sistienda.core.service.MovimientoCajaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ProveedorService;
 import py.sistienda.core.service.ReporteService;
@@ -23,6 +24,7 @@ import py.sistienda.data.repository.SqliteCajaRepository;
 import py.sistienda.data.repository.SqliteCategoriaRepository;
 import py.sistienda.data.repository.SqliteCompraRepository;
 import py.sistienda.data.repository.SqliteEmpresaRepository;
+import py.sistienda.data.repository.SqliteMovimientoCajaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
 import py.sistienda.data.repository.SqliteProductoRepository;
 import py.sistienda.data.repository.SqliteProveedorRepository;
@@ -75,6 +77,7 @@ public class MainApp extends Application {
         var productoService = new ProductoService(new SqliteProductoRepository(connectionFactory));
         var stockService = new StockService(new SqliteMovimientoStockRepository(connectionFactory));
         var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
+        var movimientoCajaService = new MovimientoCajaService(new SqliteMovimientoCajaRepository(connectionFactory));
         var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
         var reporteService = new ReporteService(new SqliteReporteRepository(connectionFactory));
         var empresaService = new EmpresaService(new SqliteEmpresaRepository(connectionFactory));
@@ -83,7 +86,8 @@ public class MainApp extends Application {
 
         var root = new MainShell(
                 () -> new CatalogoView(categoriaService, productoService, stockService),
-                () -> new CajaView(cajaService, productoService, ventaService, reporteService, empresaService, usuario),
+                () -> new CajaView(cajaService, movimientoCajaService, productoService, ventaService,
+                        reporteService, empresaService, usuario),
                 () -> new ReportesView(reporteService, empresaService),
                 () -> new ComprasView(proveedorService, productoService, compraService, usuario),
                 () -> new ConfiguracionView(empresaService, backupService),
