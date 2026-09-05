@@ -134,7 +134,8 @@ public final class CatalogoView extends BorderPane {
         buscar.getStyleClass().add("search-field");
         buscar.setPrefWidth(330);
 
-        filtroCategoria.setPrefWidth(210);
+        filtroCategoria.setPrefWidth(250);
+        filtroCategoria.setMinWidth(250);
         filtroCategoria.getStyleClass().add("filter-combo");
 
         Label count = new Label();
