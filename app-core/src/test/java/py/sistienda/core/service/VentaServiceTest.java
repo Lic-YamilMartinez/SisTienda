@@ -59,6 +59,20 @@ class VentaServiceTest {
     }
 
     @Test
+    void vender_rechazaStockInsuficienteAcumuladoEnLineasDuplicadas() {
+        VentaService service = new VentaService(new FakeVentaRepository());
+        Producto producto = producto(UnidadMedida.UN, 8000, 6000, 3);
+
+        assertThrows(ValidationException.class, () -> service.vender(
+                usuario,
+                caja,
+                List.of(new LineaVenta(producto, 2), new LineaVenta(producto, 2)),
+                MetodoPago.EFECTIVO,
+                40000
+        ));
+    }
+
+    @Test
     void venderProductoPorUnidad_rechazaCantidadDecimal() {
         VentaService service = new VentaService(new FakeVentaRepository());
         Producto producto = producto(UnidadMedida.UN, 8000, 6000, 10);
