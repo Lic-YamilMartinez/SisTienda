@@ -12,19 +12,22 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import py.sistienda.core.model.Usuario;
 
+import java.util.Objects;
+import java.util.function.Supplier;
+
 public final class MainShell extends BorderPane {
 
     private final Usuario usuario;
-    private final Node catalogoView;
-    private final Node cajaView;
+    private final Supplier<Node> catalogoSupplier;
+    private final Supplier<Node> cajaSupplier;
 
     private Button catalogoButton;
     private Button cajaButton;
 
-    public MainShell(Node catalogoView, Node cajaView, Usuario usuario) {
-        this.usuario = usuario;
-        this.catalogoView = catalogoView;
-        this.cajaView = cajaView;
+    public MainShell(Supplier<Node> catalogoSupplier, Supplier<Node> cajaSupplier, Usuario usuario) {
+        this.usuario = Objects.requireNonNull(usuario);
+        this.catalogoSupplier = Objects.requireNonNull(catalogoSupplier);
+        this.cajaSupplier = Objects.requireNonNull(cajaSupplier);
 
         getStyleClass().add("app-shell");
         setLeft(buildSidebar());
@@ -90,12 +93,12 @@ public final class MainShell extends BorderPane {
     }
 
     private void showCatalogo() {
-        setCenter(catalogoView);
+        setCenter(catalogoSupplier.get());
         activate(catalogoButton);
     }
 
     private void showCaja() {
-        setCenter(cajaView);
+        setCenter(cajaSupplier.get());
         activate(cajaButton);
     }
 
