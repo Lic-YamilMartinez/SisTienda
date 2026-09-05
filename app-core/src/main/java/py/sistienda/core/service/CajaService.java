@@ -2,6 +2,7 @@ package py.sistienda.core.service;
 
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.CajaSesion;
+import py.sistienda.core.model.ResumenVentasCaja;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.repository.CajaRepository;
 
@@ -19,6 +20,11 @@ public final class CajaService {
     public Optional<CajaSesion> obtenerAbierta(Usuario usuario) {
         Objects.requireNonNull(usuario);
         return cajaRepository.findOpenByUser(usuario.id());
+    }
+
+    public ResumenVentasCaja resumenVentas(CajaSesion sesion) {
+        Objects.requireNonNull(sesion);
+        return cajaRepository.salesSummary(sesion.id());
     }
 
     public CajaSesion abrir(Usuario usuario, double montoApertura, String notas) {
