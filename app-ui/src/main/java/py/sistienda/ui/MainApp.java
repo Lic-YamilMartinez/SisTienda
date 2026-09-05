@@ -6,16 +6,19 @@ import javafx.stage.Stage;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.security.PasswordHasher;
 import py.sistienda.core.service.AuthService;
+import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.CategoriaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.StockService;
 import py.sistienda.data.database.DatabaseInitializer;
 import py.sistienda.data.database.SqliteConnectionFactory;
+import py.sistienda.data.repository.SqliteCajaRepository;
 import py.sistienda.data.repository.SqliteCategoriaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
 import py.sistienda.data.repository.SqliteProductoRepository;
 import py.sistienda.data.repository.SqliteUsuarioRepository;
 import py.sistienda.ui.auth.LoginView;
+import py.sistienda.ui.caja.CajaView;
 import py.sistienda.ui.catalogo.CatalogoView;
 
 public class MainApp extends Application {
@@ -48,13 +51,15 @@ public class MainApp extends Application {
         var categoriaService = new CategoriaService(new SqliteCategoriaRepository(connectionFactory));
         var productoService = new ProductoService(new SqliteProductoRepository(connectionFactory));
         var stockService = new StockService(new SqliteMovimientoStockRepository(connectionFactory));
+        var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
 
         var catalogo = new CatalogoView(categoriaService, productoService, stockService);
-        var root = new MainShell(catalogo, usuario);
+        var caja = new CajaView(cajaService, usuario);
+        var root = new MainShell(catalogo, caja, usuario);
         var scene = new Scene(root, 1360, 820);
         applyStyles(scene);
 
-        stage.setTitle("SisTienda · Catálogo & Stock");
+        stage.setTitle("SisTienda");
         stage.setMinWidth(1080);
         stage.setMinHeight(700);
         stage.setScene(scene);
@@ -62,13 +67,15 @@ public class MainApp extends Application {
     }
 
     private void applyStyles(Scene scene) {
-        var appCss = MainApp.class.getResource("/styles/app.css");
-        if (appCss != null) {
-            scene.getStylesheets().add(appCss.toExternalForm());
-        }
-        var authCss = MainApp.class.getResource("/styles/auth.css");
-        if (authCss != null) {
-            scene.getStylesheets().add(authCss.toExternalForm());
+        addStyle(scene, "/styles/app.css");
+        addStyle(scene, "/styles/auth.css");
+        addStyle(scene, "/styles/caja.css");
+    }
+
+    private void addStyle(Scene scene, String path) {
+        var css = MainApp.class.getResource(path);
+        if (css != null) {
+            scene.getStylesheets().add(css.toExternalForm());
         }
     }
 
