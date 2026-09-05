@@ -62,9 +62,13 @@ public class MainApp extends Application {
     }
 
     private void applyStyles(Scene scene) {
-        var css = MainApp.class.getResource("/styles/app.css");
-        if (css != null) {
-            scene.getStylesheets().add(css.toExternalForm());
+        var appCss = MainApp.class.getResource("/styles/app.css");
+        if (appCss != null) {
+            scene.getStylesheets().add(appCss.toExternalForm());
+        }
+        var authCss = MainApp.class.getResource("/styles/auth.css");
+        if (authCss != null) {
+            scene.getStylesheets().add(authCss.toExternalForm());
         }
     }
 
