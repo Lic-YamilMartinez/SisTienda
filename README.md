@@ -10,8 +10,9 @@ El MVP de SisTienda contempla:
 - Gestión de stock con entradas, salidas y control de stock negativo.
 - Caja y sesiones de caja.
 - Ventas y detalle de ventas.
-- Ticket.
-- Informe diario de ventas, movimientos y ganancia.
+- Ticket correlativo y consulta de ticket.
+- Informe diario de ventas y ganancia.
+- Historial diario de ventas.
 
 ## Sprint 1 — Catálogo & Stock
 
@@ -44,9 +45,27 @@ El flujo operativo del MVP incorpora:
 - Checkout compacto con método de pago, recibido, total, vuelto y cobro siempre visibles.
 - Barra compacta de estado de caja y cierre mediante diálogo, sin desplazamiento vertical durante cada venta.
 - Métodos de pago en efectivo, tarjeta y transferencia.
+- Resumen en vivo de la caja abierta por método de pago.
 - Ticket correlativo.
 - Registro atómico de venta, detalle y movimientos de stock.
 - Refresco del catálogo y caja al navegar entre módulos.
+
+## Sprint 3 — Reportes & Control
+
+El módulo de reportes incorpora:
+
+- Reporte diario por fecha seleccionable.
+- Ventas totales del día.
+- Ganancia total del día.
+- Cantidad de tickets.
+- Ticket promedio.
+- Desglose por efectivo, transferencia y tarjeta.
+- Historial diario de ventas con hora, ticket, usuario, pago, total, ganancia y estado.
+- Apertura del detalle de cada ticket desde la tabla.
+- Detalle de productos, cantidades, precio unitario y subtotal.
+- Información de pago, recibido, vuelto, total y ganancia dentro del ticket.
+- Exclusión de ventas anuladas de las métricas del día, manteniéndolas visibles en el historial.
+- Conversión de timestamps UTC de SQLite a la zona horaria local para visualización.
 
 ## Stack tecnológico
 
@@ -207,6 +226,7 @@ Para cambios nuevos se utilizan ramas dedicadas, por ejemplo:
 ```text
 feature/sprint-1-catalog-stock
 feature/sprint-2-login-caja-ventas
+feature/sprint-3-reportes-control
 fix/stock-negativo
 ```
 
@@ -239,15 +259,16 @@ Cualquier agente que trabaje sobre el repositorio debe leer ese archivo antes de
 Completado:
 - Sprint 0: arquitectura, documentación, tests base y CI.
 - Sprint 1: catálogo de productos, categorías y movimientos de stock.
-
-En validación:
 - Sprint 2: login, caja, ventas y experiencia compacta de punto de venta.
 
+En validación:
+- Sprint 3: reporte diario, ganancia, historial y detalle de tickets.
+
 Pendiente para siguientes sprints:
-- Ticket imprimible.
-- Informe diario y ganancia.
-- Reportes.
+- Ticket imprimible / impresión física.
 - Configuración de empresa.
+- Anulación operativa de ventas con reversión de stock.
+- Reportes por rangos de fecha y análisis ampliados.
 - Ampliar cobertura de tests junto con cada funcionalidad.
 
 ## Principio rector
