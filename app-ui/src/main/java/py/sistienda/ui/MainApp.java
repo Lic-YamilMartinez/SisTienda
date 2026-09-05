@@ -10,6 +10,7 @@ import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.CategoriaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.StockService;
+import py.sistienda.core.service.VentaService;
 import py.sistienda.data.database.DatabaseInitializer;
 import py.sistienda.data.database.SqliteConnectionFactory;
 import py.sistienda.data.repository.SqliteCajaRepository;
@@ -17,6 +18,7 @@ import py.sistienda.data.repository.SqliteCategoriaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
 import py.sistienda.data.repository.SqliteProductoRepository;
 import py.sistienda.data.repository.SqliteUsuarioRepository;
+import py.sistienda.data.repository.SqliteVentaRepository;
 import py.sistienda.ui.auth.LoginView;
 import py.sistienda.ui.caja.CajaView;
 import py.sistienda.ui.catalogo.CatalogoView;
@@ -52,9 +54,10 @@ public class MainApp extends Application {
         var productoService = new ProductoService(new SqliteProductoRepository(connectionFactory));
         var stockService = new StockService(new SqliteMovimientoStockRepository(connectionFactory));
         var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
+        var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
 
         var catalogo = new CatalogoView(categoriaService, productoService, stockService);
-        var caja = new CajaView(cajaService, usuario);
+        var caja = new CajaView(cajaService, productoService, ventaService, usuario);
         var root = new MainShell(catalogo, caja, usuario);
         var scene = new Scene(root, 1360, 820);
         applyStyles(scene);
@@ -70,6 +73,7 @@ public class MainApp extends Application {
         addStyle(scene, "/styles/app.css");
         addStyle(scene, "/styles/auth.css");
         addStyle(scene, "/styles/caja.css");
+        addStyle(scene, "/styles/venta.css");
     }
 
     private void addStyle(Scene scene, String path) {
