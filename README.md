@@ -3,56 +3,50 @@
 SisTienda es una aplicación desktop offline para Windows orientada a la gestión de tiendas. Está construida con Java 21, JavaFX 21 y SQLite, utilizando Gradle como sistema de build y una arquitectura multi-módulo.
 
 ## Objetivo del MVP
-
-El MVP contempla:
+El MVP de SisTienda contempla:
 
 - Login de dueño.
 - Categorías y productos por unidad o kilogramo.
 - Gestión de stock con entradas, salidas y control de stock negativo.
 - Caja y sesiones de caja.
 - Ventas y detalle de ventas.
-- Ticket correlativo.
+- Ticket.
 - Informe diario de ventas, movimientos y ganancia.
 
 ## Sprint 1 — Catálogo & Stock
 
-Incluye:
+El módulo de catálogo e inventario incluye:
 
 - Alta de categorías.
 - Alta, edición y desactivación segura de productos.
 - Productos vendidos por unidad o kilogramo.
 - Precio de venta y costo.
 - Búsqueda y filtro por categoría.
-- Indicadores de inventario.
-- Entradas y salidas de stock con trazabilidad.
-- Control de stock negativo en negocio y SQLite.
-- Protección para no cambiar UN/KG ni desactivar productos mientras exista stock.
-- Interfaz JavaFX con navegación lateral, tarjetas, tabla y diálogos guiados.
+- Indicadores de productos activos, faltantes, categorías y valor de inventario al costo.
+- Entradas y salidas de stock con motivo, referencia y observación.
+- Control de stock negativo tanto en negocio como en SQLite.
+- Protección para no cambiar la unidad de venta mientras exista stock.
+- Protección para no desactivar productos que todavía tengan existencias.
+- Interfaz JavaFX con navegación lateral, tarjetas de resumen, tabla de catálogo y diálogos guiados.
 
-El stock no se edita directamente en el producto: toda variación se registra como movimiento.
+El stock no se edita directamente en el producto: toda variación se registra como un movimiento para conservar trazabilidad.
 
 ## Sprint 2 — Login, Caja & Ventas
 
-Incluye:
+El flujo operativo del MVP incorpora:
 
 - Primera configuración del usuario dueño.
 - Login obligatorio antes de acceder al sistema.
-- Contraseñas protegidas con PBKDF2-HMAC-SHA256, salt aleatorio e iteraciones.
-- Sesión del usuario visible en la aplicación.
-- Apertura de caja con fondo inicial y notas.
-- Cierre de caja con monto contado y notas.
-- Navegación habilitada entre Catálogo y Caja.
-- Punto de venta con búsqueda de productos.
-- Carrito con cantidades para productos por unidad o kilogramo.
-- Métodos de pago: efectivo, tarjeta y transferencia.
-- Cálculo de total y vuelto.
+- Contraseñas protegidas con PBKDF2-HMAC-SHA256 y salt aleatorio.
+- Apertura de caja con fondo inicial.
+- Cierre de caja con monto contado.
+- Punto de venta con productos y carrito en paralelo.
+- Checkout compacto con método de pago, recibido, total, vuelto y cobro siempre visibles.
+- Barra compacta de estado de caja y cierre mediante diálogo, sin desplazamiento vertical durante cada venta.
+- Métodos de pago en efectivo, tarjeta y transferencia.
 - Ticket correlativo.
-- Registro de venta y detalle.
-- Salida automática de stock asociada a la venta.
-- Venta, detalle, ticket y movimientos de stock guardados en una única transacción SQLite.
-- Validación de stock en negocio y en base de datos.
-
-El sistema no permite registrar ventas sin una caja abierta.
+- Registro atómico de venta, detalle y movimientos de stock.
+- Refresco del catálogo y caja al navegar entre módulos.
 
 ## Stack tecnológico
 
@@ -60,10 +54,11 @@ El sistema no permite registrar ventas sin una caja abierta.
 - JavaFX 21.0.4
 - SQLite mediante `org.xerial:sqlite-jdbc`
 - Gradle 8.10.2
-- JUnit 5
-- GitHub Actions
+- JUnit 5 para pruebas
+- GitHub Actions para CI
 
 ## Arquitectura
+SisTienda está dividido en tres módulos:
 
 ```text
 SisTienda
@@ -73,41 +68,40 @@ SisTienda
 ```
 
 ### app-core
+Contiene el dominio y las reglas de negocio.
 
-Contiene dominio y reglas de negocio:
+Responsabilidades principales:
+- Modelos de dominio.
+- Contratos de repositorio.
+- Servicios.
+- Validaciones.
+- Excepciones de negocio.
 
-- modelos;
-- contratos de repositorio;
-- servicios;
-- validaciones;
-- excepciones;
-- seguridad basada únicamente en APIs estándar de Java.
-
-No depende de JavaFX, JDBC ni SQLite.
+Este módulo no debe depender de JavaFX, JDBC ni SQLite.
 
 ### app-data
+Contiene la infraestructura de persistencia.
 
-Contiene persistencia:
+Responsabilidades principales:
+- Inicialización de SQLite.
+- Conexiones a la base de datos.
+- Implementaciones concretas de repositorios.
+- Acceso JDBC.
+- Recursos SQL.
 
-- inicialización SQLite;
-- fábrica de conexiones;
-- repositorios JDBC;
-- transacciones;
-- recursos SQL.
-
-Depende de `app-core`.
+Este módulo depende de `app-core`.
 
 ### app-ui
+Contiene la aplicación JavaFX.
 
-Contiene JavaFX:
+Responsabilidades principales:
+- `MainApp`.
+- Shell y navegación.
+- Vistas y diálogos.
+- Componentes visuales.
+- CSS.
 
-- `MainApp`;
-- shell y navegación;
-- login;
-- catálogo;
-- caja;
-- punto de venta;
-- diálogos y estilos CSS.
+Este módulo depende de `app-core` y `app-data` para el bootstrap de la aplicación.
 
 ## Dependencias entre módulos
 
@@ -116,6 +110,10 @@ app-core   <-   app-data
    ^              ^
    └----------- app-ui
 ```
+
+- `app-core` no depende de `app-data` ni de `app-ui`.
+- `app-data` depende de `app-core`.
+- `app-ui` depende de `app-core` y `app-data` para composición/bootstrap.
 
 ## Flujo de ejecución
 
@@ -131,24 +129,22 @@ repository implementation / app-data
 SQLite
 ```
 
-La UI no ejecuta SQL directamente.
+La UI no debe ejecutar SQL directamente. Los contratos de repositorio pertenecen a `app-core` y sus implementaciones SQLite pertenecen a `app-data`.
 
 ## Base de datos
-
-La base de desarrollo se almacena en:
+La base de desarrollo se almacena dentro del directorio del usuario en:
 
 ```text
 ~/.sistienda/dev/sistienda.db
 ```
 
-El esquema se encuentra en:
+El esquema inicial se encuentra en:
 
 ```text
 app-data/src/main/resources/db/V1__init.sql
 ```
 
-Tablas principales:
-
+Actualmente contempla, entre otras, las siguientes tablas:
 - `empresa`
 - `usuario`
 - `categoria_producto`
@@ -159,9 +155,9 @@ Tablas principales:
 - `mov_stock`
 - `secuencia`
 
-SQLite incluye triggers para impedir stock negativo y mantener `stock_actual` sincronizado.
+La base incluye triggers para evitar salidas de stock superiores a la existencia disponible y para mantener `stock_actual` actualizado.
 
-## Ejecutar
+## Ejecutar el proyecto
 
 ### Windows
 
@@ -189,29 +185,24 @@ gradlew.bat clean build
 ./gradlew clean build
 ```
 
-Tests:
+La suite de tests se ejecuta como parte de `build` y también puede ejecutarse con:
 
 ```bash
 ./gradlew test
 ```
 
-La suite incluye tests unitarios de servicios y pruebas de integración con SQLite temporal para catálogo, usuarios, caja y ventas.
+GitHub Actions ejecuta `./gradlew clean build --no-daemon` para validar pushes de ramas de trabajo y pull requests hacia `develop`.
 
-GitHub Actions ejecuta:
-
-```bash
-./gradlew clean build --no-daemon
-```
+No se debe considerar un cambio verificado hasta ejecutar el build correctamente.
 
 ## Flujo de trabajo Git
-
-Rama base:
+La rama base de desarrollo es:
 
 ```text
 develop
 ```
 
-Ejemplos de ramas:
+Para cambios nuevos se utilizan ramas dedicadas, por ejemplo:
 
 ```text
 feature/sprint-1-catalog-stock
@@ -219,7 +210,7 @@ feature/sprint-2-login-caja-ventas
 fix/stock-negativo
 ```
 
-No se desarrolla funcionalidad importante directamente sobre `develop` y no se hace merge sin revisión explícita.
+No se deben desarrollar funcionalidades importantes directamente sobre `develop` ni hacer merge sin revisión explícita.
 
 ## Convención de commits
 
@@ -230,36 +221,34 @@ refactor: reorganización interna
 chore: mantenimiento
 build: cambios de build o dependencias
 test: pruebas
-ci: integración continua
+ci: automatización de integración continua
 docs: documentación
 ```
 
 ## Reglas para agentes y Codex
-
-Las reglas operativas se encuentran en:
+Las reglas operativas del proyecto se encuentran en:
 
 ```text
 AGENTS.md
 ```
 
-Cualquier agente debe leer ese archivo antes de modificar código.
+Cualquier agente que trabaje sobre el repositorio debe leer ese archivo antes de modificar código.
 
 ## Estado actual
 
 Completado:
-
 - Sprint 0: arquitectura, documentación, tests base y CI.
-- Sprint 1: catálogo, categorías y stock.
-- Sprint 2: login, caja y punto de venta en fase de validación final antes de merge.
+- Sprint 1: catálogo de productos, categorías y movimientos de stock.
 
-Siguientes frentes del MVP:
+En validación:
+- Sprint 2: login, caja, ventas y experiencia compacta de punto de venta.
 
-- ticket imprimible;
-- informe diario;
-- reportes de ventas y ganancia;
-- configuración de empresa;
-- ampliación de cobertura de tests.
+Pendiente para siguientes sprints:
+- Ticket imprimible.
+- Informe diario y ganancia.
+- Reportes.
+- Configuración de empresa.
+- Ampliar cobertura de tests junto con cada funcionalidad.
 
 ## Principio rector
-
-SisTienda debe mantenerse simple, estable y entendible. La prioridad es un MVP desktop confiable sin mezclar lógica de negocio, interfaz y persistencia.
+SisTienda debe mantenerse simple, estable y entendible. La prioridad es construir un MVP desktop confiable sin mezclar lógica de negocio, interfaz y persistencia.
