@@ -20,14 +20,22 @@ public final class MainShell extends BorderPane {
     private final Usuario usuario;
     private final Supplier<Node> catalogoSupplier;
     private final Supplier<Node> cajaSupplier;
+    private final Supplier<Node> reportesSupplier;
 
     private Button catalogoButton;
     private Button cajaButton;
+    private Button reportesButton;
 
-    public MainShell(Supplier<Node> catalogoSupplier, Supplier<Node> cajaSupplier, Usuario usuario) {
+    public MainShell(
+            Supplier<Node> catalogoSupplier,
+            Supplier<Node> cajaSupplier,
+            Supplier<Node> reportesSupplier,
+            Usuario usuario
+    ) {
         this.usuario = Objects.requireNonNull(usuario);
         this.catalogoSupplier = Objects.requireNonNull(catalogoSupplier);
         this.cajaSupplier = Objects.requireNonNull(cajaSupplier);
+        this.reportesSupplier = Objects.requireNonNull(reportesSupplier);
 
         getStyleClass().add("app-shell");
         setLeft(buildSidebar());
@@ -54,8 +62,9 @@ public final class MainShell extends BorderPane {
         cajaButton = navButton("▣", "Caja");
         cajaButton.setOnAction(event -> showCaja());
 
-        Button reportes = navButton("▤", "Reportes");
-        reportes.setDisable(true);
+        reportesButton = navButton("▤", "Reportes");
+        reportesButton.setOnAction(event -> showReportes());
+
         Button configuracion = navButton("⚙", "Configuración");
         configuracion.setDisable(true);
 
@@ -65,11 +74,11 @@ public final class MainShell extends BorderPane {
         Label userLabel = new Label("Sesión: " + usuario.username());
         userLabel.getStyleClass().add("sidebar-user");
 
-        Label version = new Label("MVP · Sprint 2");
+        Label version = new Label("MVP · Sprint 3");
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,
-                brandRow, section, catalogoButton, cajaButton, reportes, configuracion,
+                brandRow, section, catalogoButton, cajaButton, reportesButton, configuracion,
                 spacer, userLabel, version
         );
         sidebar.setPadding(new Insets(24, 18, 20, 18));
@@ -102,12 +111,20 @@ public final class MainShell extends BorderPane {
         activate(cajaButton);
     }
 
+    private void showReportes() {
+        setCenter(reportesSupplier.get());
+        activate(reportesButton);
+    }
+
     private void activate(Button activeButton) {
         if (catalogoButton != null) {
             catalogoButton.getStyleClass().remove("nav-button-active");
         }
         if (cajaButton != null) {
             cajaButton.getStyleClass().remove("nav-button-active");
+        }
+        if (reportesButton != null) {
+            reportesButton.getStyleClass().remove("nav-button-active");
         }
         if (activeButton != null && !activeButton.getStyleClass().contains("nav-button-active")) {
             activeButton.getStyleClass().add("nav-button-active");
