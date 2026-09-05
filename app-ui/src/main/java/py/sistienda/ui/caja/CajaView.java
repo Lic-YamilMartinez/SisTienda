@@ -1,20 +1,22 @@
 package py.sistienda.ui.caja;
 
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.CajaSesion;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.service.CajaService;
+import py.sistienda.core.service.ProductoService;
+import py.sistienda.core.service.VentaService;
+import py.sistienda.ui.venta.VentaView;
 
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
@@ -25,19 +27,33 @@ public final class CajaView extends BorderPane {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final CajaService cajaService;
+    private final ProductoService productoService;
+    private final VentaService ventaService;
     private final Usuario usuario;
 
     private final VBox body = new VBox();
     private final Label feedback = new Label();
 
-    public CajaView(CajaService cajaService, Usuario usuario) {
+    public CajaView(
+            CajaService cajaService,
+            ProductoService productoService,
+            VentaService ventaService,
+            Usuario usuario
+    ) {
         this.cajaService = cajaService;
+        this.productoService = productoService;
+        this.ventaService = ventaService;
         this.usuario = usuario;
 
         getStyleClass().add("content-area");
         setPadding(new Insets(28, 32, 28, 32));
         setTop(buildHeader());
-        setCenter(body);
+
+        ScrollPane scroll = new ScrollPane(body);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("cash-scroll");
+        setCenter(scroll);
+
         recargar();
     }
 
@@ -45,10 +61,10 @@ public final class CajaView extends BorderPane {
         Label eyebrow = new Label("OPERACIÓN");
         eyebrow.getStyleClass().add("eyebrow");
 
-        Label title = new Label("Caja");
+        Label title = new Label("Caja & Ventas");
         title.getStyleClass().add("page-title");
 
-        Label subtitle = new Label("Abrí, controlá y cerrá tu caja diaria desde un solo lugar.");
+        Label subtitle = new Label("Abrí la caja, registrá ventas y cerrá el turno desde un solo lugar.");
         subtitle.getStyleClass().add("page-subtitle");
 
         feedback.getStyleClass().add("feedback-label");
@@ -63,6 +79,7 @@ public final class CajaView extends BorderPane {
     private void recargar() {
         body.getChildren().clear();
         body.setSpacing(18);
+        body.setPadding(new Insets(0, 2, 12, 0));
         cajaService.obtenerAbierta(usuario)
                 .ifPresentOrElse(this::mostrarCajaAbierta, this::mostrarApertura);
     }
@@ -107,10 +124,20 @@ public final class CajaView extends BorderPane {
     }
 
     private void mostrarCajaAbierta(CajaSesion sesion) {
+        body.getChildren().add(buildStatusCard(sesion));
+
+        VentaView ventaView = new VentaView(productoService, ventaService, usuario, sesion);
+        ventaView.setMinHeight(520);
+        body.getChildren().add(ventaView);
+
+        body.getChildren().add(buildCloseCard(sesion));
+    }
+
+    private VBox buildStatusCard(CajaSesion sesion) {
         Label status = badge("Caja abierta", "cash-status-open");
         Label title = new Label("Caja lista para operar");
         title.getStyleClass().add("cash-title");
-        Label subtitle = new Label("La caja está abierta desde " + DATE_FORMAT.format(sesion.fechaApertura()) + ".");
+        Label subtitle = new Label("Abierta desde " + DATE_FORMAT.format(sesion.fechaApertura()) + ".");
         subtitle.getStyleClass().add("cash-subtitle");
 
         Label aperturaValue = metricValue(formatCurrency(sesion.montoApertura()));
@@ -124,9 +151,13 @@ public final class CajaView extends BorderPane {
         );
         metrics.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
 
-        Region divider = new Region();
-        divider.getStyleClass().add("cash-divider");
+        VBox card = new VBox(14, status, title, subtitle, metrics);
+        card.getStyleClass().add("cash-main-card");
+        card.setPadding(new Insets(22));
+        return card;
+    }
 
+    private VBox buildCloseCard(CajaSesion sesion) {
         Label closeTitle = new Label("Cerrar caja");
         closeTitle.getStyleClass().add("cash-section-title");
         Label closeHint = new Label("Al finalizar el turno, contá el efectivo real y registralo acá.");
@@ -150,18 +181,17 @@ public final class CajaView extends BorderPane {
             recargar();
         }));
 
-        VBox closeForm = new VBox(10,
-                closeTitle, closeHint,
+        VBox form = new VBox(10,
                 fieldLabel("Monto contado (Gs.)"), cierre,
                 fieldLabel("Notas"), notas,
                 cerrar
         );
-        closeForm.setMaxWidth(480);
+        form.setMaxWidth(480);
 
-        VBox card = new VBox(18, status, title, subtitle, metrics, divider, closeForm);
+        VBox card = new VBox(10, closeTitle, closeHint, form);
         card.getStyleClass().add("cash-main-card");
-        card.setPadding(new Insets(26));
-        body.getChildren().add(card);
+        card.setPadding(new Insets(22));
+        return card;
     }
 
     private VBox metricCard(String label, Label value, String hint) {
