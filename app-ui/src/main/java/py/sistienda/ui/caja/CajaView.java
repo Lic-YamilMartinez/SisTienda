@@ -1,12 +1,13 @@
 package py.sistienda.ui.caja;
 
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.Node;
+import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -14,10 +15,14 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.CajaSesion;
+import py.sistienda.core.model.ControlEfectivoCaja;
+import py.sistienda.core.model.MovimientoCaja;
 import py.sistienda.core.model.ResumenVentasCaja;
+import py.sistienda.core.model.TipoMovimientoCaja;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.EmpresaService;
+import py.sistienda.core.service.MovimientoCajaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.VentaService;
@@ -27,13 +32,16 @@ import py.sistienda.ui.venta.VentaView;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 
 public final class CajaView extends BorderPane {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final CajaService cajaService;
+    private final MovimientoCajaService movimientoCajaService;
     private final ProductoService productoService;
     private final VentaService ventaService;
     private final ReporteService reporteService;
@@ -46,9 +54,13 @@ public final class CajaView extends BorderPane {
     private final Label ventasTransferencia = new Label("Gs. 0");
     private final Label ventasTarjeta = new Label("Gs. 0");
     private final Label ventasTotal = new Label("Gs. 0");
+    private final Label movimientosIngresos = new Label("Gs. 0");
+    private final Label movimientosEgresos = new Label("Gs. 0");
+    private final Label efectivoEsperado = new Label("Gs. 0");
 
     public CajaView(
             CajaService cajaService,
+            MovimientoCajaService movimientoCajaService,
             ProductoService productoService,
             VentaService ventaService,
             ReporteService reporteService,
@@ -56,6 +68,7 @@ public final class CajaView extends BorderPane {
             Usuario usuario
     ) {
         this.cajaService = cajaService;
+        this.movimientoCajaService = movimientoCajaService;
         this.productoService = productoService;
         this.ventaService = ventaService;
         this.reporteService = reporteService;
@@ -76,7 +89,7 @@ public final class CajaView extends BorderPane {
         Label title = new Label("Caja & Ventas");
         title.getStyleClass().add("page-title");
 
-        Label subtitle = new Label("Vendé rápido con productos, carrito y cobro siempre visibles.");
+        Label subtitle = new Label("Vendé rápido y mantené controlado el efectivo real del turno.");
         subtitle.getStyleClass().add("page-subtitle");
 
         feedback.getStyleClass().add("feedback-label");
@@ -93,7 +106,7 @@ public final class CajaView extends BorderPane {
 
     private void recargar() {
         body.getChildren().clear();
-        body.setSpacing(9);
+        body.setSpacing(8);
         body.setPadding(Insets.EMPTY);
         body.setAlignment(Pos.TOP_LEFT);
 
@@ -143,6 +156,7 @@ public final class CajaView extends BorderPane {
     private void mostrarCajaAbierta(CajaSesion sesion) {
         HBox statusBar = buildStatusBar(sesion);
         HBox resumen = buildSalesSummaryBar(sesion);
+        HBox cashControl = buildCashControlBar(sesion);
         VentaView ventaView = new VentaView(
                 productoService,
                 ventaService,
@@ -150,6 +164,7 @@ public final class CajaView extends BorderPane {
                 sesion,
                 () -> {
                     actualizarResumenVentas(sesion);
+                    actualizarControlEfectivo(sesion);
                     mostrarUltimoTicket();
                 }
         );
@@ -158,7 +173,7 @@ public final class CajaView extends BorderPane {
         ventaView.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(ventaView, Priority.ALWAYS);
 
-        body.getChildren().addAll(statusBar, resumen, ventaView);
+        body.getChildren().addAll(statusBar, resumen, cashControl, ventaView);
         VBox.setVgrow(ventaView, Priority.ALWAYS);
     }
 
@@ -201,20 +216,53 @@ public final class CajaView extends BorderPane {
         return bar;
     }
 
+    private HBox buildCashControlBar(CajaSesion sesion) {
+        Label ingresosTitle = new Label("+ INGRESOS");
+        ingresosTitle.getStyleClass().add("cash-control-label");
+        movimientosIngresos.getStyleClass().addAll("cash-control-value", "cash-control-income");
+
+        Label egresosTitle = new Label("- EGRESOS");
+        egresosTitle.getStyleClass().add("cash-control-label");
+        movimientosEgresos.getStyleClass().addAll("cash-control-value", "cash-control-expense");
+
+        Label esperadoTitle = new Label("EFECTIVO ESPERADO");
+        esperadoTitle.getStyleClass().add("cash-control-label");
+        efectivoEsperado.getStyleClass().addAll("cash-control-value", "cash-control-expected");
+
+        HBox ingresos = compactMetric(ingresosTitle, movimientosIngresos);
+        HBox egresos = compactMetric(egresosTitle, movimientosEgresos);
+        HBox esperado = compactMetric(esperadoTitle, efectivoEsperado);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        Button movimientos = new Button("Movimientos");
+        movimientos.getStyleClass().add("cash-movement-button");
+        movimientos.setOnAction(event -> mostrarMovimientos(sesion));
+
+        HBox bar = new HBox(14, ingresos, separator(), egresos, separator(), esperado, spacer, movimientos);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPadding(new Insets(6, 10, 6, 12));
+        bar.getStyleClass().add("cash-control-bar");
+        actualizarControlEfectivo(sesion);
+        return bar;
+    }
+
+    private HBox compactMetric(Label title, Label value) {
+        HBox box = new HBox(6, title, value);
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
+    }
+
     private VBox salesMetric(String titleText, Label value, boolean totalMetric) {
         Label title = new Label(titleText);
         title.getStyleClass().add("cash-sales-label");
         value.getStyleClass().removeAll("cash-sales-value", "cash-sales-value-total");
         value.getStyleClass().add("cash-sales-value");
-        if (totalMetric) {
-            value.getStyleClass().add("cash-sales-value-total");
-        }
+        if (totalMetric) value.getStyleClass().add("cash-sales-value-total");
 
         VBox card = new VBox(1, title, value);
         card.getStyleClass().add("cash-sales-metric");
-        if (totalMetric) {
-            card.getStyleClass().add("cash-sales-metric-total");
-        }
+        if (totalMetric) card.getStyleClass().add("cash-sales-metric-total");
         card.setMaxWidth(Double.MAX_VALUE);
         return card;
     }
@@ -227,11 +275,136 @@ public final class CajaView extends BorderPane {
         ventasTotal.setText(formatCurrency(resumen.total()));
     }
 
+    private ControlEfectivoCaja actualizarControlEfectivo(CajaSesion sesion) {
+        ResumenVentasCaja ventas = cajaService.resumenVentas(sesion);
+        ControlEfectivoCaja control = movimientoCajaService.control(sesion, ventas.efectivo());
+        movimientosIngresos.setText(formatCurrency(control.ingresos()));
+        movimientosEgresos.setText(formatCurrency(control.egresos()));
+        efectivoEsperado.setText(formatCurrency(control.efectivoEsperado()));
+        return control;
+    }
+
+    private void mostrarMovimientos(CajaSesion sesion) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Movimientos de caja");
+        dialog.setHeaderText("Ingresos y egresos del turno actual");
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefSize(820, 560);
+
+        ObservableList<MovimientoCaja> items = FXCollections.observableArrayList(movimientoCajaService.listar(sesion));
+        TableView<MovimientoCaja> table = new TableView<>(items);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        table.setPlaceholder(new Label("Todavía no hay movimientos manuales en esta caja."));
+        table.getStyleClass().add("cash-movement-table");
+
+        TableColumn<MovimientoCaja, String> hora = new TableColumn<>("Hora");
+        hora.setCellValueFactory(cell -> new ReadOnlyStringWrapper(TIME_FORMAT.format(cell.getValue().fecha())));
+        hora.setPrefWidth(70);
+        TableColumn<MovimientoCaja, String> tipo = new TableColumn<>("Tipo");
+        tipo.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().tipo() == TipoMovimientoCaja.INGRESO ? "Ingreso" : "Egreso"));
+        tipo.setPrefWidth(85);
+        TableColumn<MovimientoCaja, String> categoria = new TableColumn<>("Categoría");
+        categoria.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().categoria()));
+        categoria.setPrefWidth(130);
+        TableColumn<MovimientoCaja, String> concepto = new TableColumn<>("Concepto");
+        concepto.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().concepto()));
+        concepto.setPrefWidth(240);
+        TableColumn<MovimientoCaja, String> monto = new TableColumn<>("Monto");
+        monto.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().monto())));
+        monto.setPrefWidth(110);
+        TableColumn<MovimientoCaja, String> user = new TableColumn<>("Usuario");
+        user.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().usuario()));
+        user.setPrefWidth(90);
+        table.getColumns().setAll(hora, tipo, categoria, concepto, monto, user);
+
+        Label resumen = new Label();
+        resumen.getStyleClass().add("cash-movement-summary-label");
+        Runnable refresh = () -> {
+            items.setAll(movimientoCajaService.listar(sesion));
+            var control = actualizarControlEfectivo(sesion);
+            resumen.setText("Ingresos " + formatCurrency(control.ingresos())
+                    + "   ·   Egresos " + formatCurrency(control.egresos())
+                    + "   ·   Esperado " + formatCurrency(control.efectivoEsperado()));
+        };
+        refresh.run();
+
+        Button ingreso = new Button("+ Ingreso");
+        ingreso.getStyleClass().add("cash-income-button");
+        ingreso.setOnAction(event -> {
+            if (registrarMovimiento(sesion, TipoMovimientoCaja.INGRESO)) refresh.run();
+        });
+        Button egreso = new Button("- Egreso / gasto");
+        egreso.getStyleClass().add("cash-expense-button");
+        egreso.setOnAction(event -> {
+            if (registrarMovimiento(sesion, TipoMovimientoCaja.EGRESO)) refresh.run();
+        });
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox toolbar = new HBox(8, resumen, spacer, ingreso, egreso);
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+
+        VBox content = new VBox(10, toolbar, table);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        dialog.getDialogPane().setContent(content);
+        applyDialogStyles(dialog);
+        dialog.showAndWait();
+    }
+
+    private boolean registrarMovimiento(CajaSesion sesion, TipoMovimientoCaja tipo) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle(tipo == TipoMovimientoCaja.INGRESO ? "Registrar ingreso" : "Registrar egreso");
+        dialog.setHeaderText(tipo == TipoMovimientoCaja.INGRESO ? "Dinero que entra a la caja" : "Dinero que sale de la caja");
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
+        ((Button) dialog.getDialogPane().lookupButton(ButtonType.OK)).setText("Registrar");
+        dialog.getDialogPane().setPrefWidth(470);
+
+        ComboBox<String> categoria = new ComboBox<>(FXCollections.observableArrayList(categorias(tipo)));
+        categoria.setValue(categorias(tipo).getFirst());
+        categoria.setMaxWidth(Double.MAX_VALUE);
+        TextField concepto = new TextField();
+        concepto.setPromptText(tipo == TipoMovimientoCaja.INGRESO ? "Ej.: Aporte de efectivo" : "Ej.: Pago de flete");
+        TextField monto = new TextField();
+        monto.setPromptText("Monto en Gs.");
+        TextField referencia = new TextField();
+        referencia.setPromptText("Factura, recibo o referencia opcional");
+
+        VBox content = new VBox(9,
+                field("Categoría", categoria),
+                field("Concepto", concepto),
+                field("Monto (Gs.)", monto),
+                field("Referencia", referencia)
+        );
+        dialog.getDialogPane().setContent(content);
+        applyDialogStyles(dialog);
+
+        boolean[] saved = {false};
+        Node ok = dialog.getDialogPane().lookupButton(ButtonType.OK);
+        ok.addEventFilter(ActionEvent.ACTION, event -> {
+            try {
+                movimientoCajaService.registrar(sesion, usuario, tipo, categoria.getValue(), concepto.getText(),
+                        parseMonto(monto.getText(), "monto"), referencia.getText());
+                saved[0] = true;
+            } catch (RuntimeException e) {
+                dialog.setHeaderText(rootMessage(e));
+                event.consume();
+            }
+        });
+        dialog.showAndWait();
+        if (saved[0]) mostrarFeedback(tipo == TipoMovimientoCaja.INGRESO ? "Ingreso registrado." : "Egreso registrado.");
+        return saved[0];
+    }
+
+    private List<String> categorias(TipoMovimientoCaja tipo) {
+        if (tipo == TipoMovimientoCaja.INGRESO) {
+            return List.of("Ingreso extra", "Aporte", "Devolución", "Reintegro", "Otro");
+        }
+        return List.of("Alquiler", "Luz", "Agua", "Internet", "Flete", "Compra menor", "Retiro", "Otro");
+    }
+
     private void mostrarUltimoTicket() {
         var ventas = reporteService.listarVentas(LocalDate.now());
-        if (ventas.isEmpty()) {
-            return;
-        }
+        if (ventas.isEmpty()) return;
         var ultima = ventas.getFirst();
         TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ultima.id()));
     }
@@ -243,6 +416,7 @@ public final class CajaView extends BorderPane {
     }
 
     private void mostrarDialogoCierre(CajaSesion sesion) {
+        ControlEfectivoCaja control = actualizarControlEfectivo(sesion);
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Cerrar caja");
         dialog.setHeaderText("Finalizar turno");
@@ -256,18 +430,36 @@ public final class CajaView extends BorderPane {
         notas.setPromptText("Nota opcional");
         notas.getStyleClass().add("cash-input");
 
-        Label hint = new Label("Contá el efectivo real y registralo antes de cerrar.");
+        Label esperado = new Label("Efectivo esperado: " + formatCurrency(control.efectivoEsperado()));
+        esperado.getStyleClass().add("cash-close-expected");
+        Label diferencia = new Label("Diferencia: —");
+        diferencia.getStyleClass().add("cash-close-difference");
+        cierre.textProperty().addListener((obs, oldValue, newValue) -> {
+            try {
+                if (newValue == null || newValue.isBlank()) {
+                    diferencia.setText("Diferencia: —");
+                    return;
+                }
+                double contado = parseMonto(newValue, "monto contado");
+                double diff = contado - control.efectivoEsperado();
+                diferencia.setText("Diferencia: " + (diff >= 0 ? "+" : "") + formatCurrency(diff));
+            } catch (RuntimeException e) {
+                diferencia.setText("Diferencia: —");
+            }
+        });
+
+        Label hint = new Label("Contá el efectivo real. SisTienda compara el monto contra fondo + ventas en efectivo + ingresos - egresos.");
         hint.getStyleClass().add("cash-subtitle");
         hint.setWrapText(true);
 
         VBox content = new VBox(9,
-                hint,
+                hint, esperado, diferencia,
                 fieldLabel("Monto contado (Gs.)"), cierre,
                 fieldLabel("Nota"), notas
         );
         content.setPadding(new Insets(8, 0, 0, 0));
         dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().setPrefWidth(430);
+        dialog.getDialogPane().setPrefWidth(460);
         applyDialogStyles(dialog);
 
         dialog.showAndWait()
@@ -286,6 +478,14 @@ public final class CajaView extends BorderPane {
         return box;
     }
 
+    private VBox field(String labelText, Control control) {
+        Label label = fieldLabel(labelText);
+        control.setMaxWidth(Double.MAX_VALUE);
+        VBox box = new VBox(5, label, control);
+        box.setMaxWidth(Double.MAX_VALUE);
+        return box;
+    }
+
     private Label fieldLabel(String text) {
         Label label = new Label(text);
         label.getStyleClass().add("form-label");
@@ -299,19 +499,14 @@ public final class CajaView extends BorderPane {
     }
 
     private double parseMonto(String value, String campo) {
-        if (value == null || value.isBlank()) {
-            throw new ValidationException("Ingresá el " + campo + ".");
-        }
+        if (value == null || value.isBlank()) throw new ValidationException("Ingresá el " + campo + ".");
         String normalized = value.trim()
                 .replace("Gs.", "")
                 .replace("Gs", "")
                 .replace("₲", "")
                 .replace(" ", "");
-        if (normalized.contains(",")) {
-            normalized = normalized.replace(".", "").replace(",", ".");
-        } else if (normalized.matches("\\d{1,3}(\\.\\d{3})+")) {
-            normalized = normalized.replace(".", "");
-        }
+        if (normalized.contains(",")) normalized = normalized.replace(".", "").replace(",", ".");
+        else if (normalized.matches("\\d{1,3}(\\.\\d{3})+")) normalized = normalized.replace(".", "");
         try {
             return Double.parseDouble(normalized);
         } catch (NumberFormatException e) {
@@ -322,6 +517,12 @@ public final class CajaView extends BorderPane {
     private String formatCurrency(double value) {
         NumberFormat format = NumberFormat.getIntegerInstance(new Locale("es", "PY"));
         return "Gs. " + format.format(Math.round(value));
+    }
+
+    private String rootMessage(Throwable error) {
+        Throwable current = error;
+        while (current.getCause() != null) current = current.getCause();
+        return current.getMessage() == null ? "No pudimos completar la operación." : current.getMessage();
     }
 
     private void mostrarFeedback(String message) {
@@ -336,11 +537,7 @@ public final class CajaView extends BorderPane {
         } catch (ValidationException e) {
             mostrarFeedback(e.getMessage());
         } catch (RuntimeException e) {
-            Throwable current = e;
-            while (current.getCause() != null) {
-                current = current.getCause();
-            }
-            mostrarFeedback(current.getMessage() == null ? "No pudimos completar la operación." : current.getMessage());
+            mostrarFeedback(rootMessage(e));
         }
     }
 
@@ -351,8 +548,6 @@ public final class CajaView extends BorderPane {
 
     private void addDialogStyle(Dialog<?> dialog, String path) {
         var css = CajaView.class.getResource(path);
-        if (css != null) {
-            dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
-        }
+        if (css != null) dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
     }
 }

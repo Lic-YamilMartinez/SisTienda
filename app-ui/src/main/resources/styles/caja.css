@@ -29,7 +29,8 @@
     -fx-text-fill: #475467;
 }
 
-.cash-status-bar {
+.cash-status-bar,
+.cash-control-bar {
     -fx-background-color: white;
     -fx-background-radius: 11;
     -fx-border-color: #e5e7eb;
@@ -70,20 +71,87 @@
     -fx-border-color: #fed7aa;
 }
 
-.cash-sales-label {
+.cash-sales-label,
+.cash-control-label {
     -fx-text-fill: #667085;
     -fx-font-size: 8px;
     -fx-font-weight: 800;
 }
 
-.cash-sales-value {
+.cash-sales-value,
+.cash-control-value {
     -fx-text-fill: #344054;
     -fx-font-size: 13px;
     -fx-font-weight: 900;
 }
 
-.cash-sales-value-total {
+.cash-sales-value-total,
+.cash-control-expected {
     -fx-text-fill: #c2410c;
+}
+
+.cash-control-income {
+    -fx-text-fill: #027a48;
+}
+
+.cash-control-expense {
+    -fx-text-fill: #b42318;
+}
+
+.cash-movement-button {
+    -fx-background-color: #fff7ed;
+    -fx-text-fill: #c2410c;
+    -fx-background-radius: 8;
+    -fx-border-color: #fed7aa;
+    -fx-border-radius: 8;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-padding: 6 10 6 10;
+}
+
+.cash-income-button {
+    -fx-background-color: #ecfdf3;
+    -fx-text-fill: #027a48;
+    -fx-background-radius: 8;
+    -fx-font-weight: 800;
+}
+
+.cash-expense-button {
+    -fx-background-color: #fef3f2;
+    -fx-text-fill: #b42318;
+    -fx-background-radius: 8;
+    -fx-font-weight: 800;
+}
+
+.cash-movement-summary-label {
+    -fx-text-fill: #475467;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+}
+
+.cash-movement-table .column-header .label {
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+}
+
+.cash-movement-table .table-cell {
+    -fx-padding: 7 8 7 8;
+    -fx-font-size: 10px;
+}
+
+.cash-close-expected {
+    -fx-background-color: #fff7ed;
+    -fx-background-radius: 8;
+    -fx-text-fill: #c2410c;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-padding: 8 10 8 10;
+}
+
+.cash-close-difference {
+    -fx-text-fill: #344054;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
 }
 
 .cash-title {
