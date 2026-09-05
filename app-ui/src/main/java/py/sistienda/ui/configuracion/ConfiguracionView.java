@@ -12,11 +12,13 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.Empresa;
+import py.sistienda.core.service.BackupService;
 import py.sistienda.core.service.EmpresaService;
 
 public final class ConfiguracionView extends BorderPane {
 
     private final EmpresaService empresaService;
+    private final BackupService backupService;
 
     private final TextField nombre = new TextField();
     private final TextField ruc = new TextField();
@@ -31,8 +33,9 @@ public final class ConfiguracionView extends BorderPane {
     private final Label previewTelefono = new Label();
     private final Label previewMensaje = new Label();
 
-    public ConfiguracionView(EmpresaService empresaService) {
+    public ConfiguracionView(EmpresaService empresaService, BackupService backupService) {
         this.empresaService = empresaService;
+        this.backupService = backupService;
 
         getStyleClass().add("content-area");
         setPadding(new Insets(20, 24, 20, 24));
@@ -44,11 +47,11 @@ public final class ConfiguracionView extends BorderPane {
     }
 
     private VBox buildHeader() {
-        Label eyebrow = new Label("PERSONALIZACIÓN");
+        Label eyebrow = new Label("PERSONALIZACIÓN & SEGURIDAD");
         eyebrow.getStyleClass().add("eyebrow");
         Label title = new Label("Configuración");
         title.getStyleClass().add("page-title");
-        Label subtitle = new Label("Definí los datos de tu tienda y cómo aparecerán en los tickets.");
+        Label subtitle = new Label("Personalizá tu tienda y protegé la información del negocio.");
         subtitle.getStyleClass().add("page-subtitle");
 
         feedback.getStyleClass().add("config-feedback");
@@ -61,14 +64,18 @@ public final class ConfiguracionView extends BorderPane {
     private HBox buildContent() {
         VBox formCard = buildFormCard();
         VBox previewCard = buildPreviewCard();
+        BackupPane backupPane = new BackupPane(backupService);
+        backupPane.setPadding(new Insets(18));
+
+        VBox rightColumn = new VBox(12, previewCard, backupPane);
+        rightColumn.setPrefWidth(410);
+        rightColumn.setMinWidth(370);
+        rightColumn.setMaxWidth(450);
 
         HBox.setHgrow(formCard, Priority.ALWAYS);
         formCard.setMaxWidth(Double.MAX_VALUE);
-        previewCard.setPrefWidth(390);
-        previewCard.setMinWidth(340);
-        previewCard.setMaxWidth(430);
 
-        HBox content = new HBox(14, formCard, previewCard);
+        HBox content = new HBox(14, formCard, rightColumn);
         content.setPadding(new Insets(14, 0, 0, 0));
         return content;
     }
@@ -142,11 +149,11 @@ public final class ConfiguracionView extends BorderPane {
         );
         paper.setAlignment(Pos.TOP_CENTER);
         paper.getStyleClass().add("config-ticket-preview");
-        paper.setPadding(new Insets(22));
+        paper.setPadding(new Insets(18));
 
-        VBox card = new VBox(12, title, hint, paper);
+        VBox card = new VBox(10, title, hint, paper);
         card.getStyleClass().add("config-card");
-        card.setPadding(new Insets(20));
+        card.setPadding(new Insets(18));
         return card;
     }
 

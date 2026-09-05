@@ -71,3 +71,26 @@
     -fx-padding: 8 0 0 0;
     -fx-font-weight: 700;
 }
+
+.backup-path-label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+}
+
+.backup-path-value {
+    -fx-text-fill: #344054;
+    -fx-font-size: 9px;
+    -fx-font-family: "Monospaced";
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 7;
+    -fx-padding: 6 8 6 8;
+}
+
+.backup-status {
+    -fx-background-color: #f0fdf4;
+    -fx-background-radius: 7;
+    -fx-text-fill: #166534;
+    -fx-padding: 6 8 6 8;
+    -fx-font-size: 9px;
+}

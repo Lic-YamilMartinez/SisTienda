@@ -6,6 +6,7 @@ import javafx.stage.Stage;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.security.PasswordHasher;
 import py.sistienda.core.service.AuthService;
+import py.sistienda.core.service.BackupService;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.CategoriaService;
 import py.sistienda.core.service.EmpresaService;
@@ -15,6 +16,7 @@ import py.sistienda.core.service.StockService;
 import py.sistienda.core.service.VentaService;
 import py.sistienda.data.database.DatabaseInitializer;
 import py.sistienda.data.database.SqliteConnectionFactory;
+import py.sistienda.data.repository.SqliteBackupRepository;
 import py.sistienda.data.repository.SqliteCajaRepository;
 import py.sistienda.data.repository.SqliteCategoriaRepository;
 import py.sistienda.data.repository.SqliteEmpresaRepository;
@@ -32,11 +34,19 @@ import py.sistienda.ui.reportes.ReportesView;
 public class MainApp extends Application {
 
     private SqliteConnectionFactory connectionFactory;
+    private BackupService backupService;
 
     @Override
     public void start(Stage stage) {
         connectionFactory = new SqliteConnectionFactory();
         new DatabaseInitializer(connectionFactory).initialize();
+
+        backupService = new BackupService(new SqliteBackupRepository(connectionFactory));
+        try {
+            backupService.crearAutomaticoSiHaceFalta();
+        } catch (RuntimeException e) {
+            System.err.println("SisTienda no pudo crear el backup automático: " + e.getMessage());
+        }
 
         var authService = new AuthService(
                 new SqliteUsuarioRepository(connectionFactory),
@@ -68,7 +78,7 @@ public class MainApp extends Application {
                 () -> new CatalogoView(categoriaService, productoService, stockService),
                 () -> new CajaView(cajaService, productoService, ventaService, reporteService, empresaService, usuario),
                 () -> new ReportesView(reporteService, empresaService),
-                () -> new ConfiguracionView(empresaService),
+                () -> new ConfiguracionView(empresaService, backupService),
                 usuario
         );
         var scene = new Scene(root, 1360, 820);
