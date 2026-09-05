@@ -1,0 +1,72 @@
+.ticket-paper {
+    -fx-background-color: #fffdf8;
+    -fx-background-radius: 10;
+    -fx-border-color: #e7e5e4;
+    -fx-border-radius: 10;
+    -fx-font-family: "Monospaced";
+}
+
+.ticket-company {
+    -fx-font-family: "Monospaced";
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #111827;
+    -fx-alignment: center;
+}
+
+.ticket-center-line,
+.ticket-info,
+.ticket-info-value,
+.ticket-item-detail,
+.ticket-item-subtotal,
+.ticket-separator {
+    -fx-font-family: "Monospaced";
+    -fx-font-size: 11px;
+    -fx-text-fill: #44403c;
+}
+
+.ticket-number {
+    -fx-font-family: "Monospaced";
+    -fx-font-size: 15px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #111827;
+    -fx-alignment: center;
+}
+
+.ticket-item-name {
+    -fx-font-family: "Monospaced";
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #1c1917;
+}
+
+.ticket-item-subtotal,
+.ticket-info-value {
+    -fx-font-weight: 800;
+}
+
+.ticket-total-row {
+    -fx-background-color: #f5f5f4;
+    -fx-background-radius: 7;
+    -fx-padding: 8 10 8 10;
+}
+
+.ticket-total-row .label {
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #111827;
+}
+
+.ticket-message {
+    -fx-font-family: "Monospaced";
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #57534e;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+
+.ticket-separator {
+    -fx-text-fill: #a8a29e;
+    -fx-alignment: center;
+}

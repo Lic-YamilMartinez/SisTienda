@@ -8,6 +8,7 @@ import py.sistienda.core.security.PasswordHasher;
 import py.sistienda.core.service.AuthService;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.CategoriaService;
+import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.StockService;
@@ -16,6 +17,7 @@ import py.sistienda.data.database.DatabaseInitializer;
 import py.sistienda.data.database.SqliteConnectionFactory;
 import py.sistienda.data.repository.SqliteCajaRepository;
 import py.sistienda.data.repository.SqliteCategoriaRepository;
+import py.sistienda.data.repository.SqliteEmpresaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
 import py.sistienda.data.repository.SqliteProductoRepository;
 import py.sistienda.data.repository.SqliteReporteRepository;
@@ -24,6 +26,7 @@ import py.sistienda.data.repository.SqliteVentaRepository;
 import py.sistienda.ui.auth.LoginView;
 import py.sistienda.ui.caja.CajaView;
 import py.sistienda.ui.catalogo.CatalogoView;
+import py.sistienda.ui.configuracion.ConfiguracionView;
 import py.sistienda.ui.reportes.ReportesView;
 
 public class MainApp extends Application {
@@ -59,11 +62,13 @@ public class MainApp extends Application {
         var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
         var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
         var reporteService = new ReporteService(new SqliteReporteRepository(connectionFactory));
+        var empresaService = new EmpresaService(new SqliteEmpresaRepository(connectionFactory));
 
         var root = new MainShell(
                 () -> new CatalogoView(categoriaService, productoService, stockService),
-                () -> new CajaView(cajaService, productoService, ventaService, usuario),
-                () -> new ReportesView(reporteService),
+                () -> new CajaView(cajaService, productoService, ventaService, reporteService, empresaService, usuario),
+                () -> new ReportesView(reporteService, empresaService),
+                () -> new ConfiguracionView(empresaService),
                 usuario
         );
         var scene = new Scene(root, 1360, 820);
@@ -82,6 +87,8 @@ public class MainApp extends Application {
         addStyle(scene, "/styles/caja.css");
         addStyle(scene, "/styles/venta.css");
         addStyle(scene, "/styles/reportes.css");
+        addStyle(scene, "/styles/configuracion.css");
+        addStyle(scene, "/styles/ticket.css");
     }
 
     private void addStyle(Scene scene, String path) {

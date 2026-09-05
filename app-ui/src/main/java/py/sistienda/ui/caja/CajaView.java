@@ -17,11 +17,15 @@ import py.sistienda.core.model.CajaSesion;
 import py.sistienda.core.model.ResumenVentasCaja;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.service.CajaService;
+import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.ProductoService;
+import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.VentaService;
+import py.sistienda.ui.ticket.TicketDialog;
 import py.sistienda.ui.venta.VentaView;
 
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
@@ -32,6 +36,8 @@ public final class CajaView extends BorderPane {
     private final CajaService cajaService;
     private final ProductoService productoService;
     private final VentaService ventaService;
+    private final ReporteService reporteService;
+    private final EmpresaService empresaService;
     private final Usuario usuario;
 
     private final VBox body = new VBox();
@@ -45,11 +51,15 @@ public final class CajaView extends BorderPane {
             CajaService cajaService,
             ProductoService productoService,
             VentaService ventaService,
+            ReporteService reporteService,
+            EmpresaService empresaService,
             Usuario usuario
     ) {
         this.cajaService = cajaService;
         this.productoService = productoService;
         this.ventaService = ventaService;
+        this.reporteService = reporteService;
+        this.empresaService = empresaService;
         this.usuario = usuario;
 
         getStyleClass().add("content-area");
@@ -138,7 +148,10 @@ public final class CajaView extends BorderPane {
                 ventaService,
                 usuario,
                 sesion,
-                () -> actualizarResumenVentas(sesion)
+                () -> {
+                    actualizarResumenVentas(sesion);
+                    mostrarUltimoTicket();
+                }
         );
 
         ventaView.setMinHeight(0);
@@ -212,6 +225,15 @@ public final class CajaView extends BorderPane {
         ventasTransferencia.setText(formatCurrency(resumen.transferencia()));
         ventasTarjeta.setText(formatCurrency(resumen.tarjeta()));
         ventasTotal.setText(formatCurrency(resumen.total()));
+    }
+
+    private void mostrarUltimoTicket() {
+        var ventas = reporteService.listarVentas(LocalDate.now());
+        if (ventas.isEmpty()) {
+            return;
+        }
+        var ultima = ventas.getFirst();
+        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ultima.id()));
     }
 
     private Region separator() {

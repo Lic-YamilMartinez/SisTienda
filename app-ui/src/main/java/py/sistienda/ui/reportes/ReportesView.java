@@ -6,9 +6,7 @@ import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.DatePicker;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -19,12 +17,11 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import py.sistienda.core.model.ReporteDiario;
-import py.sistienda.core.model.VentaDetalle;
-import py.sistienda.core.model.VentaDetalleItem;
 import py.sistienda.core.model.VentaResumen;
+import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.ReporteService;
+import py.sistienda.ui.ticket.TicketDialog;
 
-import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -33,9 +30,9 @@ import java.util.Locale;
 public final class ReportesView extends BorderPane {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
-    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final ReporteService reporteService;
+    private final EmpresaService empresaService;
     private final DatePicker fecha = new DatePicker(LocalDate.now());
     private final TableView<VentaResumen> tabla = new TableView<>();
 
@@ -48,8 +45,9 @@ public final class ReportesView extends BorderPane {
     private final Label tarjetaValue = paymentValueLabel();
     private final Label feedback = new Label();
 
-    public ReportesView(ReporteService reporteService) {
+    public ReportesView(ReporteService reporteService, EmpresaService empresaService) {
         this.reporteService = reporteService;
+        this.empresaService = empresaService;
 
         getStyleClass().add("content-area");
         setPadding(new Insets(20, 24, 20, 24));
@@ -117,7 +115,7 @@ public final class ReportesView extends BorderPane {
 
         Label historyTitle = new Label("Historial de ventas");
         historyTitle.getStyleClass().add("report-section-title");
-        Label historyHint = new Label("Abrí cualquier ticket para ver su detalle.");
+        Label historyHint = new Label("Abrí o reimprimí cualquier ticket.");
         historyHint.getStyleClass().add("report-section-hint");
 
         HBox tableHeader = new HBox(8, historyTitle, historyHint);
@@ -187,6 +185,7 @@ public final class ReportesView extends BorderPane {
         estadoCol.setPrefWidth(90);
         estadoCol.setCellFactory(column -> new TableCell<>() {
             private final Label badge = new Label();
+
             @Override
             protected void updateItem(VentaResumen item, boolean empty) {
                 super.updateItem(item, empty);
@@ -204,7 +203,7 @@ public final class ReportesView extends BorderPane {
 
         TableColumn<VentaResumen, VentaResumen> actionCol = new TableColumn<>("");
         actionCol.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        actionCol.setPrefWidth(90);
+        actionCol.setPrefWidth(105);
         actionCol.setCellFactory(column -> new TableCell<>() {
             private final Button detail = new Button("Ver ticket");
             {
@@ -217,7 +216,7 @@ public final class ReportesView extends BorderPane {
                     setGraphic(null);
                     return;
                 }
-                detail.setOnAction(event -> mostrarDetalle(item.id()));
+                detail.setOnAction(event -> mostrarTicket(item.id()));
                 setAlignment(Pos.CENTER);
                 setGraphic(detail);
             }
@@ -228,7 +227,7 @@ public final class ReportesView extends BorderPane {
             var row = new javafx.scene.control.TableRow<VentaResumen>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    mostrarDetalle(row.getItem().id());
+                    mostrarTicket(row.getItem().id());
                 }
             });
             return row;
@@ -250,63 +249,8 @@ public final class ReportesView extends BorderPane {
         });
     }
 
-    private void mostrarDetalle(long ventaId) {
-        ejecutar(() -> {
-            VentaDetalle detalle = reporteService.detalleVenta(ventaId);
-            Dialog<ButtonType> dialog = new Dialog<>();
-            dialog.setTitle("Ticket #" + detalle.nroTicket());
-            dialog.setHeaderText("Detalle de venta");
-            dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            dialog.getDialogPane().setPrefWidth(680);
-            dialog.getDialogPane().setPrefHeight(560);
-
-            Label ticket = new Label("Ticket #" + detalle.nroTicket());
-            ticket.getStyleClass().add("ticket-title");
-            Label meta = new Label(DATE_TIME_FORMAT.format(detalle.fecha()) + "  ·  " + detalle.usuario()
-                    + "  ·  " + detalle.metodoPago().descripcion());
-            meta.getStyleClass().add("ticket-meta");
-
-            TableView<VentaDetalleItem> items = new TableView<>();
-            items.setItems(FXCollections.observableArrayList(detalle.items()));
-            items.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-            items.getStyleClass().add("ticket-table");
-
-            TableColumn<VentaDetalleItem, String> productCol = new TableColumn<>("Producto");
-            productCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().producto()));
-            productCol.setPrefWidth(250);
-            TableColumn<VentaDetalleItem, String> qtyCol = new TableColumn<>("Cant.");
-            qtyCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatQuantity(cell.getValue().cantidad())));
-            qtyCol.setPrefWidth(80);
-            TableColumn<VentaDetalleItem, String> priceCol = new TableColumn<>("Precio");
-            priceCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().precioUnitario())));
-            priceCol.setPrefWidth(110);
-            TableColumn<VentaDetalleItem, String> subtotalCol = new TableColumn<>("Subtotal");
-            subtotalCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().subtotal())));
-            subtotalCol.setPrefWidth(120);
-            items.getColumns().setAll(productCol, qtyCol, priceCol, subtotalCol);
-
-            Label totalLabel = new Label("TOTAL  " + formatCurrency(detalle.total()));
-            totalLabel.getStyleClass().add("ticket-total");
-            Label gainLabel = new Label("Ganancia  " + formatCurrency(detalle.ganancia()));
-            gainLabel.getStyleClass().add("ticket-gain");
-            Label payment = new Label(detalle.metodoPago().descripcion()
-                    + (detalle.metodoPago() == py.sistienda.core.model.MetodoPago.EFECTIVO
-                    ? "  ·  Recibido " + formatCurrency(detalle.recibido()) + "  ·  Vuelto " + formatCurrency(detalle.vuelto())
-                    : ""));
-            payment.getStyleClass().add("ticket-payment");
-
-            Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-            HBox totals = new HBox(12, payment, spacer, gainLabel, totalLabel);
-            totals.setAlignment(Pos.CENTER_LEFT);
-
-            VBox content = new VBox(10, ticket, meta, items, totals);
-            VBox.setVgrow(items, Priority.ALWAYS);
-            content.setPadding(new Insets(4));
-            dialog.getDialogPane().setContent(content);
-            applyDialogStyles(dialog);
-            dialog.showAndWait();
-        });
+    private void mostrarTicket(long ventaId) {
+        ejecutar(() -> TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ventaId)));
     }
 
     private Label metricValueLabel() {
@@ -326,10 +270,6 @@ public final class ReportesView extends BorderPane {
         return "Gs. " + format.format(Math.round(value));
     }
 
-    private String formatQuantity(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
-    }
-
     private void ejecutar(Runnable action) {
         try {
             feedback.setVisible(false);
@@ -343,18 +283,6 @@ public final class ReportesView extends BorderPane {
             feedback.setText(current.getMessage() == null ? "No pudimos cargar el reporte." : current.getMessage());
             feedback.setVisible(true);
             feedback.setManaged(true);
-        }
-    }
-
-    private void applyDialogStyles(Dialog<?> dialog) {
-        addDialogStyle(dialog, "/styles/app.css");
-        addDialogStyle(dialog, "/styles/reportes.css");
-    }
-
-    private void addDialogStyle(Dialog<?> dialog, String path) {
-        var css = ReportesView.class.getResource(path);
-        if (css != null) {
-            dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
         }
     }
 }

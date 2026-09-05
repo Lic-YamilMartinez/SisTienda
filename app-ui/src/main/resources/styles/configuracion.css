@@ -1,0 +1,73 @@
+.config-card {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 14;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.035), 12, 0.08, 0, 4);
+}
+
+.config-section-title {
+    -fx-text-fill: #101828;
+    -fx-font-size: 17px;
+    -fx-font-weight: 900;
+}
+
+.config-hint {
+    -fx-text-fill: #667085;
+    -fx-font-size: 11px;
+}
+
+.config-input {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 8;
+    -fx-border-color: #dce1e8;
+    -fx-border-radius: 8;
+    -fx-padding: 8 10 8 10;
+    -fx-min-height: 38;
+}
+
+.config-input:focused {
+    -fx-background-color: white;
+    -fx-border-color: #fb923c;
+}
+
+.text-area.config-input .content {
+    -fx-background-color: transparent;
+}
+
+.config-feedback {
+    -fx-background-color: #fff7ed;
+    -fx-background-radius: 7;
+    -fx-text-fill: #c2410c;
+    -fx-padding: 6 9 6 9;
+    -fx-font-size: 10px;
+}
+
+.config-ticket-preview {
+    -fx-background-color: #fffdf8;
+    -fx-background-radius: 10;
+    -fx-border-color: #e7e5e4;
+    -fx-border-radius: 10;
+    -fx-font-family: "Monospaced";
+    -fx-text-fill: #292524;
+}
+
+.config-preview-name {
+    -fx-font-family: "Monospaced";
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #111827;
+}
+
+.config-preview-line,
+.config-preview-message,
+.config-preview-divider {
+    -fx-font-family: "Monospaced";
+    -fx-font-size: 11px;
+    -fx-text-fill: #57534e;
+}
+
+.config-preview-message {
+    -fx-padding: 8 0 0 0;
+    -fx-font-weight: 700;
+}
