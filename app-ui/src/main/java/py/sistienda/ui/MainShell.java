@@ -10,10 +10,14 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import py.sistienda.core.model.Usuario;
 
 public final class MainShell extends BorderPane {
 
-    public MainShell(Node content) {
+    private final Usuario usuario;
+
+    public MainShell(Node content, Usuario usuario) {
+        this.usuario = usuario;
         getStyleClass().add("app-shell");
         setLeft(buildSidebar());
         setCenter(content);
@@ -41,10 +45,16 @@ public final class MainShell extends BorderPane {
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        Label version = new Label("MVP · Sprint 1");
+        Label userLabel = new Label("Sesión: " + usuario.username());
+        userLabel.getStyleClass().add("sidebar-user");
+
+        Label version = new Label("MVP · Sprint 2");
         version.getStyleClass().add("sidebar-version");
 
-        VBox sidebar = new VBox(10, brandRow, section, catalogo, caja, reportes, configuracion, spacer, version);
+        VBox sidebar = new VBox(10,
+                brandRow, section, catalogo, caja, reportes, configuracion,
+                spacer, userLabel, version
+        );
         sidebar.setPadding(new Insets(24, 18, 20, 18));
         sidebar.setPrefWidth(230);
         sidebar.getStyleClass().add("sidebar");
