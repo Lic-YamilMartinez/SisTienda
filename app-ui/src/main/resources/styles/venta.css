@@ -1,0 +1,161 @@
+.cash-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.cash-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.pos-layout {
+    -fx-alignment: top-left;
+}
+
+.pos-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 16;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.04), 16, 0.10, 0, 5);
+}
+
+.pos-section-title {
+    -fx-text-fill: #101828;
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+}
+
+.pos-subtitle {
+    -fx-text-fill: #667085;
+    -fx-font-size: 11px;
+}
+
+.pos-search,
+.pos-control {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 9;
+    -fx-border-color: #dce1e8;
+    -fx-border-radius: 9;
+    -fx-padding: 8 11 8 11;
+    -fx-min-height: 38;
+}
+
+.pos-search:focused,
+.pos-control:focused {
+    -fx-background-color: white;
+    -fx-border-color: #fb923c;
+}
+
+.pos-table {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+    -fx-padding: 0 8 8 8;
+}
+
+.pos-table .column-header-background {
+    -fx-background-color: #f8fafc;
+}
+
+.pos-table .column-header,
+.pos-table .filler {
+    -fx-background-color: transparent;
+    -fx-size: 38;
+}
+
+.pos-table .column-header .label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-alignment: center;
+}
+
+.pos-table .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #f0f2f5 transparent;
+    -fx-cell-size: 54;
+}
+
+.pos-table .table-row-cell:hover {
+    -fx-background-color: #fffaf5;
+}
+
+.pos-table .table-cell {
+    -fx-border-color: transparent;
+    -fx-alignment: center;
+    -fx-padding: 7 8 7 8;
+    -fx-text-fill: #344054;
+}
+
+.pos-add-button {
+    -fx-background-color: #fff7ed;
+    -fx-background-radius: 7;
+    -fx-text-fill: #c2410c;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-padding: 6 9 6 9;
+    -fx-cursor: hand;
+}
+
+.pos-add-button:hover {
+    -fx-background-color: #ffedd5;
+}
+
+.pos-cart-button {
+    -fx-background-color: #f2f4f7;
+    -fx-background-radius: 7;
+    -fx-text-fill: #475467;
+    -fx-font-size: 9px;
+    -fx-padding: 5 7 5 7;
+    -fx-cursor: hand;
+}
+
+.pos-remove-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #b42318;
+}
+
+.pos-payment {
+    -fx-border-color: #eef1f5 transparent transparent transparent;
+}
+
+.pos-summary-label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.pos-total {
+    -fx-text-fill: #101828;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+}
+
+.pos-change {
+    -fx-text-fill: #027a48;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+}
+
+.pos-pay-button {
+    -fx-background-color: #f97316;
+    -fx-background-radius: 10;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-padding: 12 16 12 16;
+    -fx-cursor: hand;
+}
+
+.pos-pay-button:hover {
+    -fx-background-color: #ea580c;
+}
+
+.pos-feedback {
+    -fx-background-color: #fff7ed;
+    -fx-background-radius: 7;
+    -fx-text-fill: #c2410c;
+    -fx-padding: 7 9 7 9;
+    -fx-font-size: 10px;
+}
