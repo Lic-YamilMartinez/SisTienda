@@ -9,6 +9,7 @@ import py.sistienda.core.service.AuthService;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.CategoriaService;
 import py.sistienda.core.service.ProductoService;
+import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.StockService;
 import py.sistienda.core.service.VentaService;
 import py.sistienda.data.database.DatabaseInitializer;
@@ -17,11 +18,13 @@ import py.sistienda.data.repository.SqliteCajaRepository;
 import py.sistienda.data.repository.SqliteCategoriaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
 import py.sistienda.data.repository.SqliteProductoRepository;
+import py.sistienda.data.repository.SqliteReporteRepository;
 import py.sistienda.data.repository.SqliteUsuarioRepository;
 import py.sistienda.data.repository.SqliteVentaRepository;
 import py.sistienda.ui.auth.LoginView;
 import py.sistienda.ui.caja.CajaView;
 import py.sistienda.ui.catalogo.CatalogoView;
+import py.sistienda.ui.reportes.ReportesView;
 
 public class MainApp extends Application {
 
@@ -55,10 +58,12 @@ public class MainApp extends Application {
         var stockService = new StockService(new SqliteMovimientoStockRepository(connectionFactory));
         var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
         var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
+        var reporteService = new ReporteService(new SqliteReporteRepository(connectionFactory));
 
         var root = new MainShell(
                 () -> new CatalogoView(categoriaService, productoService, stockService),
                 () -> new CajaView(cajaService, productoService, ventaService, usuario),
+                () -> new ReportesView(reporteService),
                 usuario
         );
         var scene = new Scene(root, 1360, 820);
@@ -76,6 +81,7 @@ public class MainApp extends Application {
         addStyle(scene, "/styles/auth.css");
         addStyle(scene, "/styles/caja.css");
         addStyle(scene, "/styles/venta.css");
+        addStyle(scene, "/styles/reportes.css");
     }
 
     private void addStyle(Scene scene, String path) {
