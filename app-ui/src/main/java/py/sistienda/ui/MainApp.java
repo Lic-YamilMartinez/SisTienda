@@ -56,9 +56,11 @@ public class MainApp extends Application {
         var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
         var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
 
-        var catalogo = new CatalogoView(categoriaService, productoService, stockService);
-        var caja = new CajaView(cajaService, productoService, ventaService, usuario);
-        var root = new MainShell(catalogo, caja, usuario);
+        var root = new MainShell(
+                () -> new CatalogoView(categoriaService, productoService, stockService),
+                () -> new CajaView(cajaService, productoService, ventaService, usuario),
+                usuario
+        );
         var scene = new Scene(root, 1360, 820);
         applyStyles(scene);
 
