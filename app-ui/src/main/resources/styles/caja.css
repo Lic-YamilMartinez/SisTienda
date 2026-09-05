@@ -52,6 +52,40 @@
     -fx-max-height: 18;
 }
 
+.cash-sales-summary {
+    -fx-alignment: center-left;
+}
+
+.cash-sales-metric {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #e8ebf0;
+    -fx-border-radius: 10;
+    -fx-padding: 6 10 6 10;
+    -fx-min-height: 44;
+}
+
+.cash-sales-metric-total {
+    -fx-background-color: #fff7ed;
+    -fx-border-color: #fed7aa;
+}
+
+.cash-sales-label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 8px;
+    -fx-font-weight: 800;
+}
+
+.cash-sales-value {
+    -fx-text-fill: #344054;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+}
+
+.cash-sales-value-total {
+    -fx-text-fill: #c2410c;
+}
+
 .cash-title {
     -fx-text-fill: #101828;
     -fx-font-size: 20px;
