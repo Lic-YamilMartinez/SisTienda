@@ -14,6 +14,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.CajaSesion;
+import py.sistienda.core.model.ResumenVentasCaja;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.ProductoService;
@@ -35,6 +36,10 @@ public final class CajaView extends BorderPane {
 
     private final VBox body = new VBox();
     private final Label feedback = new Label();
+    private final Label ventasEfectivo = new Label("Gs. 0");
+    private final Label ventasTransferencia = new Label("Gs. 0");
+    private final Label ventasTarjeta = new Label("Gs. 0");
+    private final Label ventasTotal = new Label("Gs. 0");
 
     public CajaView(
             CajaService cajaService,
@@ -78,7 +83,7 @@ public final class CajaView extends BorderPane {
 
     private void recargar() {
         body.getChildren().clear();
-        body.setSpacing(10);
+        body.setSpacing(9);
         body.setPadding(Insets.EMPTY);
         body.setAlignment(Pos.TOP_LEFT);
 
@@ -127,13 +132,20 @@ public final class CajaView extends BorderPane {
 
     private void mostrarCajaAbierta(CajaSesion sesion) {
         HBox statusBar = buildStatusBar(sesion);
-        VentaView ventaView = new VentaView(productoService, ventaService, usuario, sesion);
+        HBox resumen = buildSalesSummaryBar(sesion);
+        VentaView ventaView = new VentaView(
+                productoService,
+                ventaService,
+                usuario,
+                sesion,
+                () -> actualizarResumenVentas(sesion)
+        );
 
         ventaView.setMinHeight(0);
         ventaView.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(ventaView, Priority.ALWAYS);
 
-        body.getChildren().addAll(statusBar, ventaView);
+        body.getChildren().addAll(statusBar, resumen, ventaView);
         VBox.setVgrow(ventaView, Priority.ALWAYS);
     }
 
@@ -161,6 +173,45 @@ public final class CajaView extends BorderPane {
         bar.getStyleClass().add("cash-status-bar");
         bar.setPadding(new Insets(8, 10, 8, 12));
         return bar;
+    }
+
+    private HBox buildSalesSummaryBar(CajaSesion sesion) {
+        HBox bar = new HBox(8,
+                salesMetric("EFECTIVO", ventasEfectivo, false),
+                salesMetric("TRANSFERENCIA", ventasTransferencia, false),
+                salesMetric("TARJETA", ventasTarjeta, false),
+                salesMetric("TOTAL VENDIDO", ventasTotal, true)
+        );
+        bar.getStyleClass().add("cash-sales-summary");
+        bar.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
+        actualizarResumenVentas(sesion);
+        return bar;
+    }
+
+    private VBox salesMetric(String titleText, Label value, boolean totalMetric) {
+        Label title = new Label(titleText);
+        title.getStyleClass().add("cash-sales-label");
+        value.getStyleClass().removeAll("cash-sales-value", "cash-sales-value-total");
+        value.getStyleClass().add("cash-sales-value");
+        if (totalMetric) {
+            value.getStyleClass().add("cash-sales-value-total");
+        }
+
+        VBox card = new VBox(1, title, value);
+        card.getStyleClass().add("cash-sales-metric");
+        if (totalMetric) {
+            card.getStyleClass().add("cash-sales-metric-total");
+        }
+        card.setMaxWidth(Double.MAX_VALUE);
+        return card;
+    }
+
+    private void actualizarResumenVentas(CajaSesion sesion) {
+        ResumenVentasCaja resumen = cajaService.resumenVentas(sesion);
+        ventasEfectivo.setText(formatCurrency(resumen.efectivo()));
+        ventasTransferencia.setText(formatCurrency(resumen.transferencia()));
+        ventasTarjeta.setText(formatCurrency(resumen.tarjeta()));
+        ventasTotal.setText(formatCurrency(resumen.total()));
     }
 
     private Region separator() {
