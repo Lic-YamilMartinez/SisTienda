@@ -13,6 +13,24 @@ El MVP de SisTienda contempla:
 - Ticket.
 - Informe diario de ventas, movimientos y ganancia.
 
+## Sprint 1 — Catálogo & Stock
+
+El módulo de catálogo e inventario incluye:
+
+- Alta de categorías.
+- Alta, edición y desactivación segura de productos.
+- Productos vendidos por unidad o kilogramo.
+- Precio de venta y costo.
+- Búsqueda y filtro por categoría.
+- Indicadores de productos activos, faltantes, categorías y valor de inventario al costo.
+- Entradas y salidas de stock con motivo, referencia y observación.
+- Control de stock negativo tanto en negocio como en SQLite.
+- Protección para no cambiar la unidad de venta mientras exista stock.
+- Protección para no desactivar productos que todavía tengan existencias.
+- Interfaz JavaFX con navegación lateral, tarjetas de resumen, tabla de catálogo y diálogos guiados.
+
+El stock no se edita directamente en el producto: toda variación se registra como un movimiento para conservar trazabilidad.
+
 ## Stack tecnológico
 
 - Java 21
@@ -61,10 +79,10 @@ Contiene la aplicación JavaFX.
 
 Responsabilidades principales:
 - `MainApp`.
-- Navegación.
-- Controladores.
+- Shell y navegación.
+- Vistas y diálogos.
 - Componentes visuales.
-- FXML y CSS cuando se incorporen.
+- CSS.
 
 Este módulo depende de `app-core` y `app-data` para el bootstrap de la aplicación.
 
@@ -100,6 +118,7 @@ La UI no debe ejecutar SQL directamente. Los contratos de repositorio pertenecen
 
 ```text
 app-core/src/main/java/py/sistienda/core
+├── exception
 ├── model
 ├── repository
 └── service
@@ -112,13 +131,22 @@ app-data/src/main/java/py/sistienda/data
 └── repository
 
 app-data/src/test/java/py/sistienda/data
-└── database
+├── database
+└── repository
 
 app-data/src/main/resources/db
 └── V1__init.sql
 
 app-ui/src/main/java/py/sistienda/ui
-└── MainApp.java
+├── MainApp.java
+├── MainShell.java
+└── catalogo
+    ├── CatalogoView.java
+    ├── ProductoDialog.java
+    └── StockDialog.java
+
+app-ui/src/main/resources/styles
+└── app.css
 ```
 
 ## Base de datos
@@ -181,7 +209,7 @@ La suite de tests se ejecuta como parte de `build` y también puede ejecutarse c
 ./gradlew test
 ```
 
-Los tests de `app-data` incluyen cobertura de integración sobre una base SQLite temporal para verificar inicialización, claves foráneas y el trigger que impide stock negativo.
+Los tests de `app-data` incluyen cobertura de integración sobre una base SQLite temporal para verificar inicialización, persistencia de categorías/productos, movimientos de stock y el control de stock negativo.
 
 GitHub Actions ejecuta `./gradlew clean build --no-daemon` para validar pushes de ramas de trabajo y pull requests hacia `develop`.
 
@@ -197,10 +225,9 @@ develop
 Para cambios nuevos se utilizan ramas dedicadas, por ejemplo:
 
 ```text
-feature/productos
+feature/sprint-1-catalog-stock
 feature/ventas
 fix/stock-negativo
-chore/sprint-0.2-architecture
 ```
 
 No se deben desarrollar funcionalidades importantes directamente sobre `develop` ni hacer merge sin revisión explícita.
@@ -228,28 +255,18 @@ AGENTS.md
 Cualquier agente que trabaje sobre el repositorio debe leer ese archivo antes de modificar código.
 
 ## Estado actual
-El proyecto se encuentra en fase de estructuración del MVP.
 
-Ya existe:
-- Proyecto Gradle multi-módulo.
-- JavaFX configurado.
-- SQLite configurado.
-- Esquema inicial de base de datos.
-- Modelo `CategoriaProducto`.
-- Contrato `CategoriaRepository`.
-- Servicio `CategoriaService`.
-- Implementación `SqliteCategoriaRepository`.
-- Inicialización y fábrica de conexiones SQLite separadas.
-- Base de tests con JUnit 5 para `app-core` y `app-data`.
-- Tests de integración SQLite sobre base temporal.
-- Workflow de CI con GitHub Actions.
+Completado:
+- Sprint 0: arquitectura, documentación, tests base y CI.
+- Sprint 1: catálogo de productos, categorías y movimientos de stock.
 
 Pendiente para siguientes sprints:
-- Completar dominio.
-- Completar repositorios.
+- Login y usuarios.
+- Caja y sesiones de caja.
+- Ventas y detalle de ventas.
+- Ticket.
+- Informe diario y ganancia.
 - Ampliar cobertura de tests junto con cada funcionalidad.
-- Crear navegación y pantallas JavaFX.
-- Implementar login, productos, stock, caja y ventas.
 
 ## Principio rector
 SisTienda debe mantenerse simple, estable y entendible. La prioridad es construir un MVP desktop confiable sin mezclar lógica de negocio, interfaz y persistencia.

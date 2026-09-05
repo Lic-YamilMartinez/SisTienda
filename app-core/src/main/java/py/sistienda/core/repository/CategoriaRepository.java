@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface CategoriaRepository {
     List<CategoriaProducto> findAllActive();
+
+    CategoriaProducto create(String nombre);
 }
