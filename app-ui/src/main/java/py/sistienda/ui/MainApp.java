@@ -66,7 +66,7 @@ public class MainApp extends Application {
 
         var root = new MainShell(
                 () -> new CatalogoView(categoriaService, productoService, stockService),
-                () -> new CajaView(cajaService, productoService, ventaService, usuario),
+                () -> new CajaView(cajaService, productoService, ventaService, reporteService, empresaService, usuario),
                 () -> new ReportesView(reporteService, empresaService),
                 () -> new ConfiguracionView(empresaService),
                 usuario
