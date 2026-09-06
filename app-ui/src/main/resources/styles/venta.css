@@ -16,9 +16,14 @@
     -fx-font-weight: 900;
 }
 
-.pos-subtitle {
+.pos-subtitle,
+.pos-scan-hint {
     -fx-text-fill: #667085;
-    -fx-font-size: 10px;
+    -fx-font-size: 9px;
+}
+
+.pos-scan-hint {
+    -fx-font-weight: 700;
 }
 
 .pos-search,
@@ -29,6 +34,11 @@
     -fx-border-radius: 8;
     -fx-min-height: 38;
     -fx-pref-height: 38;
+}
+
+.pos-search {
+    -fx-border-color: #fdba74;
+    -fx-background-color: #fffaf5;
 }
 
 .pos-search,
@@ -52,7 +62,8 @@
 .pos-search:focused,
 .pos-control:focused {
     -fx-background-color: white;
-    -fx-border-color: #fb923c;
+    -fx-border-color: #f97316;
+    -fx-border-width: 1.5;
 }
 
 .pos-table {

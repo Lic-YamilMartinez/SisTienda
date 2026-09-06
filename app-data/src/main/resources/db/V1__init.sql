@@ -11,6 +11,18 @@ CREATE TABLE IF NOT EXISTS empresa (
 );
 INSERT OR IGNORE INTO empresa (id, nombre) VALUES (1, 'Mi Tienda');
 
+-- CONFIGURACION POS
+CREATE TABLE IF NOT EXISTS configuracion_pos (
+  id                         INTEGER PRIMARY KEY CHECK (id = 1),
+  prefijo_peso               TEXT NOT NULL DEFAULT '20',
+  ancho_ticket_mm            INTEGER NOT NULL DEFAULT 80,
+  ancho_etiqueta_mm          INTEGER NOT NULL DEFAULT 58,
+  imprimir_ticket_automatico INTEGER NOT NULL DEFAULT 0
+);
+INSERT OR IGNORE INTO configuracion_pos
+  (id, prefijo_peso, ancho_ticket_mm, ancho_etiqueta_mm, imprimir_ticket_automatico)
+VALUES (1, '20', 80, 58, 0);
+
 -- USUARIO (MVP: dueño)
 CREATE TABLE IF NOT EXISTS usuario (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,6 +53,8 @@ CREATE TABLE IF NOT EXISTS producto (
   costo            REAL NOT NULL DEFAULT 0 CHECK (costo >= 0),
   stock_actual     REAL NOT NULL DEFAULT 0,
   activo           INTEGER NOT NULL DEFAULT 1,
+  codigo_barras    TEXT,
+  plu_balanza      INTEGER,
   creado_en        TEXT NOT NULL DEFAULT (datetime('now')),
   actualizado_en   TEXT,
   FOREIGN KEY (categoria_id) REFERENCES categoria_producto(id)

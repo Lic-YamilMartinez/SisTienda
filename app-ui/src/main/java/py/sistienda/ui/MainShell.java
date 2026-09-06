@@ -85,7 +85,7 @@ public final class MainShell extends BorderPane {
         Label userLabel = new Label("Sesión: " + usuario.username());
         userLabel.getStyleClass().add("sidebar-user");
 
-        Label version = new Label("MVP · Sprint 8");
+        Label version = new Label("MVP · Sprint 9");
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,

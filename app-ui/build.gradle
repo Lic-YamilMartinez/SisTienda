@@ -6,6 +6,7 @@ plugins {
 dependencies {
     implementation project(':app-core')
     implementation project(':app-data')
+    implementation 'com.google.zxing:core:3.5.3'
 }
 
 javafx {

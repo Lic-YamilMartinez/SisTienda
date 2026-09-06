@@ -16,8 +16,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import py.sistienda.core.model.ConfiguracionPos;
 import py.sistienda.core.model.ReporteDiario;
 import py.sistienda.core.model.VentaResumen;
+import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.ui.ticket.TicketDialog;
@@ -33,6 +35,7 @@ public final class ReportesView extends BorderPane {
 
     private final ReporteService reporteService;
     private final EmpresaService empresaService;
+    private final ConfiguracionPosService configuracionPosService;
     private final DatePicker fecha = new DatePicker(LocalDate.now());
     private final TableView<VentaResumen> tabla = new TableView<>();
 
@@ -46,8 +49,14 @@ public final class ReportesView extends BorderPane {
     private final Label feedback = new Label();
 
     public ReportesView(ReporteService reporteService, EmpresaService empresaService) {
+        this(reporteService, empresaService, null);
+    }
+
+    public ReportesView(ReporteService reporteService, EmpresaService empresaService,
+                        ConfiguracionPosService configuracionPosService) {
         this.reporteService = reporteService;
         this.empresaService = empresaService;
+        this.configuracionPosService = configuracionPosService;
 
         getStyleClass().add("content-area");
         setPadding(new Insets(20, 24, 20, 24));
@@ -56,9 +65,7 @@ public final class ReportesView extends BorderPane {
 
         configurarTabla();
         fecha.valueProperty().addListener((obs, oldValue, newValue) -> {
-            if (newValue != null) {
-                recargar();
-            }
+            if (newValue != null) recargar();
         });
         recargar();
     }
@@ -66,27 +73,21 @@ public final class ReportesView extends BorderPane {
     private HBox buildHeader() {
         Label eyebrow = new Label("CONTROL DEL NEGOCIO");
         eyebrow.getStyleClass().add("eyebrow");
-
         Label title = new Label("Reportes");
         title.getStyleClass().add("page-title");
         Label subtitle = new Label("Ventas, ganancia y tickets del día en una sola vista.");
         subtitle.getStyleClass().add("page-subtitle");
-
         VBox heading = new VBox(3, eyebrow, title, subtitle);
 
         fecha.getStyleClass().add("report-date-picker");
         fecha.setPrefWidth(155);
-
         Button hoy = new Button("Hoy");
         hoy.getStyleClass().add("secondary-button");
         hoy.setOnAction(event -> fecha.setValue(LocalDate.now()));
-
         HBox dateControls = new HBox(8, fecha, hoy);
         dateControls.setAlignment(Pos.CENTER_RIGHT);
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-
         HBox header = new HBox(14, heading, spacer, dateControls);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(0, 0, 12, 0));
@@ -117,7 +118,6 @@ public final class ReportesView extends BorderPane {
         historyTitle.getStyleClass().add("report-section-title");
         Label historyHint = new Label("Abrí o reimprimí cualquier ticket.");
         historyHint.getStyleClass().add("report-section-hint");
-
         HBox tableHeader = new HBox(8, historyTitle, historyHint);
         tableHeader.setAlignment(Pos.BASELINE_LEFT);
         tableHeader.setPadding(new Insets(10, 12, 7, 12));
@@ -125,7 +125,6 @@ public final class ReportesView extends BorderPane {
         VBox historyCard = new VBox(0, tableHeader, feedback, tabla);
         historyCard.getStyleClass().add("report-history-card");
         VBox.setVgrow(tabla, Priority.ALWAYS);
-
         VBox content = new VBox(10, metrics, payments, historyCard);
         VBox.setVgrow(historyCard, Priority.ALWAYS);
         return content;
@@ -159,23 +158,18 @@ public final class ReportesView extends BorderPane {
         TableColumn<VentaResumen, String> horaCol = new TableColumn<>("Hora");
         horaCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(TIME_FORMAT.format(cell.getValue().fecha())));
         horaCol.setPrefWidth(70);
-
         TableColumn<VentaResumen, String> ticketCol = new TableColumn<>("Ticket");
         ticketCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper("#" + cell.getValue().nroTicket()));
         ticketCol.setPrefWidth(80);
-
         TableColumn<VentaResumen, String> usuarioCol = new TableColumn<>("Usuario");
         usuarioCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().usuario()));
         usuarioCol.setPrefWidth(110);
-
         TableColumn<VentaResumen, String> pagoCol = new TableColumn<>("Pago");
         pagoCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().metodoPago().descripcion()));
         pagoCol.setPrefWidth(125);
-
         TableColumn<VentaResumen, String> totalCol = new TableColumn<>("Total");
         totalCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().total())));
         totalCol.setPrefWidth(120);
-
         TableColumn<VentaResumen, String> gananciaCol = new TableColumn<>("Ganancia");
         gananciaCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().ganancia())));
         gananciaCol.setPrefWidth(120);
@@ -185,14 +179,9 @@ public final class ReportesView extends BorderPane {
         estadoCol.setPrefWidth(90);
         estadoCol.setCellFactory(column -> new TableCell<>() {
             private final Label badge = new Label();
-
-            @Override
-            protected void updateItem(VentaResumen item, boolean empty) {
+            @Override protected void updateItem(VentaResumen item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                    return;
-                }
+                if (empty || item == null) { setGraphic(null); return; }
                 badge.getStyleClass().removeAll("report-status-ok", "report-status-cancelled");
                 badge.setText(item.anulada() ? "Anulada" : "Válida");
                 badge.getStyleClass().add(item.anulada() ? "report-status-cancelled" : "report-status-ok");
@@ -206,16 +195,10 @@ public final class ReportesView extends BorderPane {
         actionCol.setPrefWidth(105);
         actionCol.setCellFactory(column -> new TableCell<>() {
             private final Button detail = new Button("Ver ticket");
-            {
-                detail.getStyleClass().add("report-detail-button");
-            }
-            @Override
-            protected void updateItem(VentaResumen item, boolean empty) {
+            { detail.getStyleClass().add("report-detail-button"); }
+            @Override protected void updateItem(VentaResumen item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                    return;
-                }
+                if (empty || item == null) { setGraphic(null); return; }
                 detail.setOnAction(event -> mostrarTicket(item.id()));
                 setAlignment(Pos.CENTER);
                 setGraphic(detail);
@@ -226,9 +209,7 @@ public final class ReportesView extends BorderPane {
         tabla.setRowFactory(view -> {
             var row = new javafx.scene.control.TableRow<VentaResumen>();
             row.setOnMouseClicked(event -> {
-                if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    mostrarTicket(row.getItem().id());
-                }
+                if (event.getClickCount() == 2 && !row.isEmpty()) mostrarTicket(row.getItem().id());
             });
             return row;
         });
@@ -250,7 +231,12 @@ public final class ReportesView extends BorderPane {
     }
 
     private void mostrarTicket(long ventaId) {
-        ejecutar(() -> TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ventaId)));
+        ejecutar(() -> {
+            ConfiguracionPos config = configuracionPosService == null
+                    ? ConfiguracionPos.porDefecto()
+                    : configuracionPosService.obtener();
+            TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ventaId), config);
+        });
     }
 
     private Label metricValueLabel() {
@@ -277,9 +263,7 @@ public final class ReportesView extends BorderPane {
             action.run();
         } catch (RuntimeException e) {
             Throwable current = e;
-            while (current.getCause() != null) {
-                current = current.getCause();
-            }
+            while (current.getCause() != null) current = current.getCause();
             feedback.setText(current.getMessage() == null ? "No pudimos cargar el reporte." : current.getMessage());
             feedback.setVisible(true);
             feedback.setManaged(true);

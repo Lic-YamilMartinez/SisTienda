@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -20,16 +21,14 @@ public final class DatabaseInitializer {
     public void initialize() {
         try {
             var parent = connectionFactory.databaseFile().getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
+            if (parent != null) Files.createDirectories(parent);
 
             try (Connection connection = connectionFactory.open()) {
                 connection.setAutoCommit(false);
-
                 try {
                     String sql = readResource("/db/V1__init.sql");
                     runSqlScriptSqlite(connection.createStatement(), sql);
+                    ensureHardwareColumns(connection);
                     connection.commit();
                 } catch (Exception e) {
                     try {
@@ -45,24 +44,44 @@ public final class DatabaseInitializer {
         }
     }
 
+    private void ensureHardwareColumns(Connection connection) throws Exception {
+        if (!columnExists(connection, "producto", "codigo_barras")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE producto ADD COLUMN codigo_barras TEXT");
+            }
+        }
+        if (!columnExists(connection, "producto", "plu_balanza")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE producto ADD COLUMN plu_balanza INTEGER");
+            }
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_producto_codigo_barras ON producto(codigo_barras) WHERE codigo_barras IS NOT NULL AND trim(codigo_barras) <> ''");
+            statement.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_producto_plu_balanza ON producto(plu_balanza) WHERE plu_balanza IS NOT NULL");
+        }
+    }
+
+    private boolean columnExists(Connection connection, String table, String column) throws Exception {
+        try (Statement statement = connection.createStatement();
+             ResultSet result = statement.executeQuery("PRAGMA table_info(" + table + ")")) {
+            while (result.next()) {
+                if (column.equalsIgnoreCase(result.getString("name"))) return true;
+            }
+            return false;
+        }
+    }
+
     private String readResource(String path) throws Exception {
         try (var inputStream = DatabaseInitializer.class.getResourceAsStream(path)) {
-            if (inputStream == null) {
-                throw new IllegalStateException("No se encontró el recurso: " + path);
-            }
-
-            try (var reader = new BufferedReader(
-                    new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            if (inputStream == null) throw new IllegalStateException("No se encontró el recurso: " + path);
+            try (var reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
                 return reader.lines().collect(Collectors.joining("\n"));
             }
         }
     }
 
     private void runSqlScriptSqlite(Statement statement, String sql) throws Exception {
-        String normalized = sql
-                .replace("\r\n", "\n")
-                .replace("\r", "\n");
-
+        String normalized = sql.replace("\r\n", "\n").replace("\r", "\n");
         StringBuilder buffer = new StringBuilder();
         boolean inTrigger = false;
         int statementIndex = 0;
@@ -70,17 +89,9 @@ public final class DatabaseInitializer {
         try (statement) {
             for (String rawLine : normalized.split("\n")) {
                 String line = rawLine.trim();
-
-                if (line.isEmpty() || line.startsWith("--")) {
-                    continue;
-                }
-
-                if (!inTrigger && line.toUpperCase().startsWith("CREATE TRIGGER")) {
-                    inTrigger = true;
-                }
-
+                if (line.isEmpty() || line.startsWith("--")) continue;
+                if (!inTrigger && line.toUpperCase().startsWith("CREATE TRIGGER")) inTrigger = true;
                 buffer.append(rawLine).append("\n");
-
                 if (inTrigger) {
                     if (line.equalsIgnoreCase("END;")) {
                         statementIndex++;
@@ -94,7 +105,6 @@ public final class DatabaseInitializer {
                     buffer.setLength(0);
                 }
             }
-
             String rest = buffer.toString().trim();
             if (!rest.isEmpty()) {
                 statementIndex++;
@@ -105,17 +115,11 @@ public final class DatabaseInitializer {
 
     private void execute(Statement statement, String sql, int index) {
         String statementSql = sql.trim();
-        if (statementSql.isEmpty()) {
-            return;
-        }
-
+        if (statementSql.isEmpty()) return;
         try {
             statement.execute(statementSql);
         } catch (Exception e) {
-            throw new RuntimeException(
-                    "Error en sentencia #" + index + ":\n" + statementSql,
-                    e
-            );
+            throw new RuntimeException("Error en sentencia #" + index + ":\n" + statementSql, e);
         }
     }
 }

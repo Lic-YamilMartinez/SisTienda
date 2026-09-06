@@ -7,16 +7,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Control;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -29,6 +20,7 @@ import py.sistienda.core.model.Producto;
 import py.sistienda.core.model.UnidadMedida;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.model.VentaResultado;
+import py.sistienda.core.service.CodigoBarrasService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.VentaService;
 
@@ -41,6 +33,8 @@ public final class VentaView extends HBox {
 
     private final ProductoService productoService;
     private final VentaService ventaService;
+    private final CodigoBarrasService codigoBarrasService;
+    private final String prefijoPeso;
     private final Usuario usuario;
     private final CajaSesion caja;
     private final Runnable onVentaRegistrada;
@@ -58,27 +52,25 @@ public final class VentaView extends HBox {
     private final Label vuelto = new Label("Gs. 0");
     private final Label feedback = new Label();
 
-    public VentaView(
-            ProductoService productoService,
-            VentaService ventaService,
-            Usuario usuario,
-            CajaSesion caja
-    ) {
+    public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario, CajaSesion caja) {
         this(productoService, ventaService, usuario, caja, () -> { });
     }
 
-    public VentaView(
-            ProductoService productoService,
-            VentaService ventaService,
-            Usuario usuario,
-            CajaSesion caja,
-            Runnable onVentaRegistrada
-    ) {
+    public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario,
+                     CajaSesion caja, Runnable onVentaRegistrada) {
+        this(productoService, ventaService, usuario, caja, onVentaRegistrada, new CodigoBarrasService(), "20");
+    }
+
+    public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario,
+                     CajaSesion caja, Runnable onVentaRegistrada, CodigoBarrasService codigoBarrasService,
+                     String prefijoPeso) {
         this.productoService = productoService;
         this.ventaService = ventaService;
         this.usuario = usuario;
         this.caja = caja;
         this.onVentaRegistrada = onVentaRegistrada == null ? () -> { } : onVentaRegistrada;
+        this.codigoBarrasService = codigoBarrasService == null ? new CodigoBarrasService() : codigoBarrasService;
+        this.prefijoPeso = prefijoPeso == null || !prefijoPeso.matches("2\\d") ? "20" : prefijoPeso;
 
         getStyleClass().add("pos-layout");
         setSpacing(12);
@@ -87,7 +79,6 @@ public final class VentaView extends HBox {
 
         VBox productPanel = buildProductPanel();
         VBox cartPanel = buildCartPanel();
-
         HBox.setHgrow(productPanel, Priority.ALWAYS);
         productPanel.setMaxWidth(Double.MAX_VALUE);
         productPanel.setMaxHeight(Double.MAX_VALUE);
@@ -95,7 +86,6 @@ public final class VentaView extends HBox {
         cartPanel.setMinWidth(440);
         cartPanel.setMaxWidth(520);
         cartPanel.setMaxHeight(Double.MAX_VALUE);
-
         getChildren().addAll(productPanel, cartPanel);
 
         configurarFiltros();
@@ -104,6 +94,9 @@ public final class VentaView extends HBox {
         configurarPago();
         recargarProductos();
         recalcular();
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) javafx.application.Platform.runLater(buscar::requestFocus);
+        });
     }
 
     private VBox buildProductPanel() {
@@ -111,19 +104,21 @@ public final class VentaView extends HBox {
         eyebrow.getStyleClass().add("eyebrow");
         Label title = new Label("Productos");
         title.getStyleClass().add("pos-section-title");
-        VBox heading = new VBox(1, eyebrow, title);
+        Label scanHint = new Label("Escaneá código/etiqueta o buscá por nombre");
+        scanHint.getStyleClass().add("pos-scan-hint");
+        VBox heading = new VBox(1, eyebrow, title, scanHint);
 
-        buscar.setPromptText("Buscar producto o categoría...");
+        buscar.setPromptText("Escanear código o buscar producto...");
         buscar.getStyleClass().add("pos-search");
-        buscar.setPrefWidth(330);
-        buscar.setMinWidth(240);
+        buscar.setPrefWidth(360);
+        buscar.setMinWidth(260);
+        buscar.setOnAction(event -> procesarEntradaRapida());
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-
         HBox header = new HBox(12, heading, spacer, buscar);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(11, 14, 9, 14));
+        header.setPadding(new Insets(9, 14, 8, 14));
 
         VBox panel = new VBox(0, header, tablaProductos);
         panel.getStyleClass().add("pos-panel");
@@ -134,12 +129,10 @@ public final class VentaView extends HBox {
     private VBox buildCartPanel() {
         Label title = new Label("Venta actual");
         title.getStyleClass().add("pos-section-title");
-
         feedback.getStyleClass().add("pos-feedback");
         feedback.setWrapText(true);
         feedback.setVisible(false);
         feedback.setManaged(false);
-
         VBox cartHeader = new VBox(4, title, feedback);
         cartHeader.setPadding(new Insets(11, 14, 8, 14));
 
@@ -160,7 +153,6 @@ public final class VentaView extends HBox {
         VBox receivedField = compactPaymentField("Recibido (Gs.)", recibido);
         HBox.setHgrow(paymentMethod, Priority.ALWAYS);
         HBox.setHgrow(receivedField, Priority.ALWAYS);
-
         HBox paymentFields = new HBox(8, paymentMethod, receivedField);
 
         VBox totalBlock = summaryBlock("TOTAL", total, "pos-total");
@@ -207,9 +199,44 @@ public final class VentaView extends HBox {
             String query = newValue == null ? "" : newValue.trim().toLowerCase(Locale.ROOT);
             filtrados.setPredicate(producto -> query.isBlank()
                     || producto.nombre().toLowerCase(Locale.ROOT).contains(query)
-                    || (producto.categoriaNombre() != null
-                    && producto.categoriaNombre().toLowerCase(Locale.ROOT).contains(query)));
+                    || (producto.categoriaNombre() != null && producto.categoriaNombre().toLowerCase(Locale.ROOT).contains(query))
+                    || (producto.codigoBarras() != null && producto.codigoBarras().toLowerCase(Locale.ROOT).contains(query))
+                    || (producto.pluBalanza() != null && String.valueOf(producto.pluBalanza()).contains(query)));
         });
+    }
+
+    private void procesarEntradaRapida() {
+        String code = buscar.getText() == null ? "" : buscar.getText().trim();
+        if (code.isBlank()) return;
+        ejecutar(() -> {
+            var regular = productoService.buscarPorCodigo(code);
+            if (regular.isPresent()) {
+                Producto producto = regular.get();
+                if (producto.unidadMedida() == UnidadMedida.UN) agregarCantidad(producto, 1d, true);
+                else pedirCantidad(producto, encontrarEnCarrito(producto));
+                limpiarEscaneo();
+                return;
+            }
+
+            var lectura = codigoBarrasService.decodificarCodigoPeso(code, prefijoPeso);
+            if (lectura.isPresent()) {
+                var producto = productoService.buscarPorPlu(lectura.get().plu())
+                        .orElseThrow(() -> new ValidationException("No existe un producto activo con PLU " + lectura.get().plu() + "."));
+                if (producto.unidadMedida() != UnidadMedida.KG) {
+                    throw new ValidationException("El PLU escaneado no corresponde a un producto vendido por kg.");
+                }
+                agregarCantidad(producto, lectura.get().pesoKg(), true);
+                showFeedback(producto.nombre() + " · " + formatQuantityValue(lectura.get().pesoKg()) + " kg agregado");
+                limpiarEscaneo();
+                return;
+            }
+            throw new ValidationException("Código no reconocido. Revisá el código de barras o la configuración de la balanza.");
+        });
+    }
+
+    private void limpiarEscaneo() {
+        buscar.clear();
+        buscar.requestFocus();
     }
 
     private void configurarProductos() {
@@ -220,32 +247,28 @@ public final class VentaView extends HBox {
 
         TableColumn<Producto, Producto> productoCol = new TableColumn<>("Producto");
         productoCol.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        productoCol.setPrefWidth(260);
+        productoCol.setPrefWidth(270);
         productoCol.setCellFactory(column -> new TableCell<>() {
             private final Label name = new Label();
-            private final Label category = new Label();
-            private final VBox box = new VBox(1, name, category);
+            private final Label detail = new Label();
+            private final VBox box = new VBox(1, name, detail);
             {
                 name.getStyleClass().add("product-name");
-                category.getStyleClass().add("product-category");
+                detail.getStyleClass().add("product-category");
             }
-            @Override
-            protected void updateItem(Producto item, boolean empty) {
+            @Override protected void updateItem(Producto item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                    return;
-                }
+                if (empty || item == null) { setGraphic(null); return; }
                 name.setText(item.nombre());
-                category.setText(item.categoriaNombre() == null ? "Sin categoría" : item.categoriaNombre());
+                String category = item.categoriaNombre() == null ? "Sin categoría" : item.categoriaNombre();
+                detail.setText(category + " · " + item.identificacionComercial());
                 setGraphic(box);
             }
         });
 
         TableColumn<Producto, String> priceCol = new TableColumn<>("Precio");
         priceCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().precioVenta())));
-        priceCol.setPrefWidth(110);
-
+        priceCol.setPrefWidth(105);
         TableColumn<Producto, String> stockCol = new TableColumn<>("Stock");
         stockCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatStock(cell.getValue())));
         stockCol.setPrefWidth(90);
@@ -255,23 +278,16 @@ public final class VentaView extends HBox {
         actionCol.setPrefWidth(95);
         actionCol.setCellFactory(column -> new TableCell<>() {
             private final Button add = new Button("Agregar");
-            {
-                add.getStyleClass().add("pos-add-button");
-            }
-            @Override
-            protected void updateItem(Producto item, boolean empty) {
+            { add.getStyleClass().add("pos-add-button"); }
+            @Override protected void updateItem(Producto item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                    return;
-                }
+                if (empty || item == null) { setGraphic(null); return; }
                 add.setDisable(item.stockActual() <= 0);
-                add.setOnAction(event -> pedirCantidad(item, null));
+                add.setOnAction(event -> pedirCantidad(item, encontrarEnCarrito(item)));
                 setAlignment(Pos.CENTER);
                 setGraphic(add);
             }
         });
-
         tablaProductos.getColumns().setAll(productoCol, priceCol, stockCol, actionCol);
     }
 
@@ -284,15 +300,12 @@ public final class VentaView extends HBox {
         TableColumn<CartItem, String> productCol = new TableColumn<>("Producto");
         productCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().producto.nombre()));
         productCol.setPrefWidth(150);
-
         TableColumn<CartItem, String> qtyCol = new TableColumn<>("Cant.");
         qtyCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatQuantity(cell.getValue())));
         qtyCol.setPrefWidth(70);
-
         TableColumn<CartItem, String> subtotalCol = new TableColumn<>("Subtotal");
         subtotalCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().subtotal())));
         subtotalCol.setPrefWidth(100);
-
         TableColumn<CartItem, CartItem> actionCol = new TableColumn<>("");
         actionCol.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
         actionCol.setPrefWidth(105);
@@ -304,23 +317,15 @@ public final class VentaView extends HBox {
                 remove.getStyleClass().add("pos-remove-button");
                 box.setAlignment(Pos.CENTER);
             }
-            @Override
-            protected void updateItem(CartItem item, boolean empty) {
+            @Override protected void updateItem(CartItem item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                    return;
-                }
+                if (empty || item == null) { setGraphic(null); return; }
                 edit.setOnAction(event -> pedirCantidad(item.producto, item));
-                remove.setOnAction(event -> {
-                    carrito.remove(item);
-                    recalcular();
-                });
+                remove.setOnAction(event -> { carrito.remove(item); recalcular(); buscar.requestFocus(); });
                 setAlignment(Pos.CENTER);
                 setGraphic(box);
             }
         });
-
         tablaCarrito.getColumns().setAll(productCol, qtyCol, subtotalCol, actionCol);
     }
 
@@ -343,10 +348,12 @@ public final class VentaView extends HBox {
         if (!cash) {
             recibido.clear();
             recibido.setPromptText("No aplica");
-        } else {
-            recibido.setPromptText("Efectivo recibido");
-        }
+        } else recibido.setPromptText("Efectivo recibido");
         recalcular();
+    }
+
+    private CartItem encontrarEnCarrito(Producto producto) {
+        return carrito.stream().filter(item -> item.producto.id() == producto.id()).findFirst().orElse(null);
     }
 
     private void pedirCantidad(Producto producto, CartItem existing) {
@@ -358,55 +365,47 @@ public final class VentaView extends HBox {
         dialog.setHeaderText(producto.nombre() + " · Stock: " + formatStock(producto));
         dialog.setContentText(producto.unidadMedida() == UnidadMedida.UN ? "Cantidad de unidades:" : "Cantidad en kg:");
         applyDialogStyle(dialog.getDialogPane());
-
         dialog.showAndWait().ifPresent(value -> ejecutar(() -> {
             double qty = parseQuantity(value);
-            if (producto.unidadMedida() == UnidadMedida.UN && Math.abs(qty - Math.rint(qty)) > 0.000001) {
-                throw new ValidationException("Este producto se vende por unidad y no acepta decimales.");
-            }
-            if (qty <= 0) {
-                throw new ValidationException("La cantidad debe ser mayor a cero.");
-            }
-            if (qty > producto.stockActual()) {
-                throw new ValidationException("Stock insuficiente. Disponible: " + formatStock(producto));
-            }
-
-            if (existing == null) {
-                carrito.add(new CartItem(producto, qty));
-            } else {
+            validarCantidad(producto, qty);
+            if (existing == null) carrito.add(new CartItem(producto, qty));
+            else {
                 existing.cantidad = qty;
                 tablaCarrito.refresh();
             }
             recalcular();
+            buscar.requestFocus();
         }));
+    }
+
+    private void agregarCantidad(Producto producto, double cantidad, boolean acumular) {
+        validarCantidad(producto, cantidad);
+        CartItem existing = encontrarEnCarrito(producto);
+        double totalCantidad = existing == null ? cantidad : (acumular ? existing.cantidad + cantidad : cantidad);
+        validarCantidad(producto, totalCantidad);
+        if (existing == null) carrito.add(new CartItem(producto, cantidad));
+        else {
+            existing.cantidad = totalCantidad;
+            tablaCarrito.refresh();
+        }
+        recalcular();
+    }
+
+    private void validarCantidad(Producto producto, double qty) {
+        if (!Double.isFinite(qty) || qty <= 0) throw new ValidationException("La cantidad debe ser mayor a cero.");
+        if (producto.unidadMedida() == UnidadMedida.UN && Math.abs(qty - Math.rint(qty)) > 0.000001) {
+            throw new ValidationException("Este producto se vende por unidad y no acepta decimales.");
+        }
+        if (qty > producto.stockActual() + 0.000001) {
+            throw new ValidationException("Stock insuficiente. Disponible: " + formatStock(producto));
+        }
     }
 
     private void cobrar() {
         ejecutar(() -> {
-            List<LineaVenta> lineas = carrito.stream()
-                    .map(item -> new LineaVenta(item.producto, item.cantidad))
-                    .toList();
-
-            double recibidoValue = metodoPago.getValue() == MetodoPago.EFECTIVO
-                    ? parseMoneyOrZero(recibido.getText())
-                    : 0;
-
-            VentaResultado result = ventaService.vender(
-                    usuario,
-                    caja,
-                    lineas,
-                    metodoPago.getValue(),
-                    recibidoValue
-            );
-
-            Alert success = new Alert(Alert.AlertType.INFORMATION);
-            success.setTitle("Venta registrada");
-            success.setHeaderText("Ticket #" + result.nroTicket() + " · " + formatCurrency(result.total()));
-            success.setContentText(result.metodoPago() == MetodoPago.EFECTIVO
-                    ? "Recibido: " + formatCurrency(result.recibido()) + "\nVuelto: " + formatCurrency(result.vuelto())
-                    : "Pago: " + result.metodoPago().descripcion());
-            applyDialogStyle(success.getDialogPane());
-            success.showAndWait();
+            List<LineaVenta> lineas = carrito.stream().map(item -> new LineaVenta(item.producto, item.cantidad)).toList();
+            double recibidoValue = metodoPago.getValue() == MetodoPago.EFECTIVO ? parseMoneyOrZero(recibido.getText()) : 0;
+            VentaResultado result = ventaService.vender(usuario, caja, lineas, metodoPago.getValue(), recibidoValue);
 
             carrito.clear();
             recibido.clear();
@@ -416,9 +415,8 @@ public final class VentaView extends HBox {
             } catch (RuntimeException ignored) {
                 // La venta ya fue confirmada. El resumen se refrescará al volver a entrar a Caja.
             }
-            feedback.setText("Venta registrada · Ticket #" + result.nroTicket());
-            feedback.setVisible(true);
-            feedback.setManaged(true);
+            showFeedback("Venta registrada · Ticket #" + result.nroTicket() + " · " + formatCurrency(result.total()));
+            limpiarEscaneo();
         });
     }
 
@@ -430,18 +428,12 @@ public final class VentaView extends HBox {
     private void recalcular() {
         double totalValue = carrito.stream().mapToDouble(CartItem::subtotal).sum();
         total.setText(formatCurrency(totalValue));
-
-        double recibidoValue = 0;
-        if (metodoPago.getValue() == MetodoPago.EFECTIVO) {
-            recibidoValue = parseMoneySilently(recibido.getText());
-        }
+        double recibidoValue = metodoPago.getValue() == MetodoPago.EFECTIVO ? parseMoneySilently(recibido.getText()) : 0;
         vuelto.setText(formatCurrency(Math.max(0, recibidoValue - totalValue)));
     }
 
     private double parseQuantity(String value) {
-        if (value == null || value.isBlank()) {
-            throw new ValidationException("Ingresá una cantidad.");
-        }
+        if (value == null || value.isBlank()) throw new ValidationException("Ingresá una cantidad.");
         try {
             return Double.parseDouble(value.trim().replace(",", "."));
         } catch (NumberFormatException e) {
@@ -450,36 +442,23 @@ public final class VentaView extends HBox {
     }
 
     private double parseMoneyOrZero(String value) {
-        if (value == null || value.isBlank()) {
-            return 0;
-        }
-        String normalized = normalizeMoney(value);
+        if (value == null || value.isBlank()) return 0;
         try {
-            return Double.parseDouble(normalized);
+            return Double.parseDouble(normalizeMoney(value));
         } catch (NumberFormatException e) {
             throw new ValidationException("Revisá el efectivo recibido.");
         }
     }
 
     private double parseMoneySilently(String value) {
-        try {
-            return parseMoneyOrZero(value);
-        } catch (RuntimeException e) {
-            return 0;
-        }
+        try { return parseMoneyOrZero(value); }
+        catch (RuntimeException e) { return 0; }
     }
 
     private String normalizeMoney(String value) {
-        String normalized = value.trim()
-                .replace("Gs.", "")
-                .replace("Gs", "")
-                .replace("₲", "")
-                .replace(" ", "");
-        if (normalized.contains(",")) {
-            normalized = normalized.replace(".", "").replace(",", ".");
-        } else if (normalized.matches("\\d{1,3}(\\.\\d{3})+")) {
-            normalized = normalized.replace(".", "");
-        }
+        String normalized = value.trim().replace("Gs.", "").replace("Gs", "").replace("₲", "").replace(" ", "");
+        if (normalized.contains(",")) normalized = normalized.replace(".", "").replace(",", ".");
+        else if (normalized.matches("\\d{1,3}(\\.\\d{3})+")) normalized = normalized.replace(".", "");
         return normalized;
     }
 
@@ -489,13 +468,16 @@ public final class VentaView extends HBox {
     }
 
     private String formatStock(Producto producto) {
-        String qty = BigDecimal.valueOf(producto.stockActual()).stripTrailingZeros().toPlainString();
+        String qty = formatQuantityValue(producto.stockActual());
         return qty + (producto.unidadMedida() == UnidadMedida.KG ? " kg" : " un.");
     }
 
     private String formatQuantity(CartItem item) {
-        String qty = BigDecimal.valueOf(item.cantidad).stripTrailingZeros().toPlainString();
-        return qty + (item.producto.unidadMedida() == UnidadMedida.KG ? " kg" : "");
+        return formatQuantityValue(item.cantidad) + (item.producto.unidadMedida() == UnidadMedida.KG ? " kg" : "");
+    }
+
+    private String formatQuantityValue(double value) {
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
     private void ejecutar(Runnable action) {
@@ -507,9 +489,7 @@ public final class VentaView extends HBox {
             showFeedback(e.getMessage());
         } catch (RuntimeException e) {
             Throwable current = e;
-            while (current.getCause() != null) {
-                current = current.getCause();
-            }
+            while (current.getCause() != null) current = current.getCause();
             showFeedback(current.getMessage() == null ? "No pudimos completar la operación." : current.getMessage());
         }
     }
@@ -520,29 +500,23 @@ public final class VentaView extends HBox {
         feedback.setManaged(true);
     }
 
-    private void applyDialogStyle(javafx.scene.control.DialogPane pane) {
+    private void applyDialogStyle(DialogPane pane) {
         addDialogStyle(pane, "/styles/app.css");
         addDialogStyle(pane, "/styles/venta.css");
     }
 
-    private void addDialogStyle(javafx.scene.control.DialogPane pane, String path) {
+    private void addDialogStyle(DialogPane pane, String path) {
         var css = VentaView.class.getResource(path);
-        if (css != null) {
-            pane.getStylesheets().add(css.toExternalForm());
-        }
+        if (css != null) pane.getStylesheets().add(css.toExternalForm());
     }
 
     private static final class CartItem {
         private final Producto producto;
         private double cantidad;
-
         private CartItem(Producto producto, double cantidad) {
             this.producto = producto;
             this.cantidad = cantidad;
         }
-
-        private double subtotal() {
-            return producto.precioVenta() * cantidad;
-        }
+        private double subtotal() { return producto.precioVenta() * cantidad; }
     }
 }
