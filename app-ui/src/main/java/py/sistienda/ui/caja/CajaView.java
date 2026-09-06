@@ -20,6 +20,7 @@ import py.sistienda.core.model.MovimientoCaja;
 import py.sistienda.core.model.ResumenVentasCaja;
 import py.sistienda.core.model.TipoMovimientoCaja;
 import py.sistienda.core.model.Usuario;
+import py.sistienda.core.service.ArqueoCajaService;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.MovimientoCajaService;
@@ -42,6 +43,7 @@ public final class CajaView extends BorderPane {
 
     private final CajaService cajaService;
     private final MovimientoCajaService movimientoCajaService;
+    private final ArqueoCajaService arqueoCajaService;
     private final ProductoService productoService;
     private final VentaService ventaService;
     private final ReporteService reporteService;
@@ -61,6 +63,7 @@ public final class CajaView extends BorderPane {
     public CajaView(
             CajaService cajaService,
             MovimientoCajaService movimientoCajaService,
+            ArqueoCajaService arqueoCajaService,
             ProductoService productoService,
             VentaService ventaService,
             ReporteService reporteService,
@@ -69,6 +72,7 @@ public final class CajaView extends BorderPane {
     ) {
         this.cajaService = cajaService;
         this.movimientoCajaService = movimientoCajaService;
+        this.arqueoCajaService = arqueoCajaService;
         this.productoService = productoService;
         this.ventaService = ventaService;
         this.reporteService = reporteService;
@@ -92,12 +96,18 @@ public final class CajaView extends BorderPane {
         Label subtitle = new Label("Vendé rápido y mantené controlado el efectivo real del turno.");
         subtitle.getStyleClass().add("page-subtitle");
 
+        Button history = new Button("Historial de cajas");
+        history.getStyleClass().add("secondary-button");
+        history.setOnAction(event -> ejecutar(() -> HistorialCajasDialog.show(arqueoCajaService)));
+
         feedback.getStyleClass().add("feedback-label");
         feedback.setVisible(false);
         feedback.setManaged(false);
 
-        HBox titleRow = new HBox(12, title, subtitle);
-        titleRow.setAlignment(Pos.BASELINE_LEFT);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox titleRow = new HBox(12, title, subtitle, spacer, history);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
 
         VBox header = new VBox(3, eyebrow, titleRow, feedback);
         header.setPadding(new Insets(0, 0, 10, 0));
@@ -466,7 +476,7 @@ public final class CajaView extends BorderPane {
                 .filter(ButtonType.OK::equals)
                 .ifPresent(result -> ejecutar(() -> {
                     cajaService.cerrar(sesion, parseMonto(cierre.getText(), "monto de cierre"), notas.getText());
-                    mostrarFeedback("Caja cerrada correctamente.");
+                    mostrarFeedback("Caja cerrada correctamente. El arqueo quedó guardado en el historial.");
                     recargar();
                 }));
     }
