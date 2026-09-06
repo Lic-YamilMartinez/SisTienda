@@ -1,6 +1,7 @@
 package py.sistienda.ui.etiqueta;
 
 import com.google.zxing.BarcodeFormat;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.print.PrinterJob;
@@ -86,7 +87,10 @@ public final class EtiquetaDialog {
         applyStyle(dialog);
 
         Node printButton = dialog.getDialogPane().lookupButton(imprimir);
-        printButton.setOnMouseClicked(event -> print(label));
+        printButton.addEventFilter(ActionEvent.ACTION, event -> {
+            event.consume();
+            print(label);
+        });
         dialog.showAndWait();
     }
 
@@ -151,8 +155,12 @@ public final class EtiquetaDialog {
 
     private static double parsePeso(String value) {
         if (value == null || value.isBlank()) throw new ValidationException("Ingresá el peso.");
+        String normalized = value.trim().replace(" ", "");
+        if (normalized.contains(",")) {
+            normalized = normalized.replace(".", "").replace(",", ".");
+        }
         try {
-            double result = Double.parseDouble(value.trim().replace(".", "").replace(',', '.'));
+            double result = Double.parseDouble(normalized);
             if (!Double.isFinite(result) || result <= 0) throw new NumberFormatException();
             return result;
         } catch (NumberFormatException e) {
