@@ -69,7 +69,7 @@ public final class EtiquetaDialog {
                 throw new ValidationException("El producto no tiene código de barras.");
             }
             codigo = producto.codigoBarras();
-            format = BarcodeFormat.CODE_128;
+            format = codigoBarrasService.esEan13Valido(codigo) ? BarcodeFormat.EAN_13 : BarcodeFormat.CODE_128;
         } else {
             codigo = codigoBarrasService.generarCodigoPeso(configuracion.prefijoPeso(), producto.pluBalanza(), pesoKg);
             format = BarcodeFormat.EAN_13;
