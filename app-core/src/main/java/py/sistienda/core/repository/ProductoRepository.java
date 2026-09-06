@@ -8,9 +8,13 @@ import java.util.Optional;
 public interface ProductoRepository {
     List<Producto> findAllActive();
 
-    Optional<Producto> findByBarcode(String codigoBarras);
+    default Optional<Producto> findByBarcode(String codigoBarras) {
+        return Optional.empty();
+    }
 
-    Optional<Producto> findByPlu(int plu);
+    default Optional<Producto> findByPlu(int plu) {
+        return Optional.empty();
+    }
 
     Producto create(Producto producto);
 
