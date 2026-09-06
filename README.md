@@ -6,7 +6,7 @@ SisTienda es una aplicación desktop offline para Windows orientada a la gestió
 
 SisTienda busca cubrir el circuito operativo esencial de una tienda sin depender de internet:
 
-- acceso seguro del dueño;
+- acceso seguro con usuarios y roles;
 - catálogo, categorías, costos y stock;
 - caja y punto de venta;
 - tickets e impresión;
@@ -150,6 +150,29 @@ Sprint 9 implementa un formato neutral que SisTienda puede generar y decodificar
 
 La sincronización automática del catálogo hacia una balanza por USB, RS-232, Ethernet o Wi-Fi **no se implementa de forma genérica**, porque depende del protocolo del fabricante. Se agregará el adaptador correspondiente cuando se seleccione la marca y modelo de balanza.
 
+## Sprint 10 — Usuarios, Roles & Permisos
+
+- Roles tipados: Dueño, Administrador, Cajero y Vendedor.
+- Matriz central de permisos en `app-core`; la autorización no depende únicamente de ocultar botones.
+- Administración de usuarios disponible sólo para el Dueño.
+- Alta de usuarios con contraseña protegida mediante el mismo PBKDF2 del login.
+- Cambio de rol.
+- Activación y desactivación sin eliminar el historial asociado al usuario.
+- Restablecimiento de contraseña por el Dueño.
+- Cambio de contraseña propia validando la contraseña actual.
+- Protección para impedir la desactivación de la propia sesión.
+- Protección para conservar al menos un Dueño activo.
+- Cierre de sesión y rotación de usuario sin reiniciar la aplicación.
+- Navegación filtrada por permiso y validada nuevamente antes de abrir cada módulo.
+- Dueño: acceso total.
+- Administrador: catálogo/stock, costos, caja, arqueos, reportes y compras; sin usuarios ni configuración crítica.
+- Cajero: catálogo de consulta, caja y movimientos del turno; sin costos, compras, reportes ni arqueos históricos.
+- Vendedor: catálogo de consulta y venta/POS; sin movimientos de caja, costos, compras, reportes ni configuración.
+- Vista de catálogo separada para roles restringidos, sin columnas de costo ni acciones de stock/edición.
+- Vista operativa de Caja separada para Cajero/Vendedor, sin acceso al historial de arqueos.
+- Tests unitarios de matriz de permisos y reglas de administración de usuarios.
+- Tests de integración SQLite para roles, estado y contraseñas.
+
 ## Stack tecnológico
 
 - Java 21
@@ -179,6 +202,7 @@ Dominio y reglas de negocio:
 - contratos de repositorio;
 - servicios;
 - validaciones;
+- permisos y política de autorización;
 - excepciones de negocio.
 
 No depende de JavaFX, JDBC ni SQLite.
@@ -339,10 +363,10 @@ En ramas/PRs apilados pendientes de validación local:
 - Sprint 7: gastos y movimientos de caja.
 - Sprint 8: cierre y arqueo de caja.
 - Sprint 9: códigos, etiquetas y hardware POS.
+- Sprint 10: usuarios, roles y permisos.
 
 Siguientes frentes previstos:
 
-- usuarios y roles;
 - dashboard del dueño;
 - reportes por rangos y exportaciones;
 - anulación operativa de ventas con reversión de stock;
