@@ -93,7 +93,7 @@ public class MainApp extends Application {
                         configuracionPosService, codigoBarrasService),
                 () -> new CajaView(cajaService, movimientoCajaService, arqueoCajaService, productoService, ventaService,
                         reporteService, empresaService, configuracionPosService, codigoBarrasService, usuario),
-                () -> new ReportesView(reporteService, empresaService),
+                () -> new ReportesView(reporteService, empresaService, configuracionPosService),
                 () -> new ComprasView(proveedorService, productoService, compraService, usuario),
                 () -> new ConfiguracionView(empresaService, backupService, configuracionPosService),
                 usuario
