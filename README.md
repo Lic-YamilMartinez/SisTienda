@@ -15,7 +15,8 @@ SisTienda busca cubrir el circuito operativo esencial de una tienda sin depender
 - backup y restauración;
 - proveedores y compras;
 - ingresos, egresos y control de efectivo;
-- cierre y arqueo histórico de cajas.
+- cierre y arqueo histórico de cajas;
+- códigos de barras, etiquetas y preparación para hardware POS.
 
 ## Sprint 1 — Catálogo & Stock
 
@@ -116,11 +117,45 @@ fondo inicial
 - Observación de cierre.
 - Consultas consolidadas sin duplicar importes al combinar ventas y movimientos.
 
+## Sprint 9 — Códigos, Etiquetas & Hardware POS
+
+- Código de barras por producto.
+- Uso del código del fabricante o generación automática de un EAN-13 interno para productos por unidad.
+- PLU de balanza para productos vendidos por kilogramo.
+- Generación y validación de EAN-13 con dígito verificador.
+- Formato variable de peso configurable:
+
+```text
+PP + PLU(5) + gramos(5) + dígito verificador
+```
+
+- Lectura de etiquetas de balanza desde Caja.
+- Scanner USB compatible con modo teclado: el lector escribe el código y envía Enter.
+- Escaneo repetido de productos por unidad acumula cantidad en el carrito.
+- Escaneo de etiqueta de peso agrega al carrito el peso exacto codificado.
+- Validación de stock sobre la cantidad acumulada del carrito.
+- Búsqueda por nombre, categoría, código de barras o PLU.
+- Vista previa e impresión de etiquetas desde Catálogo.
+- Etiqueta de producto por unidad mediante Code 128.
+- Etiqueta de producto pesable mediante EAN-13 variable.
+- Configuración POS para prefijo de balanza, ticket 58/80 mm, ancho de etiqueta e impresión al cobrar.
+- Ticket adaptado visualmente a 58 u 80 mm y reimpresión manual mediante el sistema de impresión de JavaFX.
+- Migración compatible de bases creadas en sprints anteriores: se agregan columnas de código y PLU sin perder productos ni stock.
+- Restricción de código de barras y PLU únicos por producto.
+- ZXing se utiliza únicamente en `app-ui` para renderizar códigos; reglas, validación y decodificación permanecen en `app-core`.
+
+### Compatibilidad con balanzas
+
+Sprint 9 implementa un formato neutral que SisTienda puede generar y decodificar. Una balanza etiquetadora física deberá configurarse para emitir el mismo esquema o contar con un adaptador específico.
+
+La sincronización automática del catálogo hacia una balanza por USB, RS-232, Ethernet o Wi-Fi **no se implementa de forma genérica**, porque depende del protocolo del fabricante. Se agregará el adaptador correspondiente cuando se seleccione la marca y modelo de balanza.
+
 ## Stack tecnológico
 
 - Java 21
 - JavaFX 21.0.4
 - SQLite mediante `org.xerial:sqlite-jdbc`
+- ZXing Core 3.5.3 para renderizado de códigos en la interfaz
 - Gradle 8.10.2
 - JUnit 5
 - GitHub Actions
@@ -204,6 +239,7 @@ app-data/src/main/resources/db/V1__init.sql
 Entre otras, contiene:
 
 - `empresa`
+- `configuracion_pos`
 - `usuario`
 - `categoria_producto`
 - `producto`
@@ -217,7 +253,7 @@ Entre otras, contiene:
 - `mov_stock`
 - `secuencia`
 
-La base incluye controles para impedir stock negativo y mantener `stock_actual` actualizado.
+La base incluye controles para impedir stock negativo, mantener `stock_actual` actualizado y evitar códigos de barras o PLU duplicados.
 
 ## Ejecutar
 
@@ -302,6 +338,7 @@ En ramas/PRs apilados pendientes de validación local:
 - Sprint 6: proveedores y compras.
 - Sprint 7: gastos y movimientos de caja.
 - Sprint 8: cierre y arqueo de caja.
+- Sprint 9: códigos, etiquetas y hardware POS.
 
 Siguientes frentes previstos:
 
@@ -309,6 +346,7 @@ Siguientes frentes previstos:
 - dashboard del dueño;
 - reportes por rangos y exportaciones;
 - anulación operativa de ventas con reversión de stock;
+- adaptador de balanza específico cuando se defina el hardware;
 - empaquetado, instalador y preparación de producción.
 
 ## Principio rector
