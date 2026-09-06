@@ -5,6 +5,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.security.PasswordHasher;
+import py.sistienda.core.service.ArqueoCajaService;
 import py.sistienda.core.service.AuthService;
 import py.sistienda.core.service.BackupService;
 import py.sistienda.core.service.CajaService;
@@ -19,6 +20,7 @@ import py.sistienda.core.service.StockService;
 import py.sistienda.core.service.VentaService;
 import py.sistienda.data.database.DatabaseInitializer;
 import py.sistienda.data.database.SqliteConnectionFactory;
+import py.sistienda.data.repository.SqliteArqueoCajaRepository;
 import py.sistienda.data.repository.SqliteBackupRepository;
 import py.sistienda.data.repository.SqliteCajaRepository;
 import py.sistienda.data.repository.SqliteCategoriaRepository;
@@ -78,6 +80,7 @@ public class MainApp extends Application {
         var stockService = new StockService(new SqliteMovimientoStockRepository(connectionFactory));
         var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
         var movimientoCajaService = new MovimientoCajaService(new SqliteMovimientoCajaRepository(connectionFactory));
+        var arqueoCajaService = new ArqueoCajaService(new SqliteArqueoCajaRepository(connectionFactory));
         var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
         var reporteService = new ReporteService(new SqliteReporteRepository(connectionFactory));
         var empresaService = new EmpresaService(new SqliteEmpresaRepository(connectionFactory));
@@ -86,7 +89,7 @@ public class MainApp extends Application {
 
         var root = new MainShell(
                 () -> new CatalogoView(categoriaService, productoService, stockService),
-                () -> new CajaView(cajaService, movimientoCajaService, productoService, ventaService,
+                () -> new CajaView(cajaService, movimientoCajaService, arqueoCajaService, productoService, ventaService,
                         reporteService, empresaService, usuario),
                 () -> new ReportesView(reporteService, empresaService),
                 () -> new ComprasView(proveedorService, productoService, compraService, usuario),
