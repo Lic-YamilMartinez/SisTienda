@@ -163,10 +163,10 @@ public final class SqliteProductoRepository implements ProductoRepository {
     private RuntimeException translateWriteError(String fallback, Exception e) {
         String message = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
         if (message.contains("codigo_barras")) {
-            return new RuntimeException("Ese código de barras ya está asignado a otro producto.", e);
+            return new RuntimeException("Ese código de barras ya está asignado a otro producto.");
         }
         if (message.contains("plu_balanza")) {
-            return new RuntimeException("Ese PLU de balanza ya está asignado a otro producto.", e);
+            return new RuntimeException("Ese PLU de balanza ya está asignado a otro producto.");
         }
         return new RuntimeException(fallback, e);
     }
