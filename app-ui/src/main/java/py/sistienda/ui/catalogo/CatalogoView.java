@@ -8,17 +8,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -26,11 +16,15 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.CategoriaProducto;
+import py.sistienda.core.model.ConfiguracionPos;
 import py.sistienda.core.model.Producto;
 import py.sistienda.core.model.UnidadMedida;
 import py.sistienda.core.service.CategoriaService;
+import py.sistienda.core.service.CodigoBarrasService;
+import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.StockService;
+import py.sistienda.ui.etiqueta.EtiquetaDialog;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -44,6 +38,8 @@ public final class CatalogoView extends BorderPane {
     private final CategoriaService categoriaService;
     private final ProductoService productoService;
     private final StockService stockService;
+    private final ConfiguracionPosService configuracionPosService;
+    private final CodigoBarrasService codigoBarrasService;
 
     private final ObservableList<Producto> productos = FXCollections.observableArrayList();
     private final FilteredList<Producto> productosFiltrados = new FilteredList<>(productos, value -> true);
@@ -60,9 +56,16 @@ public final class CatalogoView extends BorderPane {
     private final Label feedback = new Label();
 
     public CatalogoView(CategoriaService categoriaService, ProductoService productoService, StockService stockService) {
+        this(categoriaService, productoService, stockService, null, new CodigoBarrasService());
+    }
+
+    public CatalogoView(CategoriaService categoriaService, ProductoService productoService, StockService stockService,
+                        ConfiguracionPosService configuracionPosService, CodigoBarrasService codigoBarrasService) {
         this.categoriaService = categoriaService;
         this.productoService = productoService;
         this.stockService = stockService;
+        this.configuracionPosService = configuracionPosService;
+        this.codigoBarrasService = codigoBarrasService == null ? new CodigoBarrasService() : codigoBarrasService;
 
         getStyleClass().add("content-area");
         setPadding(new Insets(28, 32, 28, 32));
@@ -77,24 +80,20 @@ public final class CatalogoView extends BorderPane {
     private VBox buildHeader() {
         Label eyebrow = new Label("INVENTARIO");
         eyebrow.getStyleClass().add("eyebrow");
-
         Label title = new Label("Catálogo & Stock");
         title.getStyleClass().add("page-title");
-
-        Label subtitle = new Label("Administrá tus productos, precios y existencias desde un solo lugar.");
+        Label subtitle = new Label("Productos, códigos, etiquetas, precios y existencias desde un solo lugar.");
         subtitle.getStyleClass().add("page-subtitle");
 
         Button nuevaCategoria = new Button("+ Categoría");
         nuevaCategoria.getStyleClass().add("secondary-button");
         nuevaCategoria.setOnAction(event -> crearCategoria());
-
         Button nuevoProducto = new Button("+ Nuevo producto");
         nuevoProducto.getStyleClass().add("primary-button");
         nuevoProducto.setOnAction(event -> editarProducto(null));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-
         HBox titleRow = new HBox(14, new VBox(2, eyebrow, title, subtitle), spacer, nuevaCategoria, nuevoProducto);
         titleRow.setAlignment(Pos.CENTER_LEFT);
 
@@ -109,7 +108,6 @@ public final class CatalogoView extends BorderPane {
                 metricCard("Categorías", totalCategorias, "Activas")
         );
         cards.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
-
         VBox header = new VBox(18, titleRow, feedback, cards);
         header.setPadding(new Insets(0, 0, 20, 0));
         return header;
@@ -121,7 +119,6 @@ public final class CatalogoView extends BorderPane {
         value.getStyleClass().add("metric-value");
         Label hintLabel = new Label(hint);
         hintLabel.getStyleClass().add("metric-hint");
-
         VBox card = new VBox(6, title, value, hintLabel);
         card.getStyleClass().add("metric-card");
         card.setPadding(new Insets(16, 18, 15, 18));
@@ -130,10 +127,9 @@ public final class CatalogoView extends BorderPane {
     }
 
     private VBox buildWorkspace() {
-        buscar.setPromptText("Buscar por nombre o categoría...");
+        buscar.setPromptText("Buscar por nombre, categoría, código o PLU...");
         buscar.getStyleClass().add("search-field");
-        buscar.setPrefWidth(330);
-
+        buscar.setPrefWidth(350);
         filtroCategoria.setPrefWidth(250);
         filtroCategoria.setMinWidth(250);
         filtroCategoria.getStyleClass().add("filter-combo");
@@ -141,10 +137,8 @@ public final class CatalogoView extends BorderPane {
         Label count = new Label();
         count.textProperty().bind(Bindings.size(productosFiltrados).asString("%d productos"));
         count.getStyleClass().add("result-count");
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-
         HBox toolbar = new HBox(10, buscar, filtroCategoria, spacer, count);
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.getStyleClass().add("catalog-toolbar");
@@ -168,24 +162,23 @@ public final class CatalogoView extends BorderPane {
 
         TableColumn<Producto, Producto> productoColumn = new TableColumn<>("Producto");
         productoColumn.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        productoColumn.setPrefWidth(280);
+        productoColumn.setPrefWidth(300);
         productoColumn.setCellFactory(column -> new TableCell<>() {
             private final Label name = new Label();
-            private final Label category = new Label();
-            private final VBox box = new VBox(3, name, category);
+            private final Label detail = new Label();
+            private final VBox box = new VBox(3, name, detail);
             {
                 name.getStyleClass().add("product-name");
-                category.getStyleClass().add("product-category");
+                detail.getStyleClass().add("product-category");
             }
-
-            @Override
-            protected void updateItem(Producto value, boolean empty) {
+            @Override protected void updateItem(Producto value, boolean empty) {
                 super.updateItem(value, empty);
                 if (empty || value == null) {
                     setGraphic(null);
                 } else {
                     name.setText(value.nombre());
-                    category.setText(value.categoriaNombre() == null ? "Sin categoría" : value.categoriaNombre());
+                    String category = value.categoriaNombre() == null ? "Sin categoría" : value.categoriaNombre();
+                    detail.setText(category + " · " + value.identificacionComercial());
                     setGraphic(box);
                 }
             }
@@ -194,45 +187,35 @@ public final class CatalogoView extends BorderPane {
         TableColumn<Producto, String> unidadColumn = new TableColumn<>("Venta");
         unidadColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(
                 cell.getValue().unidadMedida() == UnidadMedida.KG ? "Por kg" : "Unidad"));
-        unidadColumn.setPrefWidth(90);
-
+        unidadColumn.setPrefWidth(80);
         TableColumn<Producto, String> precioColumn = new TableColumn<>("Precio");
         precioColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().precioVenta())));
-        precioColumn.setPrefWidth(120);
-
+        precioColumn.setPrefWidth(105);
         TableColumn<Producto, String> costoColumn = new TableColumn<>("Costo");
         costoColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().costo())));
-        costoColumn.setPrefWidth(120);
+        costoColumn.setPrefWidth(105);
 
         TableColumn<Producto, String> stockColumn = new TableColumn<>("Stock");
         stockColumn.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatStock(cell.getValue())));
-        stockColumn.setPrefWidth(105);
+        stockColumn.setPrefWidth(95);
         stockColumn.setCellFactory(column -> new TableCell<>() {
-            @Override
-            protected void updateItem(String value, boolean empty) {
+            @Override protected void updateItem(String value, boolean empty) {
                 super.updateItem(value, empty);
                 setText(empty ? null : value);
                 getStyleClass().removeAll("stock-zero", "stock-positive");
                 Producto rowProduct = getTableRow() == null ? null : getTableRow().getItem();
-                if (!empty && rowProduct != null) {
-                    getStyleClass().add(rowProduct.stockActual() <= 0 ? "stock-zero" : "stock-positive");
-                }
+                if (!empty && rowProduct != null) getStyleClass().add(rowProduct.stockActual() <= 0 ? "stock-zero" : "stock-positive");
             }
         });
 
         TableColumn<Producto, Producto> estadoColumn = new TableColumn<>("Estado");
         estadoColumn.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        estadoColumn.setPrefWidth(110);
+        estadoColumn.setPrefWidth(100);
         estadoColumn.setCellFactory(column -> new TableCell<>() {
             private final Label badge = new Label();
-
-            @Override
-            protected void updateItem(Producto value, boolean empty) {
+            @Override protected void updateItem(Producto value, boolean empty) {
                 super.updateItem(value, empty);
-                if (empty || value == null) {
-                    setGraphic(null);
-                    return;
-                }
+                if (empty || value == null) { setGraphic(null); return; }
                 badge.getStyleClass().removeAll("status-ok", "status-empty");
                 if (value.stockActual() <= 0) {
                     badge.setText("Sin stock");
@@ -247,28 +230,25 @@ public final class CatalogoView extends BorderPane {
 
         TableColumn<Producto, Producto> actionsColumn = new TableColumn<>("Acciones");
         actionsColumn.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        actionsColumn.setPrefWidth(235);
+        actionsColumn.setPrefWidth(300);
         actionsColumn.setCellFactory(column -> new TableCell<>() {
             private final Button edit = smallButton("Editar");
             private final Button stock = smallButton("Stock +/-");
+            private final Button label = smallButton("Etiqueta");
             private final Button disable = smallButton("Desactivar");
-            private final HBox box = new HBox(7, edit, stock, disable);
-
+            private final HBox box = new HBox(5, edit, stock, label, disable);
             {
                 stock.getStyleClass().add("stock-action-button");
+                label.getStyleClass().add("stock-action-button");
                 disable.getStyleClass().add("danger-link-button");
-                box.setAlignment(Pos.CENTER_LEFT);
+                box.setAlignment(Pos.CENTER);
             }
-
-            @Override
-            protected void updateItem(Producto value, boolean empty) {
+            @Override protected void updateItem(Producto value, boolean empty) {
                 super.updateItem(value, empty);
-                if (empty || value == null) {
-                    setGraphic(null);
-                    return;
-                }
+                if (empty || value == null) { setGraphic(null); return; }
                 edit.setOnAction(event -> editarProducto(value));
                 stock.setOnAction(event -> moverStock(value));
+                label.setOnAction(event -> imprimirEtiqueta(value));
                 disable.setOnAction(event -> desactivarProducto(value));
                 setGraphic(box);
             }
@@ -287,17 +267,14 @@ public final class CatalogoView extends BorderPane {
     private void aplicarFiltro() {
         String query = buscar.getText() == null ? "" : buscar.getText().trim().toLowerCase(Locale.ROOT);
         String category = filtroCategoria.getValue();
-
         productosFiltrados.setPredicate(producto -> {
             boolean textMatches = query.isBlank()
                     || producto.nombre().toLowerCase(Locale.ROOT).contains(query)
-                    || (producto.categoriaNombre() != null
-                    && producto.categoriaNombre().toLowerCase(Locale.ROOT).contains(query));
-
-            boolean categoryMatches = category == null
-                    || TODAS_LAS_CATEGORIAS.equals(category)
+                    || (producto.categoriaNombre() != null && producto.categoriaNombre().toLowerCase(Locale.ROOT).contains(query))
+                    || (producto.codigoBarras() != null && producto.codigoBarras().toLowerCase(Locale.ROOT).contains(query))
+                    || (producto.pluBalanza() != null && String.valueOf(producto.pluBalanza()).contains(query));
+            boolean categoryMatches = category == null || TODAS_LAS_CATEGORIAS.equals(category)
                     || category.equals(producto.categoriaNombre());
-
             return textMatches && categoryMatches;
         });
     }
@@ -309,7 +286,6 @@ public final class CatalogoView extends BorderPane {
         dialog.setHeaderText("Organizá mejor tu catálogo");
         dialog.setContentText("Nombre de la categoría:");
         applyDialogStyles(dialog.getDialogPane());
-
         dialog.showAndWait().ifPresent(nombre -> ejecutar(() -> {
             categoriaService.crear(nombre);
             recargar();
@@ -322,42 +298,33 @@ public final class CatalogoView extends BorderPane {
         dialog.showAndWait().ifPresent(form -> ejecutar(() -> {
             CategoriaProducto category = form.categoria();
             if (producto == null) {
-                productoService.crear(
-                        form.nombre(),
-                        category == null ? null : category.id(),
-                        category == null ? null : category.nombre(),
-                        form.unidadMedida(),
-                        form.precioVenta(),
-                        form.costo()
-                );
-                mostrarFeedback("Producto creado. Ahora podés registrar su stock inicial con “Stock +/-”.");
+                Producto creado = productoService.crear(
+                        form.nombre(), category == null ? null : category.id(), category == null ? null : category.nombre(),
+                        form.unidadMedida(), form.precioVenta(), form.costo(), form.codigoBarras(), form.pluBalanza());
+                mostrarFeedback("Producto creado · " + creado.identificacionComercial() + ". Ahora podés registrar su stock.");
             } else {
-                productoService.actualizar(
-                        producto,
-                        form.nombre(),
-                        category == null ? null : category.id(),
-                        category == null ? null : category.nombre(),
-                        form.unidadMedida(),
-                        form.precioVenta(),
-                        form.costo()
-                );
-                mostrarFeedback("Producto actualizado correctamente.");
+                Producto guardado = productoService.actualizar(
+                        producto, form.nombre(), category == null ? null : category.id(), category == null ? null : category.nombre(),
+                        form.unidadMedida(), form.precioVenta(), form.costo(), form.codigoBarras(), form.pluBalanza());
+                mostrarFeedback("Producto actualizado · " + guardado.identificacionComercial() + ".");
             }
             recargar();
         }));
     }
 
+    private void imprimirEtiqueta(Producto producto) {
+        ejecutar(() -> {
+            Producto identificado = productoService.asegurarIdentificacion(producto);
+            ConfiguracionPos config = configuracionPosService == null ? ConfiguracionPos.porDefecto() : configuracionPosService.obtener();
+            EtiquetaDialog.show(getScene().getWindow(), identificado, config, codigoBarrasService);
+            recargar();
+        });
+    }
+
     private void moverStock(Producto producto) {
         StockDialog dialog = new StockDialog(getScene().getWindow(), producto);
         dialog.showAndWait().ifPresent(form -> ejecutar(() -> {
-            stockService.registrar(
-                    producto,
-                    form.tipo(),
-                    form.motivo(),
-                    form.cantidad(),
-                    form.referencia(),
-                    form.observacion()
-            );
+            stockService.registrar(producto, form.tipo(), form.motivo(), form.cantidad(), form.referencia(), form.observacion());
             recargar();
             mostrarFeedback("Stock actualizado correctamente.");
         }));
@@ -373,7 +340,6 @@ public final class CatalogoView extends BorderPane {
         ButtonType accept = new ButtonType("Desactivar", ButtonBar.ButtonData.OK_DONE);
         confirmation.getButtonTypes().setAll(cancel, accept);
         applyDialogStyles(confirmation.getDialogPane());
-
         if (confirmation.showAndWait().orElse(cancel) == accept) {
             ejecutar(() -> {
                 productoService.desactivar(producto.id());
@@ -387,16 +353,11 @@ public final class CatalogoView extends BorderPane {
         ejecutarSilencioso(() -> {
             categorias.setAll(categoriaService.listarActivas());
             productos.setAll(productoService.listarActivos());
-
             String selected = filtroCategoria.getValue();
             filtroCategoria.getItems().setAll(TODAS_LAS_CATEGORIAS);
             categorias.stream().map(CategoriaProducto::nombre).forEach(filtroCategoria.getItems()::add);
-            if (selected != null && filtroCategoria.getItems().contains(selected)) {
-                filtroCategoria.setValue(selected);
-            } else {
-                filtroCategoria.setValue(TODAS_LAS_CATEGORIAS);
-            }
-
+            if (selected != null && filtroCategoria.getItems().contains(selected)) filtroCategoria.setValue(selected);
+            else filtroCategoria.setValue(TODAS_LAS_CATEGORIAS);
             actualizarMetricas();
             aplicarFiltro();
         });
@@ -404,13 +365,9 @@ public final class CatalogoView extends BorderPane {
 
     private void actualizarMetricas() {
         totalProductos.setText(String.valueOf(productos.size()));
-        long empty = productos.stream().filter(producto -> producto.stockActual() <= 0).count();
-        sinStock.setText(String.valueOf(empty));
+        sinStock.setText(String.valueOf(productos.stream().filter(producto -> producto.stockActual() <= 0).count()));
         totalCategorias.setText(String.valueOf(categorias.size()));
-
-        double inventoryValue = productos.stream()
-                .mapToDouble(producto -> producto.costo() * producto.stockActual())
-                .sum();
+        double inventoryValue = productos.stream().mapToDouble(producto -> producto.costo() * producto.stockActual()).sum();
         valorInventario.setText(formatCurrency(inventoryValue));
     }
 
@@ -450,9 +407,7 @@ public final class CatalogoView extends BorderPane {
 
     private String mensajeRaiz(Throwable error) {
         Throwable current = error;
-        while (current.getCause() != null) {
-            current = current.getCause();
-        }
+        while (current.getCause() != null) current = current.getCause();
         String message = current.getMessage();
         return message == null || message.isBlank() ? "Ocurrió un error inesperado." : message;
     }
@@ -467,10 +422,8 @@ public final class CatalogoView extends BorderPane {
         alert.showAndWait();
     }
 
-    private void applyDialogStyles(javafx.scene.control.DialogPane pane) {
+    private void applyDialogStyles(DialogPane pane) {
         var css = CatalogoView.class.getResource("/styles/app.css");
-        if (css != null) {
-            pane.getStylesheets().add(css.toExternalForm());
-        }
+        if (css != null) pane.getStylesheets().add(css.toExternalForm());
     }
 }
