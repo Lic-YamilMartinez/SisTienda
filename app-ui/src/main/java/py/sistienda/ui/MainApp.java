@@ -40,6 +40,7 @@ import py.sistienda.data.repository.SqliteReporteRepository;
 import py.sistienda.data.repository.SqliteUsuarioRepository;
 import py.sistienda.data.repository.SqliteVentaRepository;
 import py.sistienda.ui.auth.LoginView;
+import py.sistienda.ui.caja.CajaOperativaView;
 import py.sistienda.ui.caja.CajaView;
 import py.sistienda.ui.catalogo.CatalogoConsultaView;
 import py.sistienda.ui.catalogo.CatalogoView;
@@ -108,7 +109,10 @@ public class MainApp extends Application {
                         ? new CatalogoView(categoriaService, productoService, stockService,
                         configuracionPosService, codigoBarrasService)
                         : new CatalogoConsultaView(productoService),
-                () -> new CajaView(cajaService, movimientoCajaService, arqueoCajaService, productoService, ventaService,
+                () -> autorizacionService.puede(usuario, Permiso.ARQUEO_VER)
+                        ? new CajaView(cajaService, movimientoCajaService, arqueoCajaService, productoService, ventaService,
+                        reporteService, empresaService, configuracionPosService, codigoBarrasService, usuario)
+                        : new CajaOperativaView(cajaService, movimientoCajaService, productoService, ventaService,
                         reporteService, empresaService, configuracionPosService, codigoBarrasService,
                         autorizacionService, usuario),
                 () -> new ReportesView(reporteService, empresaService, configuracionPosService),
