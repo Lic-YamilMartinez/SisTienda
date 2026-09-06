@@ -1,19 +1,17 @@
 package py.sistienda.ui.ticket;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.print.PrinterJob;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonBar;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import py.sistienda.core.model.ConfiguracionPos;
 import py.sistienda.core.model.Empresa;
 import py.sistienda.core.model.MetodoPago;
 import py.sistienda.core.model.VentaDetalle;
@@ -32,16 +30,21 @@ public final class TicketDialog {
     }
 
     public static void show(Empresa empresa, VentaDetalle detalle) {
+        show(empresa, detalle, ConfiguracionPos.porDefecto());
+    }
+
+    public static void show(Empresa empresa, VentaDetalle detalle, ConfiguracionPos configuracion) {
+        ConfiguracionPos config = configuracion == null ? ConfiguracionPos.porDefecto() : configuracion;
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Ticket #" + detalle.nroTicket());
-        dialog.setHeaderText("Vista previa del comprobante");
+        dialog.setHeaderText("Vista previa del comprobante · " + config.anchoTicketMm() + " mm");
 
         ButtonType printType = new ButtonType("Imprimir", ButtonBar.ButtonData.APPLY);
         dialog.getDialogPane().getButtonTypes().addAll(printType, ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(470);
+        dialog.getDialogPane().setPrefWidth(config.anchoTicketMm() == 58 ? 390 : 470);
         dialog.getDialogPane().setPrefHeight(700);
 
-        VBox ticket = buildTicket(empresa, detalle);
+        VBox ticket = buildTicket(empresa, detalle, config);
         dialog.getDialogPane().setContent(ticket);
         addStyle(dialog, "/styles/app.css");
         addStyle(dialog, "/styles/ticket.css");
@@ -52,35 +55,33 @@ public final class TicketDialog {
             print(ticket);
         });
 
+        if (config.imprimirTicketAutomatico()) {
+            dialog.setOnShown(event -> Platform.runLater(() -> print(ticket)));
+        }
         dialog.showAndWait();
     }
 
-    private static VBox buildTicket(Empresa empresa, VentaDetalle detalle) {
+    private static VBox buildTicket(Empresa empresa, VentaDetalle detalle, ConfiguracionPos config) {
         Label company = new Label(empresa.nombre());
         company.getStyleClass().add("ticket-company");
         company.setWrapText(true);
 
         VBox header = new VBox(3, company);
         header.setAlignment(Pos.TOP_CENTER);
-
         addOptional(header, empresa.ruc() == null ? null : "RUC: " + empresa.ruc(), "ticket-center-line");
         addOptional(header, empresa.direccion(), "ticket-center-line");
         addOptional(header, empresa.telefono() == null ? null : "Tel: " + empresa.telefono(), "ticket-center-line");
 
-        Label separator1 = separator();
         Label ticketNumber = new Label("TICKET #" + detalle.nroTicket());
         ticketNumber.getStyleClass().add("ticket-number");
         Label meta = new Label(DATE_TIME.format(detalle.fecha()) + "  ·  " + detalle.usuario());
         meta.getStyleClass().add("ticket-center-line");
 
         VBox items = new VBox(8);
-        for (VentaDetalleItem item : detalle.items()) {
-            items.getChildren().add(buildItem(item));
-        }
+        for (VentaDetalleItem item : detalle.items()) items.getChildren().add(buildItem(item));
 
         Label payment = new Label("Pago: " + detalle.metodoPago().descripcion());
         payment.getStyleClass().add("ticket-info");
-
         VBox paymentInfo = new VBox(3, payment);
         if (detalle.metodoPago() == MetodoPago.EFECTIVO) {
             paymentInfo.getChildren().addAll(
@@ -95,32 +96,22 @@ public final class TicketDialog {
         VBox footer = new VBox(5);
         footer.setAlignment(Pos.TOP_CENTER);
         String message = empresa.mensajeTicket();
-        if (message == null || message.isBlank()) {
-            message = "¡Gracias por su compra!";
-        }
+        if (message == null || message.isBlank()) message = "¡Gracias por su compra!";
         Label messageLabel = new Label(message);
         messageLabel.getStyleClass().add("ticket-message");
         messageLabel.setWrapText(true);
-        messageLabel.setMaxWidth(330);
+        messageLabel.setMaxWidth(config.anchoTicketMm() == 58 ? 240 : 330);
         footer.getChildren().add(messageLabel);
 
         VBox ticket = new VBox(10,
-                header,
-                separator1,
-                ticketNumber,
-                meta,
-                separator(),
-                items,
-                separator(),
-                paymentInfo,
-                total,
-                separator(),
-                footer
+                header, separator(), ticketNumber, meta, separator(), items, separator(), paymentInfo,
+                total, separator(), footer
         );
         ticket.getStyleClass().add("ticket-paper");
-        ticket.setPadding(new Insets(22));
-        ticket.setPrefWidth(360);
-        ticket.setMaxWidth(360);
+        ticket.setPadding(new Insets(config.anchoTicketMm() == 58 ? 14 : 22));
+        double width = config.anchoTicketMm() == 58 ? 280 : 360;
+        ticket.setPrefWidth(width);
+        ticket.setMaxWidth(width);
         return ticket;
     }
 
@@ -128,19 +119,14 @@ public final class TicketDialog {
         Label name = new Label(item.producto());
         name.getStyleClass().add("ticket-item-name");
         name.setWrapText(true);
-
-        String detail = formatQuantity(item.cantidad()) + " x " + formatCurrency(item.precioUnitario());
-        Label qtyPrice = new Label(detail);
+        Label qtyPrice = new Label(formatQuantity(item.cantidad()) + " x " + formatCurrency(item.precioUnitario()));
         qtyPrice.getStyleClass().add("ticket-item-detail");
-
         Label subtotal = new Label(formatCurrency(item.subtotal()));
         subtotal.getStyleClass().add("ticket-item-subtotal");
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox line = new HBox(8, qtyPrice, spacer, subtotal);
         line.setAlignment(Pos.CENTER_LEFT);
-
         return new VBox(2, name, line);
     }
 
@@ -163,9 +149,7 @@ public final class TicketDialog {
     }
 
     private static void addOptional(VBox parent, String text, String styleClass) {
-        if (text == null || text.isBlank()) {
-            return;
-        }
+        if (text == null || text.isBlank()) return;
         Label label = new Label(text);
         label.getStyleClass().add(styleClass);
         label.setWrapText(true);
@@ -178,9 +162,7 @@ public final class TicketDialog {
             showError("No se encontró una impresora disponible.");
             return;
         }
-        if (!job.showPrintDialog(ticket.getScene() == null ? null : ticket.getScene().getWindow())) {
-            return;
-        }
+        if (!job.showPrintDialog(ticket.getScene() == null ? null : ticket.getScene().getWindow())) return;
         ticket.applyCss();
         ticket.layout();
         if (!job.printPage(ticket)) {
@@ -210,8 +192,6 @@ public final class TicketDialog {
 
     private static void addStyle(Dialog<?> dialog, String path) {
         var css = TicketDialog.class.getResource(path);
-        if (css != null) {
-            dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
-        }
+        if (css != null) dialog.getDialogPane().getStylesheets().add(css.toExternalForm());
     }
 }
