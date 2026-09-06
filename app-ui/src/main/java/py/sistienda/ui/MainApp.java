@@ -10,7 +10,9 @@ import py.sistienda.core.service.AuthService;
 import py.sistienda.core.service.BackupService;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.CategoriaService;
+import py.sistienda.core.service.CodigoBarrasService;
 import py.sistienda.core.service.CompraService;
+import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.MovimientoCajaService;
 import py.sistienda.core.service.ProductoService;
@@ -25,6 +27,7 @@ import py.sistienda.data.repository.SqliteBackupRepository;
 import py.sistienda.data.repository.SqliteCajaRepository;
 import py.sistienda.data.repository.SqliteCategoriaRepository;
 import py.sistienda.data.repository.SqliteCompraRepository;
+import py.sistienda.data.repository.SqliteConfiguracionPosRepository;
 import py.sistienda.data.repository.SqliteEmpresaRepository;
 import py.sistienda.data.repository.SqliteMovimientoCajaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
@@ -57,11 +60,7 @@ public class MainApp extends Application {
             System.err.println("SisTienda no pudo crear el backup automático: " + e.getMessage());
         }
 
-        var authService = new AuthService(
-                new SqliteUsuarioRepository(connectionFactory),
-                new PasswordHasher()
-        );
-
+        var authService = new AuthService(new SqliteUsuarioRepository(connectionFactory), new PasswordHasher());
         var login = new LoginView(authService, usuario -> showMain(stage, usuario));
         var scene = new Scene(login, 1180, 760);
         applyStyles(scene);
@@ -75,8 +74,10 @@ public class MainApp extends Application {
     }
 
     private void showMain(Stage stage, Usuario usuario) {
+        var codigoBarrasService = new CodigoBarrasService();
+        var configuracionPosService = new ConfiguracionPosService(new SqliteConfiguracionPosRepository(connectionFactory));
         var categoriaService = new CategoriaService(new SqliteCategoriaRepository(connectionFactory));
-        var productoService = new ProductoService(new SqliteProductoRepository(connectionFactory));
+        var productoService = new ProductoService(new SqliteProductoRepository(connectionFactory), codigoBarrasService);
         var stockService = new StockService(new SqliteMovimientoStockRepository(connectionFactory));
         var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
         var movimientoCajaService = new MovimientoCajaService(new SqliteMovimientoCajaRepository(connectionFactory));
@@ -88,12 +89,13 @@ public class MainApp extends Application {
         var compraService = new CompraService(new SqliteCompraRepository(connectionFactory));
 
         var root = new MainShell(
-                () -> new CatalogoView(categoriaService, productoService, stockService),
+                () -> new CatalogoView(categoriaService, productoService, stockService,
+                        configuracionPosService, codigoBarrasService),
                 () -> new CajaView(cajaService, movimientoCajaService, arqueoCajaService, productoService, ventaService,
-                        reporteService, empresaService, usuario),
+                        reporteService, empresaService, configuracionPosService, codigoBarrasService, usuario),
                 () -> new ReportesView(reporteService, empresaService),
                 () -> new ComprasView(proveedorService, productoService, compraService, usuario),
-                () -> new ConfiguracionView(empresaService, backupService),
+                () -> new ConfiguracionView(empresaService, backupService, configuracionPosService),
                 usuario
         );
         var scene = new Scene(root, 1360, 820);
@@ -119,9 +121,7 @@ public class MainApp extends Application {
 
     private void addStyle(Scene scene, String path) {
         var css = MainApp.class.getResource(path);
-        if (css != null) {
-            scene.getStylesheets().add(css.toExternalForm());
-        }
+        if (css != null) scene.getStylesheets().add(css.toExternalForm());
     }
 
     public static void main(String[] args) {
