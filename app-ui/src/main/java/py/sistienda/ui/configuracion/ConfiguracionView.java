@@ -13,12 +13,14 @@ import javafx.scene.layout.VBox;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.Empresa;
 import py.sistienda.core.service.BackupService;
+import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
 
 public final class ConfiguracionView extends BorderPane {
 
     private final EmpresaService empresaService;
     private final BackupService backupService;
+    private final ConfiguracionPosService configuracionPosService;
 
     private final TextField nombre = new TextField();
     private final TextField ruc = new TextField();
@@ -34,8 +36,14 @@ public final class ConfiguracionView extends BorderPane {
     private final Label previewMensaje = new Label();
 
     public ConfiguracionView(EmpresaService empresaService, BackupService backupService) {
+        this(empresaService, backupService, null);
+    }
+
+    public ConfiguracionView(EmpresaService empresaService, BackupService backupService,
+                             ConfiguracionPosService configuracionPosService) {
         this.empresaService = empresaService;
         this.backupService = backupService;
+        this.configuracionPosService = configuracionPosService;
 
         getStyleClass().add("content-area");
         setPadding(new Insets(20, 24, 20, 24));
@@ -47,35 +55,38 @@ public final class ConfiguracionView extends BorderPane {
     }
 
     private VBox buildHeader() {
-        Label eyebrow = new Label("PERSONALIZACIÓN & SEGURIDAD");
+        Label eyebrow = new Label("PERSONALIZACIÓN · HARDWARE · SEGURIDAD");
         eyebrow.getStyleClass().add("eyebrow");
         Label title = new Label("Configuración");
         title.getStyleClass().add("page-title");
-        Label subtitle = new Label("Personalizá tu tienda y protegé la información del negocio.");
+        Label subtitle = new Label("Personalizá la tienda, prepará el hardware POS y protegé la información del negocio.");
         subtitle.getStyleClass().add("page-subtitle");
 
         feedback.getStyleClass().add("config-feedback");
         feedback.setVisible(false);
         feedback.setManaged(false);
-
         return new VBox(3, eyebrow, title, subtitle, feedback);
     }
 
     private HBox buildContent() {
         VBox formCard = buildFormCard();
+        VBox leftColumn = new VBox(12, formCard);
+        if (configuracionPosService != null) {
+            leftColumn.getChildren().add(new HardwarePosPane(configuracionPosService));
+        }
+
         VBox previewCard = buildPreviewCard();
         BackupPane backupPane = new BackupPane(backupService);
         backupPane.setPadding(new Insets(18));
-
         VBox rightColumn = new VBox(12, previewCard, backupPane);
         rightColumn.setPrefWidth(410);
         rightColumn.setMinWidth(370);
         rightColumn.setMaxWidth(450);
 
-        HBox.setHgrow(formCard, Priority.ALWAYS);
-        formCard.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(leftColumn, Priority.ALWAYS);
+        leftColumn.setMaxWidth(Double.MAX_VALUE);
 
-        HBox content = new HBox(14, formCard, rightColumn);
+        HBox content = new HBox(14, leftColumn, rightColumn);
         content.setPadding(new Insets(14, 0, 0, 0));
         return content;
     }
@@ -227,9 +238,7 @@ public final class ConfiguracionView extends BorderPane {
             mostrarFeedback(e.getMessage());
         } catch (RuntimeException e) {
             Throwable current = e;
-            while (current.getCause() != null) {
-                current = current.getCause();
-            }
+            while (current.getCause() != null) current = current.getCause();
             mostrarFeedback(current.getMessage() == null ? "No pudimos completar la operación." : current.getMessage());
         }
     }
