@@ -6,4 +6,11 @@ public record Usuario(
         String rol,
         boolean activo
 ) {
+    public RolUsuario rolUsuario() {
+        return RolUsuario.desde(rol);
+    }
+
+    public boolean esDueno() {
+        return rolUsuario() == RolUsuario.DUENIO;
+    }
 }
