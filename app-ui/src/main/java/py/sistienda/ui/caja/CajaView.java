@@ -22,6 +22,8 @@ import py.sistienda.core.model.TipoMovimientoCaja;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.service.ArqueoCajaService;
 import py.sistienda.core.service.CajaService;
+import py.sistienda.core.service.CodigoBarrasService;
+import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.MovimientoCajaService;
 import py.sistienda.core.service.ProductoService;
@@ -48,6 +50,8 @@ public final class CajaView extends BorderPane {
     private final VentaService ventaService;
     private final ReporteService reporteService;
     private final EmpresaService empresaService;
+    private final ConfiguracionPosService configuracionPosService;
+    private final CodigoBarrasService codigoBarrasService;
     private final Usuario usuario;
 
     private final VBox body = new VBox();
@@ -68,6 +72,8 @@ public final class CajaView extends BorderPane {
             VentaService ventaService,
             ReporteService reporteService,
             EmpresaService empresaService,
+            ConfiguracionPosService configuracionPosService,
+            CodigoBarrasService codigoBarrasService,
             Usuario usuario
     ) {
         this.cajaService = cajaService;
@@ -77,6 +83,8 @@ public final class CajaView extends BorderPane {
         this.ventaService = ventaService;
         this.reporteService = reporteService;
         this.empresaService = empresaService;
+        this.configuracionPosService = configuracionPosService;
+        this.codigoBarrasService = codigoBarrasService == null ? new CodigoBarrasService() : codigoBarrasService;
         this.usuario = usuario;
 
         getStyleClass().add("content-area");
@@ -89,11 +97,9 @@ public final class CajaView extends BorderPane {
     private VBox buildHeader() {
         Label eyebrow = new Label("OPERACIÓN");
         eyebrow.getStyleClass().add("eyebrow");
-
         Label title = new Label("Caja & Ventas");
         title.getStyleClass().add("page-title");
-
-        Label subtitle = new Label("Vendé rápido y mantené controlado el efectivo real del turno.");
+        Label subtitle = new Label("Escaneá, vendé y mantené controlado el efectivo real del turno.");
         subtitle.getStyleClass().add("page-subtitle");
 
         Button history = new Button("Historial de cajas");
@@ -119,14 +125,11 @@ public final class CajaView extends BorderPane {
         body.setSpacing(8);
         body.setPadding(Insets.EMPTY);
         body.setAlignment(Pos.TOP_LEFT);
-
-        cajaService.obtenerAbierta(usuario)
-                .ifPresentOrElse(this::mostrarCajaAbierta, this::mostrarApertura);
+        cajaService.obtenerAbierta(usuario).ifPresentOrElse(this::mostrarCajaAbierta, this::mostrarApertura);
     }
 
     private void mostrarApertura() {
         body.setAlignment(Pos.TOP_CENTER);
-
         Label status = badge("Caja cerrada", "cash-status-closed");
         Label title = new Label("Abrí la caja para empezar a vender");
         title.getStyleClass().add("cash-title");
@@ -137,7 +140,6 @@ public final class CajaView extends BorderPane {
         TextField apertura = new TextField();
         apertura.setPromptText("Ej.: 250000");
         apertura.getStyleClass().add("cash-input");
-
         TextField notas = new TextField();
         notas.setPromptText("Nota opcional");
         notas.getStyleClass().add("cash-input");
@@ -150,12 +152,8 @@ public final class CajaView extends BorderPane {
             recargar();
         }));
 
-        HBox fields = new HBox(10,
-                compactField("Fondo inicial (Gs.)", apertura),
-                compactField("Nota", notas)
-        );
+        HBox fields = new HBox(10, compactField("Fondo inicial (Gs.)", apertura), compactField("Nota", notas));
         fields.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
-
         VBox card = new VBox(12, status, title, subtitle, fields, abrir);
         card.getStyleClass().addAll("cash-main-card", "cash-open-card");
         card.setPadding(new Insets(22));
@@ -167,6 +165,7 @@ public final class CajaView extends BorderPane {
         HBox statusBar = buildStatusBar(sesion);
         HBox resumen = buildSalesSummaryBar(sesion);
         HBox cashControl = buildCashControlBar(sesion);
+        String prefijoPeso = configuracionPosService == null ? "20" : configuracionPosService.obtener().prefijoPeso();
         VentaView ventaView = new VentaView(
                 productoService,
                 ventaService,
@@ -176,36 +175,31 @@ public final class CajaView extends BorderPane {
                     actualizarResumenVentas(sesion);
                     actualizarControlEfectivo(sesion);
                     mostrarUltimoTicket();
-                }
+                },
+                codigoBarrasService,
+                prefijoPeso
         );
 
         ventaView.setMinHeight(0);
         ventaView.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(ventaView, Priority.ALWAYS);
-
         body.getChildren().addAll(statusBar, resumen, cashControl, ventaView);
         VBox.setVgrow(ventaView, Priority.ALWAYS);
     }
 
     private HBox buildStatusBar(CajaSesion sesion) {
         Label status = badge("Caja abierta", "cash-status-open");
-
         Label opened = new Label("Desde " + DATE_FORMAT.format(sesion.fechaApertura()));
         opened.getStyleClass().add("cash-bar-detail");
-
         Label fund = new Label("Fondo: " + formatCurrency(sesion.montoApertura()));
         fund.getStyleClass().add("cash-bar-detail");
-
         Label user = new Label("Usuario: " + usuario.username());
         user.getStyleClass().add("cash-bar-detail");
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-
         Button close = new Button("Cerrar caja");
         close.getStyleClass().addAll("secondary-button", "cash-close-button");
         close.setOnAction(event -> mostrarDialogoCierre(sesion));
-
         HBox bar = new HBox(12, status, opened, separator(), fund, separator(), user, spacer, close);
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().add("cash-status-bar");
@@ -230,11 +224,9 @@ public final class CajaView extends BorderPane {
         Label ingresosTitle = new Label("+ INGRESOS");
         ingresosTitle.getStyleClass().add("cash-control-label");
         movimientosIngresos.getStyleClass().addAll("cash-control-value", "cash-control-income");
-
         Label egresosTitle = new Label("- EGRESOS");
         egresosTitle.getStyleClass().add("cash-control-label");
         movimientosEgresos.getStyleClass().addAll("cash-control-value", "cash-control-expense");
-
         Label esperadoTitle = new Label("EFECTIVO ESPERADO");
         esperadoTitle.getStyleClass().add("cash-control-label");
         efectivoEsperado.getStyleClass().addAll("cash-control-value", "cash-control-expected");
@@ -242,7 +234,6 @@ public final class CajaView extends BorderPane {
         HBox ingresos = compactMetric(ingresosTitle, movimientosIngresos);
         HBox egresos = compactMetric(egresosTitle, movimientosEgresos);
         HBox esperado = compactMetric(esperadoTitle, efectivoEsperado);
-
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         Button movimientos = new Button("Movimientos");
@@ -269,7 +260,6 @@ public final class CajaView extends BorderPane {
         value.getStyleClass().removeAll("cash-sales-value", "cash-sales-value-total");
         value.getStyleClass().add("cash-sales-value");
         if (totalMetric) value.getStyleClass().add("cash-sales-value-total");
-
         VBox card = new VBox(1, title, value);
         card.getStyleClass().add("cash-sales-metric");
         if (totalMetric) card.getStyleClass().add("cash-sales-metric-total");
@@ -340,20 +330,15 @@ public final class CajaView extends BorderPane {
 
         Button ingreso = new Button("+ Ingreso");
         ingreso.getStyleClass().add("cash-income-button");
-        ingreso.setOnAction(event -> {
-            if (registrarMovimiento(sesion, TipoMovimientoCaja.INGRESO)) refresh.run();
-        });
+        ingreso.setOnAction(event -> { if (registrarMovimiento(sesion, TipoMovimientoCaja.INGRESO)) refresh.run(); });
         Button egreso = new Button("- Egreso / gasto");
         egreso.getStyleClass().add("cash-expense-button");
-        egreso.setOnAction(event -> {
-            if (registrarMovimiento(sesion, TipoMovimientoCaja.EGRESO)) refresh.run();
-        });
+        egreso.setOnAction(event -> { if (registrarMovimiento(sesion, TipoMovimientoCaja.EGRESO)) refresh.run(); });
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox toolbar = new HBox(8, resumen, spacer, ingreso, egreso);
         toolbar.setAlignment(Pos.CENTER_LEFT);
-
         VBox content = new VBox(10, toolbar, table);
         VBox.setVgrow(table, Priority.ALWAYS);
         dialog.getDialogPane().setContent(content);
@@ -380,10 +365,8 @@ public final class CajaView extends BorderPane {
         referencia.setPromptText("Factura, recibo o referencia opcional");
 
         VBox content = new VBox(9,
-                field("Categoría", categoria),
-                field("Concepto", concepto),
-                field("Monto (Gs.)", monto),
-                field("Referencia", referencia)
+                field("Categoría", categoria), field("Concepto", concepto),
+                field("Monto (Gs.)", monto), field("Referencia", referencia)
         );
         dialog.getDialogPane().setContent(content);
         applyDialogStyles(dialog);
@@ -406,9 +389,7 @@ public final class CajaView extends BorderPane {
     }
 
     private List<String> categorias(TipoMovimientoCaja tipo) {
-        if (tipo == TipoMovimientoCaja.INGRESO) {
-            return List.of("Ingreso extra", "Aporte", "Devolución", "Reintegro", "Otro");
-        }
+        if (tipo == TipoMovimientoCaja.INGRESO) return List.of("Ingreso extra", "Aporte", "Devolución", "Reintegro", "Otro");
         return List.of("Alquiler", "Luz", "Agua", "Internet", "Flete", "Compra menor", "Retiro", "Otro");
     }
 
@@ -416,7 +397,8 @@ public final class CajaView extends BorderPane {
         var ventas = reporteService.listarVentas(LocalDate.now());
         if (ventas.isEmpty()) return;
         var ultima = ventas.getFirst();
-        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ultima.id()));
+        var config = configuracionPosService == null ? py.sistienda.core.model.ConfiguracionPos.porDefecto() : configuracionPosService.obtener();
+        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ultima.id()), config);
     }
 
     private Region separator() {
@@ -435,7 +417,6 @@ public final class CajaView extends BorderPane {
         TextField cierre = new TextField();
         cierre.setPromptText("Monto contado");
         cierre.getStyleClass().add("cash-input");
-
         TextField notas = new TextField();
         notas.setPromptText("Nota opcional");
         notas.getStyleClass().add("cash-input");
@@ -472,13 +453,11 @@ public final class CajaView extends BorderPane {
         dialog.getDialogPane().setPrefWidth(460);
         applyDialogStyles(dialog);
 
-        dialog.showAndWait()
-                .filter(ButtonType.OK::equals)
-                .ifPresent(result -> ejecutar(() -> {
-                    cajaService.cerrar(sesion, parseMonto(cierre.getText(), "monto de cierre"), notas.getText());
-                    mostrarFeedback("Caja cerrada correctamente. El arqueo quedó guardado en el historial.");
-                    recargar();
-                }));
+        dialog.showAndWait().filter(ButtonType.OK::equals).ifPresent(result -> ejecutar(() -> {
+            cajaService.cerrar(sesion, parseMonto(cierre.getText(), "monto de cierre"), notas.getText());
+            mostrarFeedback("Caja cerrada correctamente. El arqueo quedó guardado en el historial.");
+            recargar();
+        }));
     }
 
     private VBox compactField(String labelText, TextField field) {
@@ -510,11 +489,7 @@ public final class CajaView extends BorderPane {
 
     private double parseMonto(String value, String campo) {
         if (value == null || value.isBlank()) throw new ValidationException("Ingresá el " + campo + ".");
-        String normalized = value.trim()
-                .replace("Gs.", "")
-                .replace("Gs", "")
-                .replace("₲", "")
-                .replace(" ", "");
+        String normalized = value.trim().replace("Gs.", "").replace("Gs", "").replace("₲", "").replace(" ", "");
         if (normalized.contains(",")) normalized = normalized.replace(".", "").replace(",", ".");
         else if (normalized.matches("\\d{1,3}(\\.\\d{3})+")) normalized = normalized.replace(".", "");
         try {
