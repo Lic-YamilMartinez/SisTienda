@@ -4,7 +4,9 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import py.sistienda.core.model.Usuario;
+import py.sistienda.core.security.AutorizacionService;
 import py.sistienda.core.security.PasswordHasher;
+import py.sistienda.core.security.Permiso;
 import py.sistienda.core.service.ArqueoCajaService;
 import py.sistienda.core.service.AuthService;
 import py.sistienda.core.service.BackupService;
@@ -19,6 +21,7 @@ import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ProveedorService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.StockService;
+import py.sistienda.core.service.UsuarioService;
 import py.sistienda.core.service.VentaService;
 import py.sistienda.data.database.DatabaseInitializer;
 import py.sistienda.data.database.SqliteConnectionFactory;
@@ -37,16 +40,22 @@ import py.sistienda.data.repository.SqliteReporteRepository;
 import py.sistienda.data.repository.SqliteUsuarioRepository;
 import py.sistienda.data.repository.SqliteVentaRepository;
 import py.sistienda.ui.auth.LoginView;
+import py.sistienda.ui.caja.CajaOperativaView;
 import py.sistienda.ui.caja.CajaView;
+import py.sistienda.ui.catalogo.CatalogoConsultaView;
 import py.sistienda.ui.catalogo.CatalogoView;
 import py.sistienda.ui.compras.ComprasView;
 import py.sistienda.ui.configuracion.ConfiguracionView;
 import py.sistienda.ui.reportes.ReportesView;
+import py.sistienda.ui.usuarios.UsuariosView;
 
 public class MainApp extends Application {
 
     private SqliteConnectionFactory connectionFactory;
     private BackupService backupService;
+    private AuthService authService;
+    private UsuarioService usuarioService;
+    private AutorizacionService autorizacionService;
 
     @Override
     public void start(Stage stage) {
@@ -60,11 +69,18 @@ public class MainApp extends Application {
             System.err.println("SisTienda no pudo crear el backup automático: " + e.getMessage());
         }
 
-        var authService = new AuthService(new SqliteUsuarioRepository(connectionFactory), new PasswordHasher());
+        var usuarioRepository = new SqliteUsuarioRepository(connectionFactory);
+        var passwordHasher = new PasswordHasher();
+        autorizacionService = new AutorizacionService();
+        authService = new AuthService(usuarioRepository, passwordHasher);
+        usuarioService = new UsuarioService(usuarioRepository, passwordHasher, autorizacionService);
+        showLogin(stage);
+    }
+
+    private void showLogin(Stage stage) {
         var login = new LoginView(authService, usuario -> showMain(stage, usuario));
         var scene = new Scene(login, 1180, 760);
         applyStyles(scene);
-
         stage.setTitle("SisTienda · Acceso");
         stage.setMinWidth(980);
         stage.setMinHeight(680);
@@ -89,19 +105,29 @@ public class MainApp extends Application {
         var compraService = new CompraService(new SqliteCompraRepository(connectionFactory));
 
         var root = new MainShell(
-                () -> new CatalogoView(categoriaService, productoService, stockService,
-                        configuracionPosService, codigoBarrasService),
-                () -> new CajaView(cajaService, movimientoCajaService, arqueoCajaService, productoService, ventaService,
-                        reporteService, empresaService, configuracionPosService, codigoBarrasService, usuario),
+                () -> autorizacionService.puede(usuario, Permiso.CATALOGO_GESTIONAR)
+                        ? new CatalogoView(categoriaService, productoService, stockService,
+                        configuracionPosService, codigoBarrasService)
+                        : new CatalogoConsultaView(productoService),
+                () -> autorizacionService.puede(usuario, Permiso.ARQUEO_VER)
+                        ? new CajaView(cajaService, movimientoCajaService, arqueoCajaService, productoService, ventaService,
+                        reporteService, empresaService, configuracionPosService, codigoBarrasService, usuario)
+                        : new CajaOperativaView(cajaService, movimientoCajaService, productoService, ventaService,
+                        reporteService, empresaService, configuracionPosService, codigoBarrasService,
+                        autorizacionService, usuario),
                 () -> new ReportesView(reporteService, empresaService, configuracionPosService),
                 () -> new ComprasView(proveedorService, productoService, compraService, usuario),
                 () -> new ConfiguracionView(empresaService, backupService, configuracionPosService),
-                usuario
+                () -> new UsuariosView(usuarioService, usuario),
+                usuario,
+                autorizacionService,
+                usuarioService,
+                () -> showLogin(stage)
         );
         var scene = new Scene(root, 1360, 820);
         applyStyles(scene);
 
-        stage.setTitle("SisTienda");
+        stage.setTitle("SisTienda · " + usuario.username() + " · " + usuario.rolUsuario().descripcion());
         stage.setMinWidth(1080);
         stage.setMinHeight(700);
         stage.setScene(scene);
