@@ -129,12 +129,14 @@
     -fx-font-weight: 700;
 }
 
-.cash-movement-table .column-header .label {
+.cash-movement-table .column-header .label,
+.cash-reconciliation-table .column-header .label {
     -fx-font-size: 9px;
     -fx-font-weight: 800;
 }
 
-.cash-movement-table .table-cell {
+.cash-movement-table .table-cell,
+.cash-reconciliation-table .table-cell {
     -fx-padding: 7 8 7 8;
     -fx-font-size: 10px;
 }
@@ -152,6 +154,91 @@
     -fx-text-fill: #344054;
     -fx-font-size: 12px;
     -fx-font-weight: 800;
+}
+
+.cash-history-detail-button {
+    -fx-background-color: #fff7ed;
+    -fx-text-fill: #c2410c;
+    -fx-background-radius: 7;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-padding: 5 8 5 8;
+}
+
+.cash-history-count {
+    -fx-text-fill: #667085;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+}
+
+.cash-diff-badge {
+    -fx-background-radius: 20;
+    -fx-padding: 4 7 4 7;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+}
+
+.cash-diff-ok {
+    -fx-background-color: #ecfdf3;
+    -fx-text-fill: #027a48;
+}
+
+.cash-diff-positive {
+    -fx-background-color: #eff8ff;
+    -fx-text-fill: #175cd3;
+}
+
+.cash-diff-negative {
+    -fx-background-color: #fef3f2;
+    -fx-text-fill: #b42318;
+}
+
+.cash-reconciliation-period {
+    -fx-text-fill: #475467;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.cash-reconciliation-metric {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-color: #e4e7ec;
+    -fx-border-radius: 10;
+    -fx-padding: 9 10 9 10;
+}
+
+.cash-reconciliation-metric-highlight {
+    -fx-background-color: #fff7ed;
+    -fx-border-color: #fed7aa;
+}
+
+.cash-reconciliation-metric-title {
+    -fx-text-fill: #667085;
+    -fx-font-size: 8px;
+    -fx-font-weight: 800;
+}
+
+.cash-reconciliation-metric-value {
+    -fx-text-fill: #101828;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+}
+
+.cash-reconciliation-sales {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 8;
+    -fx-text-fill: #475467;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-padding: 8 10 8 10;
+}
+
+.cash-reconciliation-notes {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 8;
+    -fx-text-fill: #344054;
+    -fx-font-size: 10px;
+    -fx-padding: 8 10 8 10;
 }
 
 .cash-title {
