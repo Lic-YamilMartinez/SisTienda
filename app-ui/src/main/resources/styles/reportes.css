@@ -7,7 +7,9 @@
 
 .report-metric-card,
 .report-payment-card,
-.report-history-card {
+.report-history-card,
+.report-analysis-card,
+.report-filter-bar {
     -fx-background-color: white;
     -fx-border-color: #e5e7eb;
     -fx-border-radius: 12;
@@ -19,6 +21,10 @@
     -fx-padding: 13 15 12 15;
 }
 
+.report-compact-card {
+    -fx-padding: 9 14 9 14;
+}
+
 .report-payment-card {
     -fx-padding: 9 14 9 14;
     -fx-background-color: #fffaf5;
@@ -26,7 +32,8 @@
 }
 
 .report-metric-title,
-.report-payment-title {
+.report-payment-title,
+.report-filter-label {
     -fx-text-fill: #667085;
     -fx-font-size: 9px;
     -fx-font-weight: 800;
@@ -34,7 +41,13 @@
 
 .report-metric-value {
     -fx-text-fill: #101828;
-    -fx-font-size: 21px;
+    -fx-font-size: 20px;
+    -fx-font-weight: 900;
+}
+
+.report-secondary-value {
+    -fx-text-fill: #101828;
+    -fx-font-size: 15px;
     -fx-font-weight: 900;
 }
 
@@ -56,6 +69,134 @@
     -fx-font-weight: 900;
 }
 
+.report-filter-summary {
+    -fx-background-color: #fff7ed;
+    -fx-background-radius: 20;
+    -fx-padding: 6 11 6 11;
+    -fx-text-fill: #c2410c;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.report-filter-bar .combo-box,
+.report-filter-bar .date-picker {
+    -fx-background-color: white;
+    -fx-border-color: #dce1e8;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.report-tabs {
+    -fx-background-color: transparent;
+}
+
+.report-tabs .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.report-tabs .tab {
+    -fx-background-color: #f2f4f7;
+    -fx-background-radius: 8 8 0 0;
+    -fx-padding: 5 12 5 12;
+}
+
+.report-tabs .tab:selected {
+    -fx-background-color: white;
+}
+
+.report-tabs .tab .tab-label {
+    -fx-text-fill: #667085;
+    -fx-font-weight: 800;
+}
+
+.report-tabs .tab:selected .tab-label {
+    -fx-text-fill: #c2410c;
+}
+
+.report-dashboard-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.report-dashboard-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.report-analysis-card {
+    -fx-padding: 12;
+}
+
+.report-line-chart {
+    -fx-background-color: transparent;
+}
+
+.report-line-chart .chart-plot-background {
+    -fx-background-color: #fcfcfd;
+}
+
+.report-line-chart .chart-vertical-grid-lines,
+.report-line-chart .chart-horizontal-grid-lines {
+    -fx-stroke: #eaecf0;
+}
+
+.report-line-chart .axis {
+    -fx-tick-label-fill: #667085;
+    -fx-font-size: 9px;
+}
+
+.report-line-chart .axis-label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 9px;
+}
+
+.report-product-table {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+}
+
+.report-product-table .column-header-background,
+.report-table .column-header-background {
+    -fx-background-color: #f8fafc;
+}
+
+.report-product-table .column-header,
+.report-product-table .filler,
+.report-table .column-header,
+.report-table .filler {
+    -fx-background-color: transparent;
+    -fx-size: 34;
+}
+
+.report-product-table .column-header .label,
+.report-table .column-header .label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+    -fx-alignment: center;
+}
+
+.report-product-table .table-row-cell,
+.report-table .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #f0f2f5 transparent;
+    -fx-cell-size: 43;
+}
+
+.report-product-table .table-row-cell:hover,
+.report-table .table-row-cell:hover {
+    -fx-background-color: #fffaf5;
+}
+
+.report-product-table .table-cell,
+.report-table .table-cell {
+    -fx-border-color: transparent;
+    -fx-alignment: center;
+    -fx-padding: 5 7 5 7;
+    -fx-text-fill: #344054;
+}
+
 .report-history-card {
     -fx-padding: 0;
 }
@@ -65,40 +206,6 @@
     -fx-border-color: transparent;
     -fx-table-cell-border-color: transparent;
     -fx-padding: 0 6 6 6;
-}
-
-.report-table .column-header-background {
-    -fx-background-color: #f8fafc;
-}
-
-.report-table .column-header,
-.report-table .filler {
-    -fx-background-color: transparent;
-    -fx-size: 34;
-}
-
-.report-table .column-header .label {
-    -fx-text-fill: #667085;
-    -fx-font-size: 9px;
-    -fx-font-weight: 800;
-    -fx-alignment: center;
-}
-
-.report-table .table-row-cell {
-    -fx-background-color: white;
-    -fx-border-color: transparent transparent #f0f2f5 transparent;
-    -fx-cell-size: 45;
-}
-
-.report-table .table-row-cell:hover {
-    -fx-background-color: #fffaf5;
-}
-
-.report-table .table-cell {
-    -fx-border-color: transparent;
-    -fx-alignment: center;
-    -fx-padding: 5 7 5 7;
-    -fx-text-fill: #344054;
 }
 
 .report-status-ok,

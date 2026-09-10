@@ -1,6 +1,10 @@
 package py.sistienda.core.repository;
 
+import py.sistienda.core.model.MetodoPago;
+import py.sistienda.core.model.ProductoVendidoResumen;
 import py.sistienda.core.model.ReporteDiario;
+import py.sistienda.core.model.ReporteLineaTiempo;
+import py.sistienda.core.model.ReportePeriodoResumen;
 import py.sistienda.core.model.VentaDetalle;
 import py.sistienda.core.model.VentaResumen;
 
@@ -15,4 +19,12 @@ public interface ReporteRepository {
     List<VentaResumen> listarVentas(LocalDate fecha);
 
     Optional<VentaDetalle> detalleVenta(long ventaId);
+
+    ReportePeriodoResumen resumenPeriodo(LocalDate desde, LocalDate hasta, MetodoPago metodoPago);
+
+    List<ReporteLineaTiempo> lineaTiempo(LocalDate desde, LocalDate hasta, MetodoPago metodoPago);
+
+    List<ProductoVendidoResumen> productosMasVendidos(LocalDate desde, LocalDate hasta, MetodoPago metodoPago, int limite);
+
+    List<VentaResumen> listarVentas(LocalDate desde, LocalDate hasta, MetodoPago metodoPago, int limite);
 }
