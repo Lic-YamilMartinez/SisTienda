@@ -106,7 +106,8 @@ class ReporteServiceTest {
         public List<VentaResumen> listarVentas(LocalDate desde, LocalDate hasta, MetodoPago metodoPago, int limite) {
             return List.of(new VentaResumen(
                     1L, 7L, LocalDateTime.of(this.fecha, java.time.LocalTime.NOON),
-                    "admin", metodoPago == null ? MetodoPago.EFECTIVO : metodoPago, 100000, 25000, false
+                    "admin", metodoPago == null ? MetodoPago.EFECTIVO : metodoPago,
+                    100000, 25000, 0, false
             ));
         }
 
