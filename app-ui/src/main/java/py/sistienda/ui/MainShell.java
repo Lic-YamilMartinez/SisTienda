@@ -10,15 +10,21 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import py.sistienda.core.model.Empresa;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.security.AutorizacionService;
 import py.sistienda.core.security.Permiso;
+import py.sistienda.core.service.EmpresaService;
+import py.sistienda.core.service.LogoNegocioService;
 import py.sistienda.core.service.UsuarioService;
+import py.sistienda.ui.branding.BrandingImageFactory;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -29,6 +35,8 @@ public final class MainShell extends BorderPane {
     private final Usuario usuario;
     private final AutorizacionService autorizacionService;
     private final UsuarioService usuarioService;
+    private final EmpresaService empresaService;
+    private final LogoNegocioService logoNegocioService;
     private final Runnable onLogout;
     private final Supplier<Node> catalogoSupplier;
     private final Supplier<Node> cajaSupplier;
@@ -43,6 +51,8 @@ public final class MainShell extends BorderPane {
     private Button comprasButton;
     private Button configuracionButton;
     private Button usuariosButton;
+    private final StackPane businessLogo = new StackPane();
+    private final Label businessName = new Label("Mi Tienda");
 
     public MainShell(
             Supplier<Node> catalogoSupplier,
@@ -54,6 +64,8 @@ public final class MainShell extends BorderPane {
             Usuario usuario,
             AutorizacionService autorizacionService,
             UsuarioService usuarioService,
+            EmpresaService empresaService,
+            LogoNegocioService logoNegocioService,
             Runnable onLogout
     ) {
         this.usuario = Objects.requireNonNull(usuario);
@@ -65,19 +77,29 @@ public final class MainShell extends BorderPane {
         this.usuariosSupplier = Objects.requireNonNull(usuariosSupplier);
         this.autorizacionService = Objects.requireNonNull(autorizacionService);
         this.usuarioService = Objects.requireNonNull(usuarioService);
+        this.empresaService = Objects.requireNonNull(empresaService);
+        this.logoNegocioService = Objects.requireNonNull(logoNegocioService);
         this.onLogout = Objects.requireNonNull(onLogout);
 
         getStyleClass().add("app-shell");
         setLeft(buildSidebar());
+        refreshBranding();
         showCatalogo();
     }
 
     private VBox buildSidebar() {
-        Label mark = new Label("ST");
-        mark.getStyleClass().add("brand-mark");
-        Label brand = new Label("SisTienda");
-        brand.getStyleClass().add("brand-title");
-        HBox brandRow = new HBox(12, mark, brand);
+        businessLogo.setMinSize(48, 48);
+        businessLogo.setPrefSize(48, 48);
+        businessLogo.setMaxSize(48, 48);
+        businessLogo.getStyleClass().add("business-logo-box");
+
+        businessName.getStyleClass().add("business-name");
+        businessName.setWrapText(true);
+        businessName.setMaxWidth(135);
+        Label powered = new Label("Gestionado con SisTienda");
+        powered.getStyleClass().add("business-powered");
+        VBox brandText = new VBox(2, businessName, powered);
+        HBox brandRow = new HBox(10, businessLogo, brandText);
         brandRow.setAlignment(Pos.CENTER_LEFT);
         brandRow.getStyleClass().add("brand-row");
 
@@ -114,7 +136,7 @@ public final class MainShell extends BorderPane {
         Label userLabel = new Label(usuario.username());
         userLabel.getStyleClass().add("sidebar-user");
         Label roleLabel = new Label(usuario.rolUsuario().descripcion());
-        roleLabel.getStyleClass().add("sidebar-version");
+        roleLabel.getStyleClass().add("sidebar-role");
 
         Button password = new Button("Cambiar contraseña");
         password.getStyleClass().add("nav-button");
@@ -126,7 +148,7 @@ public final class MainShell extends BorderPane {
         logout.setMaxWidth(Double.MAX_VALUE);
         logout.setOnAction(event -> onLogout.run());
 
-        Label version = new Label("MVP · Sprint 10");
+        Label version = new Label("MVP · Sprint 13");
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,
@@ -138,6 +160,26 @@ public final class MainShell extends BorderPane {
         sidebar.setPrefWidth(230);
         sidebar.getStyleClass().add("sidebar");
         return sidebar;
+    }
+
+    public void refreshBranding() {
+        Empresa empresa = empresaService.obtener();
+        businessName.setText(empresa.nombre());
+        businessLogo.getChildren().clear();
+        var logo = logoNegocioService.obtener().orElse(null);
+        var image = BrandingImageFactory.image(logo);
+        if (image.isPresent()) {
+            ImageView view = new ImageView(image.get());
+            view.setPreserveRatio(true);
+            view.setSmooth(true);
+            view.setFitWidth(42);
+            view.setFitHeight(42);
+            businessLogo.getChildren().add(view);
+        } else {
+            Label mark = new Label("ST");
+            mark.getStyleClass().add("business-logo-mark");
+            businessLogo.getChildren().add(mark);
+        }
     }
 
     private Button navButton(String icon, String text) {
