@@ -16,6 +16,7 @@ import py.sistienda.core.service.CodigoBarrasService;
 import py.sistienda.core.service.CompraService;
 import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
+import py.sistienda.core.service.LogoNegocioService;
 import py.sistienda.core.service.MovimientoCajaService;
 import py.sistienda.core.service.PostventaService;
 import py.sistienda.core.service.ProductoService;
@@ -33,6 +34,7 @@ import py.sistienda.data.repository.SqliteCategoriaRepository;
 import py.sistienda.data.repository.SqliteCompraRepository;
 import py.sistienda.data.repository.SqliteConfiguracionPosRepository;
 import py.sistienda.data.repository.SqliteEmpresaRepository;
+import py.sistienda.data.repository.SqliteLogoNegocioRepository;
 import py.sistienda.data.repository.SqliteMovimientoCajaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
 import py.sistienda.data.repository.SqlitePostventaRepository;
@@ -58,6 +60,8 @@ public class MainApp extends Application {
     private AuthService authService;
     private UsuarioService usuarioService;
     private AutorizacionService autorizacionService;
+    private EmpresaService empresaService;
+    private LogoNegocioService logoNegocioService;
 
     @Override
     public void start(Stage stage) {
@@ -76,14 +80,18 @@ public class MainApp extends Application {
         autorizacionService = new AutorizacionService();
         authService = new AuthService(usuarioRepository, passwordHasher);
         usuarioService = new UsuarioService(usuarioRepository, passwordHasher, autorizacionService);
+        empresaService = new EmpresaService(new SqliteEmpresaRepository(connectionFactory));
+        logoNegocioService = new LogoNegocioService(new SqliteLogoNegocioRepository(connectionFactory));
         showLogin(stage);
     }
 
     private void showLogin(Stage stage) {
-        var login = new LoginView(authService, usuario -> showMain(stage, usuario));
+        var empresa = empresaService.obtener();
+        var logo = logoNegocioService.obtener().orElse(null);
+        var login = new LoginView(authService, usuario -> showMain(stage, usuario), empresa, logo);
         var scene = new Scene(login, 1180, 760);
         applyStyles(scene);
-        stage.setTitle("SisTienda · Acceso");
+        stage.setTitle(empresa.nombre() + " · SisTienda · Acceso");
         stage.setMinWidth(980);
         stage.setMinHeight(680);
         stage.setScene(scene);
@@ -103,11 +111,11 @@ public class MainApp extends Application {
         var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
         var reporteService = new ReporteService(new SqliteReporteRepository(connectionFactory));
         var postventaService = new PostventaService(new SqlitePostventaRepository(connectionFactory), autorizacionService);
-        var empresaService = new EmpresaService(new SqliteEmpresaRepository(connectionFactory));
         var proveedorService = new ProveedorService(new SqliteProveedorRepository(connectionFactory));
         var compraService = new CompraService(new SqliteCompraRepository(connectionFactory));
 
-        var root = new MainShell(
+        MainShell[] shellHolder = new MainShell[1];
+        MainShell root = new MainShell(
                 () -> autorizacionService.puede(usuario, Permiso.CATALOGO_GESTIONAR)
                         ? new CatalogoView(categoriaService, productoService, stockService,
                         configuracionPosService, codigoBarrasService)
@@ -123,26 +131,45 @@ public class MainApp extends Application {
                         postventaService, cajaService, autorizacionService, usuario
                 ),
                 () -> new ComprasView(proveedorService, productoService, compraService, usuario),
-                () -> new ConfiguracionView(empresaService, backupService, configuracionPosService),
+                () -> new ConfiguracionView(
+                        empresaService,
+                        backupService,
+                        configuracionPosService,
+                        logoNegocioService,
+                        () -> {
+                            if (shellHolder[0] != null) shellHolder[0].refreshBranding();
+                            updateStageTitle(stage, usuario);
+                        }
+                ),
                 () -> new UsuariosView(usuarioService, usuario),
                 usuario,
                 autorizacionService,
                 usuarioService,
+                empresaService,
+                logoNegocioService,
                 () -> showLogin(stage)
         );
+        shellHolder[0] = root;
+
         var scene = new Scene(root, 1360, 820);
         applyStyles(scene);
-
-        stage.setTitle("SisTienda · " + usuario.username() + " · " + usuario.rolUsuario().descripcion());
+        updateStageTitle(stage, usuario);
         stage.setMinWidth(1080);
         stage.setMinHeight(700);
         stage.setScene(scene);
         stage.centerOnScreen();
     }
 
+    private void updateStageTitle(Stage stage, Usuario usuario) {
+        stage.setTitle(empresaService.obtener().nombre()
+                + " · SisTienda · " + usuario.username()
+                + " · " + usuario.rolUsuario().descripcion());
+    }
+
     private void applyStyles(Scene scene) {
         addStyle(scene, "/styles/app.css");
         addStyle(scene, "/styles/auth.css");
+        addStyle(scene, "/styles/branding.css");
         addStyle(scene, "/styles/caja.css");
         addStyle(scene, "/styles/venta.css");
         addStyle(scene, "/styles/reportes.css");

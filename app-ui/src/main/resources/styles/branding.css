@@ -1,0 +1,36 @@
+.business-logo-box {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(251, 146, 60, 0.55);
+    -fx-border-radius: 12;
+    -fx-alignment: center;
+}
+
+.business-logo-mark {
+    -fx-background-color: #f97316;
+    -fx-background-radius: 9;
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: 900;
+    -fx-alignment: center;
+    -fx-min-width: 38;
+    -fx-min-height: 38;
+}
+
+.business-name {
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: 900;
+}
+
+.business-powered {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 8px;
+    -fx-font-weight: 700;
+}
+
+.sidebar-role {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 10px;
+    -fx-padding: 0 10 5 10;
+}

@@ -6,14 +6,18 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import py.sistienda.core.exception.ValidationException;
+import py.sistienda.core.model.Empresa;
+import py.sistienda.core.model.LogoNegocio;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.service.AuthService;
+import py.sistienda.ui.branding.BrandingImageFactory;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -24,6 +28,8 @@ public final class LoginView extends StackPane {
     private final AuthService authService;
     private final Consumer<Usuario> onAuthenticated;
     private final boolean setupMode;
+    private final Empresa empresa;
+    private final LogoNegocio logo;
 
     private final TextField username = new TextField();
     private final PasswordField password = new PasswordField();
@@ -31,9 +37,20 @@ public final class LoginView extends StackPane {
     private final Label error = new Label();
 
     public LoginView(AuthService authService, Consumer<Usuario> onAuthenticated) {
+        this(authService, onAuthenticated, null, null);
+    }
+
+    public LoginView(
+            AuthService authService,
+            Consumer<Usuario> onAuthenticated,
+            Empresa empresa,
+            LogoNegocio logo
+    ) {
         this.authService = Objects.requireNonNull(authService);
         this.onAuthenticated = Objects.requireNonNull(onAuthenticated);
         this.setupMode = authService.requiereConfiguracionInicial();
+        this.empresa = empresa;
+        this.logo = logo;
 
         getStyleClass().add("auth-screen");
         setPadding(new Insets(36));
@@ -52,8 +69,17 @@ public final class LoginView extends StackPane {
     }
 
     private VBox buildHero() {
-        Label mark = new Label("ST");
-        mark.getStyleClass().add("auth-brand-mark");
+        StackPane mark = buildBrandMark();
+
+        String businessName = empresa == null || empresa.nombre() == null || empresa.nombre().isBlank()
+                ? "Mi Tienda"
+                : empresa.nombre();
+        Label business = new Label(businessName);
+        business.getStyleClass().add("auth-business-name");
+        business.setWrapText(true);
+        Label powered = new Label("Gestionado con SisTienda");
+        powered.getStyleClass().add("auth-powered");
+        VBox identity = new VBox(3, business, powered);
 
         Label eyebrow = new Label(setupMode ? "PRIMERA CONFIGURACIÓN" : "BIENVENIDO DE VUELTA");
         eyebrow.getStyleClass().add("auth-eyebrow");
@@ -69,10 +95,35 @@ public final class LoginView extends StackPane {
         subtitle.getStyleClass().add("auth-hero-subtitle");
         subtitle.setWrapText(true);
 
-        VBox hero = new VBox(18, mark, eyebrow, title, subtitle);
+        HBox identityRow = new HBox(12, mark, identity);
+        identityRow.setAlignment(Pos.CENTER_LEFT);
+        VBox hero = new VBox(18, identityRow, eyebrow, title, subtitle);
         hero.setMaxWidth(520);
         hero.setAlignment(Pos.CENTER_LEFT);
         return hero;
+    }
+
+    private StackPane buildBrandMark() {
+        StackPane box = new StackPane();
+        box.setMinSize(72, 72);
+        box.setPrefSize(72, 72);
+        box.setMaxSize(72, 72);
+        box.getStyleClass().add("auth-logo-box");
+
+        var image = BrandingImageFactory.image(logo);
+        if (image.isPresent()) {
+            ImageView view = new ImageView(image.get());
+            view.setPreserveRatio(true);
+            view.setSmooth(true);
+            view.setFitWidth(64);
+            view.setFitHeight(64);
+            box.getChildren().add(view);
+        } else {
+            Label mark = new Label("ST");
+            mark.getStyleClass().add("auth-brand-mark-inline");
+            box.getChildren().add(mark);
+        }
+        return box;
     }
 
     private VBox buildCard() {

@@ -2,25 +2,40 @@ package py.sistienda.ui.configuracion;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.Empresa;
+import py.sistienda.core.model.LogoNegocio;
 import py.sistienda.core.service.BackupService;
 import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
+import py.sistienda.core.service.LogoNegocioService;
+import py.sistienda.ui.branding.BrandingImageFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 
 public final class ConfiguracionView extends BorderPane {
 
     private final EmpresaService empresaService;
     private final BackupService backupService;
     private final ConfiguracionPosService configuracionPosService;
+    private final LogoNegocioService logoNegocioService;
+    private final Runnable onIdentityChanged;
 
     private final TextField nombre = new TextField();
     private final TextField ruc = new TextField();
@@ -34,19 +49,34 @@ public final class ConfiguracionView extends BorderPane {
     private final Label previewDireccion = new Label();
     private final Label previewTelefono = new Label();
     private final Label previewMensaje = new Label();
+    private final StackPane logoPreview = new StackPane();
+    private final StackPane appLogoPreview = new StackPane();
+    private LogoNegocio logoActual;
 
     public ConfiguracionView(EmpresaService empresaService, BackupService backupService) {
-        this(empresaService, backupService, null);
+        this(empresaService, backupService, null, null, () -> {});
     }
 
     public ConfiguracionView(EmpresaService empresaService, BackupService backupService,
                              ConfiguracionPosService configuracionPosService) {
+        this(empresaService, backupService, configuracionPosService, null, () -> {});
+    }
+
+    public ConfiguracionView(
+            EmpresaService empresaService,
+            BackupService backupService,
+            ConfiguracionPosService configuracionPosService,
+            LogoNegocioService logoNegocioService,
+            Runnable onIdentityChanged
+    ) {
         this.empresaService = empresaService;
         this.backupService = backupService;
         this.configuracionPosService = configuracionPosService;
+        this.logoNegocioService = logoNegocioService;
+        this.onIdentityChanged = onIdentityChanged == null ? () -> {} : onIdentityChanged;
 
         getStyleClass().add("content-area");
-        setPadding(new Insets(20, 24, 20, 24));
+        setPadding(new Insets(18, 24, 18, 24));
         setTop(buildHeader());
         setCenter(buildContent());
 
@@ -55,11 +85,11 @@ public final class ConfiguracionView extends BorderPane {
     }
 
     private VBox buildHeader() {
-        Label eyebrow = new Label("PERSONALIZACIÓN · HARDWARE · SEGURIDAD");
+        Label eyebrow = new Label("IDENTIDAD · HARDWARE · SEGURIDAD");
         eyebrow.getStyleClass().add("eyebrow");
         Label title = new Label("Configuración");
         title.getStyleClass().add("page-title");
-        Label subtitle = new Label("Personalizá la tienda, prepará el hardware POS y protegé la información del negocio.");
+        Label subtitle = new Label("Hacé que SisTienda se sienta parte de tu negocio y dejá listo el punto de venta.");
         subtitle.getStyleClass().add("page-subtitle");
 
         feedback.getStyleClass().add("config-feedback");
@@ -68,41 +98,60 @@ public final class ConfiguracionView extends BorderPane {
         return new VBox(3, eyebrow, title, subtitle, feedback);
     }
 
-    private HBox buildContent() {
-        VBox formCard = buildFormCard();
-        VBox leftColumn = new VBox(12, formCard);
+    private ScrollPane buildContent() {
+        VBox sections = new VBox(14);
+        sections.setPadding(new Insets(14, 2, 18, 2));
+        sections.getChildren().add(buildBusinessSection());
+
         if (configuracionPosService != null) {
-            leftColumn.getChildren().add(new HardwarePosPane(configuracionPosService));
+            HardwarePosPane hardware = new HardwarePosPane(configuracionPosService);
+            hardware.setMaxWidth(Double.MAX_VALUE);
+            sections.getChildren().add(hardware);
         }
 
-        VBox previewCard = buildPreviewCard();
-        BackupPane backupPane = new BackupPane(backupService);
-        backupPane.setPadding(new Insets(18));
-        VBox rightColumn = new VBox(12, previewCard, backupPane);
-        rightColumn.setPrefWidth(410);
-        rightColumn.setMinWidth(370);
-        rightColumn.setMaxWidth(450);
+        BackupPane backup = new BackupPane(backupService);
+        backup.setPadding(new Insets(18));
+        backup.setMaxWidth(Double.MAX_VALUE);
+        sections.getChildren().add(backup);
 
-        HBox.setHgrow(leftColumn, Priority.ALWAYS);
-        leftColumn.setMaxWidth(Double.MAX_VALUE);
-
-        HBox content = new HBox(14, leftColumn, rightColumn);
-        content.setPadding(new Insets(14, 0, 0, 0));
-        return content;
+        ScrollPane scroll = new ScrollPane(sections);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.getStyleClass().add("config-scroll");
+        return scroll;
     }
 
-    private VBox buildFormCard() {
-        Label title = new Label("Datos de la tienda");
+    private VBox buildBusinessSection() {
+        Label title = new Label("Mi negocio");
         title.getStyleClass().add("config-section-title");
-        Label hint = new Label("Estos datos identifican el comercio y se imprimen en el comprobante.");
+        Label hint = new Label("Nombre, imagen y datos que identificarán esta instalación de SisTienda.");
         hint.getStyleClass().add("config-hint");
 
-        nombre.setPromptText("Ej.: Mi Tienda");
+        VBox form = buildBusinessForm();
+        VBox preview = buildIdentityPreview();
+        form.setMinWidth(470);
+        HBox.setHgrow(form, Priority.ALWAYS);
+        preview.setPrefWidth(330);
+        preview.setMinWidth(300);
+
+        HBox body = new HBox(18, form, preview);
+        body.setAlignment(Pos.TOP_LEFT);
+
+        VBox card = new VBox(14, title, hint, body);
+        card.getStyleClass().add("config-card");
+        card.setPadding(new Insets(20));
+        card.setMaxWidth(Double.MAX_VALUE);
+        return card;
+    }
+
+    private VBox buildBusinessForm() {
+        nombre.setPromptText("Ej.: Despensa Doña María");
         ruc.setPromptText("RUC opcional");
         direccion.setPromptText("Dirección opcional");
         telefono.setPromptText("Teléfono opcional");
         mensaje.setPromptText("Ej.: ¡Gracias por su compra!");
-        mensaje.setPrefRowCount(3);
+        mensaje.setPrefRowCount(2);
         mensaje.setWrapText(true);
 
         for (var field : new javafx.scene.control.Control[]{nombre, ruc, direccion, telefono, mensaje}) {
@@ -110,62 +159,106 @@ public final class ConfiguracionView extends BorderPane {
             field.setMaxWidth(Double.MAX_VALUE);
         }
 
+        VBox logoEditor = buildLogoEditor();
         HBox secondary = new HBox(10, formField("RUC", ruc), formField("Teléfono", telefono));
         secondary.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
 
-        Button guardar = new Button("Guardar configuración");
+        Button guardar = new Button("Guardar mi negocio");
         guardar.getStyleClass().add("primary-button");
         guardar.setOnAction(event -> guardar());
 
-        VBox card = new VBox(12,
-                title, hint,
-                formField("Nombre de la tienda *", nombre),
+        return new VBox(12,
+                logoEditor,
+                formField("Nombre del negocio *", nombre),
                 secondary,
                 formField("Dirección", direccion),
                 formField("Mensaje al pie del ticket", mensaje),
                 guardar
         );
-        card.getStyleClass().add("config-card");
-        card.setPadding(new Insets(20));
-        return card;
     }
 
-    private VBox buildPreviewCard() {
-        Label title = new Label("Vista previa del encabezado");
-        title.getStyleClass().add("config-section-title");
-        Label hint = new Label("Así se verán los datos principales en el comprobante.");
-        hint.getStyleClass().add("config-hint");
+    private VBox buildLogoEditor() {
+        logoPreview.getStyleClass().add("config-logo-preview");
+        logoPreview.setMinSize(92, 92);
+        logoPreview.setPrefSize(92, 92);
+        logoPreview.setMaxSize(92, 92);
 
-        previewNombre.getStyleClass().add("config-preview-name");
+        Label title = new Label("Logo o foto del negocio");
+        title.getStyleClass().add("form-label");
+        Label hint = new Label("PNG, JPG o JPEG · máximo 5 MB. La imagen queda guardada dentro del backup de SisTienda.");
+        hint.getStyleClass().add("config-hint");
+        hint.setWrapText(true);
+
+        Button choose = new Button("Elegir imagen");
+        choose.getStyleClass().add("secondary-button");
+        choose.setDisable(logoNegocioService == null);
+        choose.setOnAction(event -> elegirLogo());
+
+        Button remove = new Button("Quitar imagen");
+        remove.getStyleClass().add("secondary-button");
+        remove.setDisable(logoNegocioService == null);
+        remove.setOnAction(event -> eliminarLogo());
+
+        HBox buttons = new HBox(8, choose, remove);
+        VBox copy = new VBox(4, title, hint, buttons);
+        HBox.setHgrow(copy, Priority.ALWAYS);
+        HBox row = new HBox(12, logoPreview, copy);
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        VBox box = new VBox(row);
+        box.getStyleClass().add("config-logo-editor");
+        box.setPadding(new Insets(12));
+        return box;
+    }
+
+    private VBox buildIdentityPreview() {
+        Label title = new Label("Así se verá tu tienda");
+        title.getStyleClass().add("config-section-title-small");
+
+        appLogoPreview.getStyleClass().add("config-app-logo");
+        appLogoPreview.setMinSize(62, 62);
+        appLogoPreview.setPrefSize(62, 62);
+        appLogoPreview.setMaxSize(62, 62);
+
+        previewNombre.getStyleClass().add("config-app-business-name");
+        previewNombre.setWrapText(true);
+        Label powered = new Label("Gestionado con SisTienda");
+        powered.getStyleClass().add("config-powered");
+        VBox appText = new VBox(2, previewNombre, powered);
+        HBox appHeader = new HBox(11, appLogoPreview, appText);
+        appHeader.setAlignment(Pos.CENTER_LEFT);
+        appHeader.getStyleClass().add("config-app-preview");
+        appHeader.setPadding(new Insets(14));
+
+        Label ticketTitle = new Label("Vista previa del ticket");
+        ticketTitle.getStyleClass().add("config-section-title-small");
         previewRuc.getStyleClass().add("config-preview-line");
         previewDireccion.getStyleClass().add("config-preview-line");
         previewTelefono.getStyleClass().add("config-preview-line");
         previewMensaje.getStyleClass().add("config-preview-message");
         previewMensaje.setWrapText(true);
+        Label ticketBusinessName = new Label();
+        ticketBusinessName.getStyleClass().add("config-preview-name");
+        ticketBusinessName.textProperty().bind(previewNombre.textProperty());
 
-        Label divider = new Label("--------------------------------");
-        divider.getStyleClass().add("config-preview-divider");
-
-        VBox paper = new VBox(6,
-                previewNombre,
+        VBox paper = new VBox(5,
+                ticketBusinessName,
                 previewRuc,
                 previewDireccion,
                 previewTelefono,
-                divider,
+                new Label("--------------------------------"),
                 new Label("Ticket #000123"),
-                new Label("05/09/2026 19:30"),
                 new Label("..."),
-                divider,
                 previewMensaje
         );
         paper.setAlignment(Pos.TOP_CENTER);
         paper.getStyleClass().add("config-ticket-preview");
-        paper.setPadding(new Insets(18));
+        paper.setPadding(new Insets(15));
 
-        VBox card = new VBox(10, title, hint, paper);
-        card.getStyleClass().add("config-card");
-        card.setPadding(new Insets(18));
-        return card;
+        VBox preview = new VBox(12, title, appHeader, ticketTitle, paper);
+        preview.getStyleClass().add("config-preview-panel");
+        preview.setPadding(new Insets(15));
+        return preview;
     }
 
     private VBox formField(String labelText, javafx.scene.control.Control field) {
@@ -192,6 +285,8 @@ public final class ConfiguracionView extends BorderPane {
             direccion.setText(orEmpty(empresa.direccion()));
             telefono.setText(orEmpty(empresa.telefono()));
             mensaje.setText(orEmpty(empresa.mensajeTicket()));
+            logoActual = logoNegocioService == null ? null : logoNegocioService.obtener().orElse(null);
+            actualizarLogo();
             actualizarPreview();
         });
     }
@@ -207,8 +302,70 @@ public final class ConfiguracionView extends BorderPane {
             telefono.setText(orEmpty(saved.telefono()));
             mensaje.setText(orEmpty(saved.mensajeTicket()));
             actualizarPreview();
-            mostrarFeedback("Configuración guardada correctamente.");
+            onIdentityChanged.run();
+            mostrarFeedback("Datos del negocio guardados. SisTienda ya está usando esta identidad.");
         });
+    }
+
+    private void elegirLogo() {
+        if (logoNegocioService == null) return;
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Elegir logo o foto del negocio");
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Imágenes PNG o JPG", "*.png", "*.jpg", "*.jpeg")
+        );
+        File selected = chooser.showOpenDialog(getScene() == null ? null : getScene().getWindow());
+        if (selected == null) return;
+
+        ejecutar(() -> {
+            try {
+                byte[] content = Files.readAllBytes(selected.toPath());
+                LogoNegocio saved = logoNegocioService.guardar(content, selected.getName());
+                if (BrandingImageFactory.image(saved).isEmpty()) {
+                    throw new ValidationException("JavaFX no pudo abrir la imagen seleccionada.");
+                }
+                logoActual = saved;
+                actualizarLogo();
+                onIdentityChanged.run();
+                mostrarFeedback("Imagen del negocio guardada correctamente.");
+            } catch (IOException e) {
+                throw new ValidationException("No pudimos leer la imagen seleccionada.");
+            }
+        });
+    }
+
+    private void eliminarLogo() {
+        if (logoNegocioService == null) return;
+        ejecutar(() -> {
+            logoNegocioService.eliminar();
+            logoActual = null;
+            actualizarLogo();
+            onIdentityChanged.run();
+            mostrarFeedback("Imagen quitada. SisTienda mostrará la identidad por defecto.");
+        });
+    }
+
+    private void actualizarLogo() {
+        renderLogo(logoPreview, logoActual, 82, true);
+        renderLogo(appLogoPreview, logoActual, 54, false);
+    }
+
+    private void renderLogo(StackPane target, LogoNegocio logo, double size, boolean showHint) {
+        target.getChildren().clear();
+        var image = BrandingImageFactory.image(logo);
+        if (image.isPresent()) {
+            ImageView view = new ImageView(image.get());
+            view.setPreserveRatio(true);
+            view.setSmooth(true);
+            view.setFitWidth(size);
+            view.setFitHeight(size);
+            target.getChildren().add(view);
+        } else {
+            Label placeholder = new Label(showHint ? "TU\nLOGO" : "ST");
+            placeholder.setAlignment(Pos.CENTER);
+            placeholder.getStyleClass().add("config-logo-placeholder");
+            target.getChildren().add(placeholder);
+        }
     }
 
     private void actualizarPreview() {

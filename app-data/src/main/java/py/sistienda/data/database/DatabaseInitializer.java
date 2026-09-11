@@ -29,6 +29,7 @@ public final class DatabaseInitializer {
                     String sql = readResource("/db/V1__init.sql");
                     runSqlScriptSqlite(connection.createStatement(), sql);
                     ensureHardwareColumns(connection);
+                    ensureBrandingTable(connection);
                     connection.commit();
                 } catch (Exception e) {
                     try {
@@ -58,6 +59,20 @@ public final class DatabaseInitializer {
         try (Statement statement = connection.createStatement()) {
             statement.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_producto_codigo_barras ON producto(codigo_barras) WHERE codigo_barras IS NOT NULL AND trim(codigo_barras) <> ''");
             statement.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_producto_plu_balanza ON producto(plu_balanza) WHERE plu_balanza IS NOT NULL");
+        }
+    }
+
+    private void ensureBrandingTable(Connection connection) throws Exception {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS empresa_branding (
+                      id         INTEGER PRIMARY KEY CHECK (id = 1),
+                      logo       BLOB,
+                      mime_type  TEXT,
+                      actualizado_en TEXT
+                    )
+                    """);
+            statement.execute("INSERT OR IGNORE INTO empresa_branding (id) VALUES (1)");
         }
     }
 
