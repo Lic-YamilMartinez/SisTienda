@@ -25,6 +25,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
+import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.ConfiguracionPos;
 import py.sistienda.core.model.DashboardReporte;
 import py.sistienda.core.model.MetodoPago;
@@ -32,9 +33,14 @@ import py.sistienda.core.model.ProductoVendidoResumen;
 import py.sistienda.core.model.ReporteLineaTiempo;
 import py.sistienda.core.model.ReportePeriodoResumen;
 import py.sistienda.core.model.UnidadMedida;
+import py.sistienda.core.model.Usuario;
 import py.sistienda.core.model.VentaResumen;
+import py.sistienda.core.security.AutorizacionService;
+import py.sistienda.core.security.Permiso;
+import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
+import py.sistienda.core.service.PostventaService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.ui.ticket.TicketDialog;
 
@@ -54,6 +60,10 @@ public final class ReportesView extends BorderPane {
     private final ReporteService reporteService;
     private final EmpresaService empresaService;
     private final ConfiguracionPosService configuracionPosService;
+    private final PostventaService postventaService;
+    private final CajaService cajaService;
+    private final AutorizacionService autorizacionService;
+    private final Usuario usuario;
 
     private final ComboBox<String> periodo = new ComboBox<>();
     private final DatePicker desde = new DatePicker();
@@ -82,14 +92,30 @@ public final class ReportesView extends BorderPane {
     private final TableView<VentaResumen> ventas = new TableView<>();
 
     public ReportesView(ReporteService reporteService, EmpresaService empresaService) {
-        this(reporteService, empresaService, null);
+        this(reporteService, empresaService, null, null, null, null, null);
     }
 
     public ReportesView(ReporteService reporteService, EmpresaService empresaService,
                         ConfiguracionPosService configuracionPosService) {
+        this(reporteService, empresaService, configuracionPosService, null, null, null, null);
+    }
+
+    public ReportesView(
+            ReporteService reporteService,
+            EmpresaService empresaService,
+            ConfiguracionPosService configuracionPosService,
+            PostventaService postventaService,
+            CajaService cajaService,
+            AutorizacionService autorizacionService,
+            Usuario usuario
+    ) {
         this.reporteService = reporteService;
         this.empresaService = empresaService;
         this.configuracionPosService = configuracionPosService;
+        this.postventaService = postventaService;
+        this.cajaService = cajaService;
+        this.autorizacionService = autorizacionService;
+        this.usuario = usuario;
 
         getStyleClass().add("content-area");
         setPadding(new Insets(18, 24, 18, 24));
@@ -166,8 +192,8 @@ public final class ReportesView extends BorderPane {
 
     private ScrollPane buildDashboard() {
         HBox primaryMetrics = new HBox(10,
-                metricCard("FACTURACIÓN", ventasValue, "Ventas válidas según el filtro"),
-                metricCard("COSTO MERCADERÍA", costoValue, "Costo congelado al momento de vender"),
+                metricCard("FACTURACIÓN", ventasValue, "Ventas netas de devoluciones según el filtro"),
+                metricCard("COSTO MERCADERÍA", costoValue, "Costo histórico neto de mercadería"),
                 metricCard("GANANCIA COMERCIAL", gananciaValue, "Facturación - costo de mercadería"),
                 metricCard("RESULTADO NETO", resultadoValue, resultadoHint)
         );
@@ -189,9 +215,9 @@ public final class ReportesView extends BorderPane {
         payments.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
 
         VBox chartCard = sectionCard("Evolución del período",
-                "Facturación y ganancia comercial. En un año se agrupa automáticamente por mes.", timeline);
+                "Facturación y ganancia comercial netas. Las devoluciones descuentan en la fecha en que se procesan.", timeline);
         VBox productCard = sectionCard("Productos que más facturaron",
-                "Top 10 del período. Cantidad, ventas, costo y ganancia real por producto.", productos);
+                "Top 10 neto del período, considerando las devoluciones registradas.", productos);
         chartCard.setMinWidth(520);
         productCard.setMinWidth(430);
         HBox.setHgrow(chartCard, Priority.ALWAYS);
@@ -213,7 +239,7 @@ public final class ReportesView extends BorderPane {
     private VBox buildSalesHistory() {
         Label title = new Label("Detalle de ventas");
         title.getStyleClass().add("report-section-title");
-        Label hint = new Label("Hasta 500 tickets del período seleccionado. Las anuladas se conservan para trazabilidad.");
+        Label hint = new Label("Hasta 500 tickets. Las anulaciones y devoluciones permanecen visibles para auditoría.");
         hint.getStyleClass().add("report-section-hint");
         HBox header = new HBox(8, title, hint);
         header.setAlignment(Pos.BASELINE_LEFT);
@@ -298,7 +324,7 @@ public final class ReportesView extends BorderPane {
     }
 
     private void configurarProductos() {
-        productos.setPlaceholder(new Label("No hay productos vendidos en este período."));
+        productos.setPlaceholder(new Label("No hay movimiento neto de productos en este período."));
         productos.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         productos.getStyleClass().add("report-product-table");
         productos.setPrefHeight(330);
@@ -322,7 +348,9 @@ public final class ReportesView extends BorderPane {
 
         TableColumn<ProductoVendidoResumen, String> margin = new TableColumn<>("Margen");
         margin.setCellValueFactory(cell -> {
-            double pct = cell.getValue().ventas() <= 0 ? 0 : (cell.getValue().ganancia() / cell.getValue().ventas()) * 100d;
+            double pct = Math.abs(cell.getValue().ventas()) <= 0.000001d
+                    ? 0d
+                    : (cell.getValue().ganancia() / cell.getValue().ventas()) * 100d;
             return new ReadOnlyStringWrapper(String.format(Locale.US, "%.1f%%", pct));
         });
         margin.setPrefWidth(65);
@@ -337,34 +365,48 @@ public final class ReportesView extends BorderPane {
 
         TableColumn<VentaResumen, String> fechaCol = new TableColumn<>("Fecha");
         fechaCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(DATE_TIME.format(cell.getValue().fecha())));
-        fechaCol.setPrefWidth(105);
+        fechaCol.setPrefWidth(100);
         TableColumn<VentaResumen, String> ticketCol = new TableColumn<>("Ticket");
         ticketCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper("#" + cell.getValue().nroTicket()));
-        ticketCol.setPrefWidth(75);
+        ticketCol.setPrefWidth(70);
         TableColumn<VentaResumen, String> usuarioCol = new TableColumn<>("Usuario");
         usuarioCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().usuario()));
-        usuarioCol.setPrefWidth(110);
+        usuarioCol.setPrefWidth(100);
         TableColumn<VentaResumen, String> pagoCol = new TableColumn<>("Pago");
         pagoCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().metodoPago().descripcion()));
-        pagoCol.setPrefWidth(120);
-        TableColumn<VentaResumen, String> totalCol = new TableColumn<>("Total");
+        pagoCol.setPrefWidth(105);
+        TableColumn<VentaResumen, String> totalCol = new TableColumn<>("Original");
         totalCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().total())));
-        totalCol.setPrefWidth(120);
-        TableColumn<VentaResumen, String> gananciaCol = new TableColumn<>("Ganancia");
-        gananciaCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().ganancia())));
-        gananciaCol.setPrefWidth(120);
+        totalCol.setPrefWidth(105);
+        TableColumn<VentaResumen, String> netoCol = new TableColumn<>("Neto");
+        netoCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().totalNeto())));
+        netoCol.setPrefWidth(105);
 
         TableColumn<VentaResumen, VentaResumen> estadoCol = new TableColumn<>("Estado");
         estadoCol.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        estadoCol.setPrefWidth(90);
+        estadoCol.setPrefWidth(95);
         estadoCol.setCellFactory(column -> new TableCell<>() {
             private final Label badge = new Label();
             @Override protected void updateItem(VentaResumen item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) { setGraphic(null); return; }
-                badge.getStyleClass().removeAll("report-status-ok", "report-status-cancelled");
-                badge.setText(item.anulada() ? "Anulada" : "Válida");
-                badge.getStyleClass().add(item.anulada() ? "report-status-cancelled" : "report-status-ok");
+                badge.getStyleClass().removeAll(
+                        "report-status-ok", "report-status-cancelled",
+                        "report-status-returned", "report-status-partial"
+                );
+                if (item.anulada()) {
+                    badge.setText("Anulada");
+                    badge.getStyleClass().add("report-status-cancelled");
+                } else if (item.devueltaCompleta()) {
+                    badge.setText("Devuelta");
+                    badge.getStyleClass().add("report-status-returned");
+                } else if (item.tieneDevolucion()) {
+                    badge.setText("Parcial");
+                    badge.getStyleClass().add("report-status-partial");
+                } else {
+                    badge.setText("Válida");
+                    badge.getStyleClass().add("report-status-ok");
+                }
                 setAlignment(Pos.CENTER);
                 setGraphic(badge);
             }
@@ -372,20 +414,29 @@ public final class ReportesView extends BorderPane {
 
         TableColumn<VentaResumen, VentaResumen> actionCol = new TableColumn<>("");
         actionCol.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        actionCol.setPrefWidth(105);
+        actionCol.setPrefWidth(puedePostventa() ? 190 : 100);
         actionCol.setCellFactory(column -> new TableCell<>() {
-            private final Button detail = new Button("Ver ticket");
-            { detail.getStyleClass().add("report-detail-button"); }
+            private final Button detail = new Button("Ticket");
+            private final Button postSale = new Button("Postventa");
+            private final HBox actions = new HBox(5, detail, postSale);
+            {
+                detail.getStyleClass().add("report-detail-button");
+                postSale.getStyleClass().add("report-post-sale-button");
+                actions.setAlignment(Pos.CENTER);
+            }
             @Override protected void updateItem(VentaResumen item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) { setGraphic(null); return; }
                 detail.setOnAction(event -> mostrarTicket(item.id()));
+                postSale.setVisible(puedePostventa());
+                postSale.setManaged(puedePostventa());
+                postSale.setOnAction(event -> mostrarPostventa(item.id()));
                 setAlignment(Pos.CENTER);
-                setGraphic(detail);
+                setGraphic(actions);
             }
         });
 
-        ventas.getColumns().setAll(fechaCol, ticketCol, usuarioCol, pagoCol, totalCol, gananciaCol, estadoCol, actionCol);
+        ventas.getColumns().setAll(fechaCol, ticketCol, usuarioCol, pagoCol, totalCol, netoCol, estadoCol, actionCol);
         ventas.setRowFactory(view -> {
             var row = new javafx.scene.control.TableRow<VentaResumen>();
             row.setOnMouseClicked(event -> {
@@ -494,8 +545,7 @@ public final class ReportesView extends BorderPane {
     private VBox filterField(String labelText, javafx.scene.control.Control control) {
         Label label = new Label(labelText);
         label.getStyleClass().add("report-filter-label");
-        VBox box = new VBox(3, label, control);
-        return box;
+        return new VBox(3, label, control);
     }
 
     private void mostrarTicket(long ventaId) {
@@ -505,6 +555,30 @@ public final class ReportesView extends BorderPane {
                     : configuracionPosService.obtener();
             TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ventaId), config);
         });
+    }
+
+    private void mostrarPostventa(long ventaId) {
+        ejecutar(() -> {
+            if (!puedePostventa()) {
+                throw new ValidationException("Tu usuario no tiene permiso para gestionar postventa.");
+            }
+            PostventaDialog.show(
+                    getScene() == null ? null : getScene().getWindow(),
+                    postventaService,
+                    cajaService,
+                    usuario,
+                    ventaId,
+                    this::recargar
+            );
+        });
+    }
+
+    private boolean puedePostventa() {
+        return postventaService != null
+                && cajaService != null
+                && autorizacionService != null
+                && usuario != null
+                && autorizacionService.puede(usuario, Permiso.POSTVENTA_GESTIONAR);
     }
 
     private Label metricValueLabel() {
@@ -551,7 +625,7 @@ public final class ReportesView extends BorderPane {
         } catch (RuntimeException e) {
             Throwable current = e;
             while (current.getCause() != null) current = current.getCause();
-            feedback.setText(current.getMessage() == null ? "No pudimos cargar el reporte." : current.getMessage());
+            feedback.setText(current.getMessage() == null ? "No pudimos completar la operación." : current.getMessage());
             feedback.setVisible(true);
             feedback.setManaged(true);
         }

@@ -22,6 +22,7 @@ public final class AutorizacionService {
                     Permiso.CAJA_MOVIMIENTOS,
                     Permiso.ARQUEO_VER,
                     Permiso.REPORTES_VER,
+                    Permiso.POSTVENTA_GESTIONAR,
                     Permiso.COMPRAS_GESTIONAR
             ),
             RolUsuario.CAJERO, EnumSet.of(

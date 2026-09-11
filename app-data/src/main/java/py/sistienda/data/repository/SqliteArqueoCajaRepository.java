@@ -95,15 +95,22 @@ public final class SqliteArqueoCajaRepository implements ArqueoCajaRepository {
 
     private String baseSummarySql() {
         return """
-                WITH ventas AS (
-                    SELECT caja_sesion_id,
-                           COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN total ELSE 0 END), 0) AS efectivo,
-                           COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN total ELSE 0 END), 0) AS transferencia,
-                           COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN total ELSE 0 END), 0) AS tarjeta,
-                           COALESCE(SUM(total), 0) AS total,
-                           COUNT(*) AS tickets
+                WITH movimientos_venta AS (
+                    SELECT caja_sesion_id, metodo_pago, total AS importe, 1 AS ticket
                     FROM venta
                     WHERE anulada = 0
+                    UNION ALL
+                    SELECT caja_sesion_id, metodo_pago, -total AS importe, 0 AS ticket
+                    FROM devolucion
+                ),
+                ventas AS (
+                    SELECT caja_sesion_id,
+                           COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN importe ELSE 0 END), 0) AS efectivo,
+                           COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN importe ELSE 0 END), 0) AS transferencia,
+                           COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN importe ELSE 0 END), 0) AS tarjeta,
+                           COALESCE(SUM(importe), 0) AS total,
+                           COALESCE(SUM(ticket), 0) AS tickets
+                    FROM movimientos_venta
                     GROUP BY caja_sesion_id
                 ),
                 movimientos AS (

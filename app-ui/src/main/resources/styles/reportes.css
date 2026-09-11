@@ -209,7 +209,9 @@
 }
 
 .report-status-ok,
-.report-status-cancelled {
+.report-status-cancelled,
+.report-status-returned,
+.report-status-partial {
     -fx-background-radius: 20;
     -fx-padding: 4 8 4 8;
     -fx-font-size: 9px;
@@ -226,18 +228,41 @@
     -fx-text-fill: #b42318;
 }
 
-.report-detail-button {
-    -fx-background-color: #fff7ed;
+.report-status-returned {
+    -fx-background-color: #f2f4f7;
+    -fx-text-fill: #475467;
+}
+
+.report-status-partial {
+    -fx-background-color: #fffaeb;
+    -fx-text-fill: #b54708;
+}
+
+.report-detail-button,
+.report-post-sale-button {
     -fx-background-radius: 7;
-    -fx-text-fill: #c2410c;
     -fx-font-size: 9px;
     -fx-font-weight: 800;
     -fx-padding: 5 8 5 8;
     -fx-cursor: hand;
 }
 
+.report-detail-button {
+    -fx-background-color: #fff7ed;
+    -fx-text-fill: #c2410c;
+}
+
 .report-detail-button:hover {
     -fx-background-color: #ffedd5;
+}
+
+.report-post-sale-button {
+    -fx-background-color: #f2f4f7;
+    -fx-text-fill: #344054;
+}
+
+.report-post-sale-button:hover {
+    -fx-background-color: #e4e7ec;
 }
 
 .report-feedback {
@@ -245,6 +270,65 @@
     -fx-text-fill: #b42318;
     -fx-padding: 6 10 6 10;
     -fx-font-size: 10px;
+}
+
+.post-sale-summary {
+    -fx-text-fill: #667085;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.post-sale-amounts {
+    -fx-text-fill: #101828;
+    -fx-font-size: 14px;
+    -fx-font-weight: 900;
+}
+
+.post-sale-state {
+    -fx-background-radius: 18;
+    -fx-padding: 5 10 5 10;
+    -fx-font-size: 9px;
+    -fx-font-weight: 900;
+}
+
+.post-sale-state-ok {
+    -fx-background-color: #ecfdf3;
+    -fx-text-fill: #027a48;
+}
+
+.post-sale-state-warning {
+    -fx-background-color: #fffaeb;
+    -fx-text-fill: #b54708;
+}
+
+.post-sale-state-danger {
+    -fx-background-color: #fef3f2;
+    -fx-text-fill: #b42318;
+}
+
+.post-sale-line {
+    -fx-background-color: #fcfcfd;
+    -fx-background-radius: 8;
+    -fx-border-color: #eaecf0;
+    -fx-border-radius: 8;
+}
+
+.post-sale-product {
+    -fx-text-fill: #101828;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.post-sale-product-detail,
+.post-sale-note {
+    -fx-text-fill: #667085;
+    -fx-font-size: 9px;
+}
+
+.post-sale-line-amount {
+    -fx-text-fill: #344054;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
 }
 
 .ticket-title {

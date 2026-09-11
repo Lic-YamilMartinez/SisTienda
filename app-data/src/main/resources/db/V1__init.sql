@@ -173,6 +173,55 @@ CREATE TABLE IF NOT EXISTS venta_detalle (
   FOREIGN KEY (producto_id) REFERENCES producto(id)
 );
 
+-- AUDITORIA DE ANULACION
+CREATE TABLE IF NOT EXISTS venta_anulacion (
+  venta_id         INTEGER PRIMARY KEY,
+  usuario_id       INTEGER NOT NULL,
+  fecha            TEXT NOT NULL DEFAULT (datetime('now')),
+  motivo           TEXT NOT NULL,
+  FOREIGN KEY (venta_id) REFERENCES venta(id),
+  FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+);
+
+-- DEVOLUCIONES
+CREATE TABLE IF NOT EXISTS devolucion (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  venta_id            INTEGER NOT NULL,
+  caja_sesion_id      INTEGER NOT NULL,
+  usuario_id          INTEGER NOT NULL,
+  fecha               TEXT NOT NULL DEFAULT (datetime('now')),
+  metodo_pago         TEXT NOT NULL,
+  total               REAL NOT NULL CHECK (total > 0),
+  costo_total         REAL NOT NULL CHECK (costo_total >= 0),
+  ganancia_revertida  REAL NOT NULL,
+  motivo              TEXT NOT NULL,
+  FOREIGN KEY (venta_id) REFERENCES venta(id),
+  FOREIGN KEY (caja_sesion_id) REFERENCES caja_sesion(id),
+  FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_devolucion_venta ON devolucion(venta_id);
+CREATE INDEX IF NOT EXISTS idx_devolucion_caja_fecha ON devolucion(caja_sesion_id, fecha DESC);
+CREATE INDEX IF NOT EXISTS idx_devolucion_fecha ON devolucion(fecha DESC);
+
+CREATE TABLE IF NOT EXISTS devolucion_detalle (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  devolucion_id       INTEGER NOT NULL,
+  venta_detalle_id    INTEGER NOT NULL,
+  producto_id         INTEGER NOT NULL,
+  cantidad            REAL NOT NULL CHECK (cantidad > 0),
+  precio_unitario     REAL NOT NULL CHECK (precio_unitario >= 0),
+  costo_unitario      REAL NOT NULL CHECK (costo_unitario >= 0),
+  subtotal            REAL NOT NULL CHECK (subtotal > 0),
+  ganancia_revertida  REAL NOT NULL,
+  FOREIGN KEY (devolucion_id) REFERENCES devolucion(id) ON DELETE CASCADE,
+  FOREIGN KEY (venta_detalle_id) REFERENCES venta_detalle(id),
+  FOREIGN KEY (producto_id) REFERENCES producto(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_devolucion_detalle_venta_detalle
+ON devolucion_detalle(venta_detalle_id);
+
 -- MOVIMIENTOS DE STOCK
 CREATE TABLE IF NOT EXISTS mov_stock (
   id               INTEGER PRIMARY KEY AUTOINCREMENT,
