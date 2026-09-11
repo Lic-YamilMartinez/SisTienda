@@ -2,17 +2,48 @@
     -fx-background-color: linear-gradient(to bottom right, #fff7ed, #f8fafc 42%, #eef2ff);
 }
 
-.auth-brand-mark {
+.auth-logo-box {
+    -fx-background-color: white;
+    -fx-background-radius: 18;
+    -fx-border-color: #fed7aa;
+    -fx-border-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 14, 0.08, 0, 5);
+}
+
+.auth-brand-mark,
+.auth-brand-mark-inline {
     -fx-background-color: #f97316;
     -fx-background-radius: 16;
     -fx-text-fill: white;
     -fx-font-size: 22px;
     -fx-font-weight: 900;
     -fx-alignment: center;
+}
+
+.auth-brand-mark {
     -fx-min-width: 58;
     -fx-min-height: 58;
     -fx-max-width: 58;
     -fx-max-height: 58;
+}
+
+.auth-brand-mark-inline {
+    -fx-min-width: 56;
+    -fx-min-height: 56;
+    -fx-max-width: 56;
+    -fx-max-height: 56;
+}
+
+.auth-business-name {
+    -fx-text-fill: #111827;
+    -fx-font-size: 20px;
+    -fx-font-weight: 900;
+}
+
+.auth-powered {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
 }
 
 .auth-eyebrow {
