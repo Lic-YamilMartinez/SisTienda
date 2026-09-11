@@ -17,6 +17,7 @@ import py.sistienda.core.service.CompraService;
 import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.MovimientoCajaService;
+import py.sistienda.core.service.PostventaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ProveedorService;
 import py.sistienda.core.service.ReporteService;
@@ -34,6 +35,7 @@ import py.sistienda.data.repository.SqliteConfiguracionPosRepository;
 import py.sistienda.data.repository.SqliteEmpresaRepository;
 import py.sistienda.data.repository.SqliteMovimientoCajaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
+import py.sistienda.data.repository.SqlitePostventaRepository;
 import py.sistienda.data.repository.SqliteProductoRepository;
 import py.sistienda.data.repository.SqliteProveedorRepository;
 import py.sistienda.data.repository.SqliteReporteRepository;
@@ -100,6 +102,7 @@ public class MainApp extends Application {
         var arqueoCajaService = new ArqueoCajaService(new SqliteArqueoCajaRepository(connectionFactory));
         var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
         var reporteService = new ReporteService(new SqliteReporteRepository(connectionFactory));
+        var postventaService = new PostventaService(new SqlitePostventaRepository(connectionFactory), autorizacionService);
         var empresaService = new EmpresaService(new SqliteEmpresaRepository(connectionFactory));
         var proveedorService = new ProveedorService(new SqliteProveedorRepository(connectionFactory));
         var compraService = new CompraService(new SqliteCompraRepository(connectionFactory));
@@ -115,7 +118,10 @@ public class MainApp extends Application {
                         : new CajaOperativaView(cajaService, movimientoCajaService, productoService, ventaService,
                         reporteService, empresaService, configuracionPosService, codigoBarrasService,
                         autorizacionService, usuario),
-                () -> new ReportesView(reporteService, empresaService, configuracionPosService),
+                () -> new ReportesView(
+                        reporteService, empresaService, configuracionPosService,
+                        postventaService, cajaService, autorizacionService, usuario
+                ),
                 () -> new ComprasView(proveedorService, productoService, compraService, usuario),
                 () -> new ConfiguracionView(empresaService, backupService, configuracionPosService),
                 () -> new UsuariosView(usuarioService, usuario),
