@@ -87,17 +87,26 @@ public final class SqliteCajaRepository implements CajaRepository {
     @Override
     public ResumenVentasCaja salesSummary(long cajaSesionId) {
         String sql = """
+                WITH movimientos_venta AS (
+                    SELECT metodo_pago, total AS importe
+                    FROM venta
+                    WHERE caja_sesion_id = ? AND anulada = 0
+                    UNION ALL
+                    SELECT metodo_pago, -total AS importe
+                    FROM devolucion
+                    WHERE caja_sesion_id = ?
+                )
                 SELECT
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN total ELSE 0 END), 0) AS efectivo,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN total ELSE 0 END), 0) AS transferencia,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN total ELSE 0 END), 0) AS tarjeta,
-                    COALESCE(SUM(total), 0) AS total
-                FROM venta
-                WHERE caja_sesion_id = ? AND anulada = 0
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN importe ELSE 0 END), 0) AS efectivo,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN importe ELSE 0 END), 0) AS transferencia,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN importe ELSE 0 END), 0) AS tarjeta,
+                    COALESCE(SUM(importe), 0) AS total
+                FROM movimientos_venta
                 """;
         try (var connection = connectionFactory.open();
              var statement = connection.prepareStatement(sql)) {
             statement.setLong(1, cajaSesionId);
+            statement.setLong(2, cajaSesionId);
             try (var result = statement.executeQuery()) {
                 if (!result.next()) {
                     return ResumenVentasCaja.vacio();
