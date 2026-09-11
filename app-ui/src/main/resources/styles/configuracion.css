@@ -1,4 +1,15 @@
-.config-card {
+.config-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.config-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.config-card,
+.config-preview-panel {
     -fx-background-color: white;
     -fx-background-radius: 14;
     -fx-border-color: #e5e7eb;
@@ -9,6 +20,12 @@
 .config-section-title {
     -fx-text-fill: #101828;
     -fx-font-size: 17px;
+    -fx-font-weight: 900;
+}
+
+.config-section-title-small {
+    -fx-text-fill: #344054;
+    -fx-font-size: 11px;
     -fx-font-weight: 900;
 }
 
@@ -41,6 +58,46 @@
     -fx-text-fill: #c2410c;
     -fx-padding: 6 9 6 9;
     -fx-font-size: 10px;
+}
+
+.config-logo-editor {
+    -fx-background-color: #fffaf5;
+    -fx-background-radius: 10;
+    -fx-border-color: #ffedd5;
+    -fx-border-radius: 10;
+}
+
+.config-logo-preview,
+.config-app-logo {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: #fed7aa;
+    -fx-border-radius: 12;
+    -fx-alignment: center;
+}
+
+.config-logo-placeholder {
+    -fx-text-fill: #ea580c;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-text-alignment: center;
+}
+
+.config-app-preview {
+    -fx-background-color: #172033;
+    -fx-background-radius: 12;
+}
+
+.config-app-business-name {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: 900;
+}
+
+.config-powered {
+    -fx-text-fill: #98a2b3;
+    -fx-font-size: 9px;
+    -fx-font-weight: 700;
 }
 
 .config-ticket-preview {
