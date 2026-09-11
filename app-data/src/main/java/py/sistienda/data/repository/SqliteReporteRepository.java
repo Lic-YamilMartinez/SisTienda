@@ -40,15 +40,22 @@ public final class SqliteReporteRepository implements ReporteRepository {
     @Override
     public ReporteDiario resumenDiario(LocalDate fecha) {
         String sql = """
+                WITH movimientos AS (
+                    SELECT fecha, metodo_pago, total AS ventas, ganancia_total AS ganancia, 1 AS ticket
+                    FROM venta
+                    WHERE anulada = 0
+                    UNION ALL
+                    SELECT fecha, metodo_pago, -total AS ventas, -ganancia_revertida AS ganancia, 0 AS ticket
+                    FROM devolucion
+                )
                 SELECT
-                    COALESCE(SUM(CASE WHEN anulada = 0 THEN total ELSE 0 END), 0) AS ventas,
-                    COALESCE(SUM(CASE WHEN anulada = 0 THEN ganancia_total ELSE 0 END), 0) AS ganancia,
-                    COALESCE(SUM(CASE WHEN anulada = 0 THEN 1 ELSE 0 END), 0) AS tickets,
-                    COALESCE(AVG(CASE WHEN anulada = 0 THEN total END), 0) AS ticket_promedio,
-                    COALESCE(SUM(CASE WHEN anulada = 0 AND metodo_pago = 'EFECTIVO' THEN total ELSE 0 END), 0) AS efectivo,
-                    COALESCE(SUM(CASE WHEN anulada = 0 AND metodo_pago = 'TRANSFERENCIA' THEN total ELSE 0 END), 0) AS transferencia,
-                    COALESCE(SUM(CASE WHEN anulada = 0 AND metodo_pago = 'TARJETA' THEN total ELSE 0 END), 0) AS tarjeta
-                FROM venta
+                    COALESCE(SUM(ventas), 0) AS ventas,
+                    COALESCE(SUM(ganancia), 0) AS ganancia,
+                    COALESCE(SUM(ticket), 0) AS tickets,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN ventas ELSE 0 END), 0) AS efectivo,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN ventas ELSE 0 END), 0) AS transferencia,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN ventas ELSE 0 END), 0) AS tarjeta
+                FROM movimientos
                 WHERE date(fecha, 'localtime') = ?
                 """;
         try (var connection = connectionFactory.open();
@@ -58,12 +65,14 @@ public final class SqliteReporteRepository implements ReporteRepository {
                 if (!result.next()) {
                     return new ReporteDiario(fecha, 0, 0, 0, 0, 0, 0, 0);
                 }
+                double ventas = result.getDouble("ventas");
+                long tickets = result.getLong("tickets");
                 return new ReporteDiario(
                         fecha,
-                        result.getDouble("ventas"),
+                        ventas,
                         result.getDouble("ganancia"),
-                        result.getLong("tickets"),
-                        result.getDouble("ticket_promedio"),
+                        tickets,
+                        tickets == 0 ? 0d : ventas / tickets,
                         result.getDouble("efectivo"),
                         result.getDouble("transferencia"),
                         result.getDouble("tarjeta")
@@ -82,27 +91,45 @@ public final class SqliteReporteRepository implements ReporteRepository {
     @Override
     public ReportePeriodoResumen resumenPeriodo(LocalDate desde, LocalDate hasta, MetodoPago metodoPago) {
         String filtroPago = metodoPago == null ? "" : " AND metodo_pago = ? ";
-        String filteredSql = """
-                SELECT
-                    COALESCE(SUM(total), 0) AS ventas,
-                    COALESCE(SUM(total - ganancia_total), 0) AS costo,
-                    COALESCE(SUM(ganancia_total), 0) AS ganancia,
-                    COUNT(*) AS tickets,
-                    COALESCE(AVG(total), 0) AS ticket_promedio
+        String movimientosComerciales = """
+                SELECT fecha, metodo_pago,
+                       total AS ventas,
+                       total - ganancia_total AS costo,
+                       ganancia_total AS ganancia,
+                       1 AS ticket
                 FROM venta
                 WHERE anulada = 0
-                  AND date(fecha, 'localtime') BETWEEN ? AND ?
+                UNION ALL
+                SELECT fecha, metodo_pago,
+                       -total AS ventas,
+                       -costo_total AS costo,
+                       -ganancia_revertida AS ganancia,
+                       0 AS ticket
+                FROM devolucion
+                """;
+
+        String filteredSql = """
+                SELECT
+                    COALESCE(SUM(ventas), 0) AS ventas,
+                    COALESCE(SUM(costo), 0) AS costo,
+                    COALESCE(SUM(ganancia), 0) AS ganancia,
+                    COALESCE(SUM(ticket), 0) AS tickets
+                FROM (
+                """ + movimientosComerciales + """
+                ) m
+                WHERE date(fecha, 'localtime') BETWEEN ? AND ?
                 """ + filtroPago;
 
         String globalSalesSql = """
                 SELECT
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN total ELSE 0 END), 0) AS efectivo,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN total ELSE 0 END), 0) AS transferencia,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN total ELSE 0 END), 0) AS tarjeta,
-                    COALESCE(SUM(ganancia_total), 0) AS ganancia_global
-                FROM venta
-                WHERE anulada = 0
-                  AND date(fecha, 'localtime') BETWEEN ? AND ?
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN ventas ELSE 0 END), 0) AS efectivo,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN ventas ELSE 0 END), 0) AS transferencia,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN ventas ELSE 0 END), 0) AS tarjeta,
+                    COALESCE(SUM(ganancia), 0) AS ganancia_global
+                FROM (
+                """ + movimientosComerciales + """
+                ) m
+                WHERE date(fecha, 'localtime') BETWEEN ? AND ?
                 """;
 
         String movementsSql = """
@@ -118,7 +145,6 @@ public final class SqliteReporteRepository implements ReporteRepository {
             double costo;
             double ganancia;
             long tickets;
-            double ticketPromedio;
             try (var statement = connection.prepareStatement(filteredSql)) {
                 statement.setString(1, desde.toString());
                 statement.setString(2, hasta.toString());
@@ -129,7 +155,6 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     costo = result.getDouble("costo");
                     ganancia = result.getDouble("ganancia");
                     tickets = result.getLong("tickets");
-                    ticketPromedio = result.getDouble("ticket_promedio");
                 }
             }
 
@@ -169,7 +194,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     costo,
                     ganancia,
                     tickets,
-                    ticketPromedio,
+                    tickets == 0 ? 0d : ventas / tickets,
                     efectivo,
                     transferencia,
                     tarjeta,
@@ -190,11 +215,17 @@ public final class SqliteReporteRepository implements ReporteRepository {
                 : "date(fecha, 'localtime')";
         String filtroPago = metodoPago == null ? "" : " AND metodo_pago = ? ";
         String sql = "SELECT " + bucket + " AS periodo, "
-                + "COALESCE(SUM(total), 0) AS ventas, "
-                + "COALESCE(SUM(ganancia_total), 0) AS ganancia, "
-                + "COUNT(*) AS tickets "
-                + "FROM venta "
-                + "WHERE anulada = 0 AND date(fecha, 'localtime') BETWEEN ? AND ? "
+                + "COALESCE(SUM(ventas), 0) AS ventas, "
+                + "COALESCE(SUM(ganancia), 0) AS ganancia, "
+                + "COALESCE(SUM(ticket), 0) AS tickets "
+                + "FROM ("
+                + " SELECT fecha, metodo_pago, total AS ventas, ganancia_total AS ganancia, 1 AS ticket"
+                + " FROM venta WHERE anulada = 0"
+                + " UNION ALL"
+                + " SELECT fecha, metodo_pago, -total AS ventas, -ganancia_revertida AS ganancia, 0 AS ticket"
+                + " FROM devolucion"
+                + ") m "
+                + "WHERE date(fecha, 'localtime') BETWEEN ? AND ? "
                 + filtroPago
                 + "GROUP BY periodo ORDER BY periodo";
 
@@ -244,20 +275,37 @@ public final class SqliteReporteRepository implements ReporteRepository {
             MetodoPago metodoPago,
             int limite
     ) {
-        String filtroPago = metodoPago == null ? "" : " AND v.metodo_pago = ? ";
+        String filtroPago = metodoPago == null ? "" : " AND m.metodo_pago = ? ";
         String sql = """
+                WITH movimientos_producto AS (
+                    SELECT v.fecha, v.metodo_pago, d.producto_id,
+                           d.cantidad AS cantidad,
+                           d.subtotal AS ventas,
+                           d.costo_unitario * d.cantidad AS costo,
+                           d.ganancia_linea AS ganancia
+                    FROM venta_detalle d
+                    JOIN venta v ON v.id = d.venta_id
+                    WHERE v.anulada = 0
+                    UNION ALL
+                    SELECT dv.fecha, dv.metodo_pago, dd.producto_id,
+                           -dd.cantidad AS cantidad,
+                           -dd.subtotal AS ventas,
+                           -(dd.costo_unitario * dd.cantidad) AS costo,
+                           -dd.ganancia_revertida AS ganancia
+                    FROM devolucion_detalle dd
+                    JOIN devolucion dv ON dv.id = dd.devolucion_id
+                )
                 SELECT p.id AS producto_id, p.nombre, p.unidad_medida,
-                       COALESCE(SUM(d.cantidad), 0) AS cantidad,
-                       COALESCE(SUM(d.subtotal), 0) AS ventas,
-                       COALESCE(SUM(d.costo_unitario * d.cantidad), 0) AS costo,
-                       COALESCE(SUM(d.ganancia_linea), 0) AS ganancia
-                FROM venta_detalle d
-                JOIN venta v ON v.id = d.venta_id
-                JOIN producto p ON p.id = d.producto_id
-                WHERE v.anulada = 0
-                  AND date(v.fecha, 'localtime') BETWEEN ? AND ?
+                       COALESCE(SUM(m.cantidad), 0) AS cantidad,
+                       COALESCE(SUM(m.ventas), 0) AS ventas,
+                       COALESCE(SUM(m.costo), 0) AS costo,
+                       COALESCE(SUM(m.ganancia), 0) AS ganancia
+                FROM movimientos_producto m
+                JOIN producto p ON p.id = m.producto_id
+                WHERE date(m.fecha, 'localtime') BETWEEN ? AND ?
                 """ + filtroPago + """
                 GROUP BY p.id, p.nombre, p.unidad_medida
+                HAVING ABS(SUM(m.ventas)) > 0.000001 OR ABS(SUM(m.cantidad)) > 0.000001
                 ORDER BY ventas DESC, cantidad DESC
                 LIMIT ?
                 """;
@@ -299,7 +347,8 @@ public final class SqliteReporteRepository implements ReporteRepository {
         String filtroPago = metodoPago == null ? "" : " AND v.metodo_pago = ? ";
         String sql = """
                 SELECT v.id, v.nro_ticket, v.fecha, u.username, v.metodo_pago,
-                       v.total, v.ganancia_total, v.anulada
+                       v.total, v.ganancia_total, v.anulada,
+                       COALESCE((SELECT SUM(dv.total) FROM devolucion dv WHERE dv.venta_id = v.id), 0) AS devuelto
                 FROM venta v
                 JOIN usuario u ON u.id = v.usuario_id
                 WHERE date(v.fecha, 'localtime') BETWEEN ? AND ?
@@ -325,6 +374,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                             MetodoPago.valueOf(result.getString("metodo_pago")),
                             result.getDouble("total"),
                             result.getDouble("ganancia_total"),
+                            result.getDouble("devuelto"),
                             result.getInt("anulada") != 0
                     ));
                 }
