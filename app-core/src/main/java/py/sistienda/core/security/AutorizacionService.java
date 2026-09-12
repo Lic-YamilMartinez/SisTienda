@@ -17,6 +17,7 @@ public final class AutorizacionService {
                     Permiso.CATALOGO_GESTIONAR,
                     Permiso.COSTOS_VER,
                     Permiso.STOCK_GESTIONAR,
+                    Permiso.INVENTARIO_GESTIONAR,
                     Permiso.ETIQUETAS_IMPRIMIR,
                     Permiso.CAJA_OPERAR,
                     Permiso.CAJA_MOVIMIENTOS,
