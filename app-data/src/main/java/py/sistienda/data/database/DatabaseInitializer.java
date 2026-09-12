@@ -31,6 +31,7 @@ public final class DatabaseInitializer {
                     String sql = readResource("/db/V1__init.sql");
                     runSqlScriptSqlite(connection.createStatement(), sql);
                     ensureHardwareColumns(connection);
+                    ensureReplenishmentColumns(connection);
                     ensureBrandingTable(connection);
                     ensureCreditSchema(connection);
                     ensureInventorySchema(connection);
@@ -63,6 +64,22 @@ public final class DatabaseInitializer {
         try (Statement statement = connection.createStatement()) {
             statement.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_producto_codigo_barras ON producto(codigo_barras) WHERE codigo_barras IS NOT NULL AND trim(codigo_barras) <> ''");
             statement.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_producto_plu_balanza ON producto(plu_balanza) WHERE plu_balanza IS NOT NULL");
+        }
+    }
+
+    private void ensureReplenishmentColumns(Connection connection) throws Exception {
+        if (!columnExists(connection, "producto", "stock_minimo")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE producto ADD COLUMN stock_minimo REAL NOT NULL DEFAULT 0");
+            }
+        }
+        if (!columnExists(connection, "producto", "stock_ideal")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE producto ADD COLUMN stock_ideal REAL NOT NULL DEFAULT 0");
+            }
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_producto_reposicion ON producto(activo, stock_ideal, stock_minimo, stock_actual)");
         }
     }
 

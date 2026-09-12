@@ -67,8 +67,9 @@ public final class SqliteProductoRepository implements ProductoRepository {
     public Producto create(Producto producto) {
         String sql = """
                 INSERT INTO producto
-                    (nombre, categoria_id, unidad_medida, precio_venta, costo, stock_actual, activo, codigo_barras, plu_balanza)
-                VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?)
+                    (nombre, categoria_id, unidad_medida, precio_venta, costo, stock_actual,
+                     stock_minimo, stock_ideal, activo, codigo_barras, plu_balanza)
+                VALUES (?, ?, ?, ?, ?, 0, ?, ?, 1, ?, ?)
                 """;
         try (var connection = connectionFactory.open();
              PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -78,7 +79,8 @@ public final class SqliteProductoRepository implements ProductoRepository {
                 if (keys.next()) {
                     return new Producto(keys.getLong(1), producto.nombre(), producto.categoriaId(),
                             producto.categoriaNombre(), producto.unidadMedida(), producto.precioVenta(),
-                            producto.costo(), 0d, true, producto.codigoBarras(), producto.pluBalanza());
+                            producto.costo(), 0d, producto.stockMinimo(), producto.stockIdeal(), true,
+                            producto.codigoBarras(), producto.pluBalanza());
                 }
             }
             throw new IllegalStateException("SQLite no devolvió el id del producto creado.");
@@ -92,13 +94,13 @@ public final class SqliteProductoRepository implements ProductoRepository {
         String sql = """
                 UPDATE producto
                 SET nombre = ?, categoria_id = ?, unidad_medida = ?, precio_venta = ?, costo = ?,
-                    codigo_barras = ?, plu_balanza = ?, actualizado_en = datetime('now')
+                    stock_minimo = ?, stock_ideal = ?, codigo_barras = ?, plu_balanza = ?, actualizado_en = datetime('now')
                 WHERE id = ? AND activo = 1
                 """;
         try (var connection = connectionFactory.open();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             bindEditableFields(statement, producto);
-            statement.setLong(8, producto.id());
+            statement.setLong(10, producto.id());
             int updated = statement.executeUpdate();
             if (updated == 0) throw new IllegalStateException("El producto ya no está disponible para editar.");
             return producto;
@@ -126,7 +128,8 @@ public final class SqliteProductoRepository implements ProductoRepository {
     private String baseSelect() {
         return """
                 SELECT p.id, p.nombre, p.categoria_id, c.nombre AS categoria_nombre,
-                       p.unidad_medida, p.precio_venta, p.costo, p.stock_actual, p.activo,
+                       p.unidad_medida, p.precio_venta, p.costo, p.stock_actual,
+                       p.stock_minimo, p.stock_ideal, p.activo,
                        p.codigo_barras, p.plu_balanza
                 FROM producto p
                 LEFT JOIN categoria_producto c ON c.id = p.categoria_id
@@ -140,10 +143,12 @@ public final class SqliteProductoRepository implements ProductoRepository {
         statement.setString(3, producto.unidadMedida().name());
         statement.setDouble(4, producto.precioVenta());
         statement.setDouble(5, producto.costo());
-        if (producto.codigoBarras() == null) statement.setNull(6, java.sql.Types.VARCHAR);
-        else statement.setString(6, producto.codigoBarras());
-        if (producto.pluBalanza() == null) statement.setNull(7, java.sql.Types.INTEGER);
-        else statement.setInt(7, producto.pluBalanza());
+        statement.setDouble(6, producto.stockMinimo());
+        statement.setDouble(7, producto.stockIdeal());
+        if (producto.codigoBarras() == null) statement.setNull(8, java.sql.Types.VARCHAR);
+        else statement.setString(8, producto.codigoBarras());
+        if (producto.pluBalanza() == null) statement.setNull(9, java.sql.Types.INTEGER);
+        else statement.setInt(9, producto.pluBalanza());
     }
 
     private Producto map(ResultSet resultSet) throws Exception {
@@ -155,7 +160,8 @@ public final class SqliteProductoRepository implements ProductoRepository {
                 resultSet.getLong("id"), resultSet.getString("nombre"), categoriaId,
                 resultSet.getString("categoria_nombre"), UnidadMedida.valueOf(resultSet.getString("unidad_medida")),
                 resultSet.getDouble("precio_venta"), resultSet.getDouble("costo"),
-                resultSet.getDouble("stock_actual"), resultSet.getInt("activo") == 1,
+                resultSet.getDouble("stock_actual"), resultSet.getDouble("stock_minimo"),
+                resultSet.getDouble("stock_ideal"), resultSet.getInt("activo") == 1,
                 resultSet.getString("codigo_barras"), plu
         );
     }
