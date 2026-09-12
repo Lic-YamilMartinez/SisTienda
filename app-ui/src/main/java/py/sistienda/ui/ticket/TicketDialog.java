@@ -83,6 +83,12 @@ public final class TicketDialog {
         Label payment = new Label("Pago: " + detalle.metodoPago().descripcion());
         payment.getStyleClass().add("ticket-info");
         VBox paymentInfo = new VBox(3, payment);
+        if (detalle.metodoPago() == MetodoPago.FIADO && detalle.cliente() != null && !detalle.cliente().isBlank()) {
+            Label customer = new Label("Cliente: " + detalle.cliente());
+            customer.getStyleClass().add("ticket-info");
+            customer.setWrapText(true);
+            paymentInfo.getChildren().add(customer);
+        }
         if (detalle.metodoPago() == MetodoPago.EFECTIVO) {
             paymentInfo.getChildren().addAll(
                     infoRow("Recibido", formatCurrency(detalle.recibido())),
