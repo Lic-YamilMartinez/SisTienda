@@ -20,6 +20,7 @@ public final class AutorizacionService {
                     Permiso.ETIQUETAS_IMPRIMIR,
                     Permiso.CAJA_OPERAR,
                     Permiso.CAJA_MOVIMIENTOS,
+                    Permiso.FIADO_GESTIONAR,
                     Permiso.ARQUEO_VER,
                     Permiso.REPORTES_VER,
                     Permiso.POSTVENTA_GESTIONAR,
@@ -28,7 +29,8 @@ public final class AutorizacionService {
             RolUsuario.CAJERO, EnumSet.of(
                     Permiso.CATALOGO_VER,
                     Permiso.CAJA_OPERAR,
-                    Permiso.CAJA_MOVIMIENTOS
+                    Permiso.CAJA_MOVIMIENTOS,
+                    Permiso.FIADO_GESTIONAR
             ),
             RolUsuario.VENDEDOR, EnumSet.of(
                     Permiso.CATALOGO_VER,

@@ -32,6 +32,7 @@ public final class DatabaseInitializer {
                     runSqlScriptSqlite(connection.createStatement(), sql);
                     ensureHardwareColumns(connection);
                     ensureBrandingTable(connection);
+                    ensureCreditSchema(connection);
                     connection.commit();
                 } catch (Exception e) {
                     try {
@@ -75,6 +76,54 @@ public final class DatabaseInitializer {
                     )
                     """);
             statement.execute("INSERT OR IGNORE INTO empresa_branding (id) VALUES (1)");
+        }
+    }
+
+    private void ensureCreditSchema(Connection connection) throws Exception {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS cliente (
+                      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                      nombre        TEXT NOT NULL,
+                      documento     TEXT,
+                      telefono      TEXT,
+                      direccion     TEXT,
+                      nota          TEXT,
+                      activo        INTEGER NOT NULL DEFAULT 1,
+                      creado_en     TEXT NOT NULL DEFAULT (datetime('now')),
+                      actualizado_en TEXT
+                    )
+                    """);
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_nombre ON cliente(nombre COLLATE NOCASE)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_telefono ON cliente(telefono)");
+            statement.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_cliente_documento ON cliente(documento) WHERE documento IS NOT NULL AND trim(documento) <> ''");
+        }
+
+        if (!columnExists(connection, "venta", "cliente_id")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("ALTER TABLE venta ADD COLUMN cliente_id INTEGER REFERENCES cliente(id)");
+            }
+        }
+
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_venta_cliente ON venta(cliente_id)");
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS cliente_abono (
+                      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                      cliente_id      INTEGER NOT NULL,
+                      caja_sesion_id  INTEGER NOT NULL,
+                      usuario_id      INTEGER NOT NULL,
+                      fecha           TEXT NOT NULL DEFAULT (datetime('now')),
+                      metodo_pago     TEXT NOT NULL CHECK (metodo_pago IN ('EFECTIVO','TRANSFERENCIA','TARJETA')),
+                      monto           REAL NOT NULL CHECK (monto > 0),
+                      observacion     TEXT,
+                      FOREIGN KEY (cliente_id) REFERENCES cliente(id),
+                      FOREIGN KEY (caja_sesion_id) REFERENCES caja_sesion(id),
+                      FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+                    )
+                    """);
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_abono_cliente_fecha ON cliente_abono(cliente_id, fecha DESC)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_abono_caja_fecha ON cliente_abono(caja_sesion_id, fecha DESC)");
         }
     }
 

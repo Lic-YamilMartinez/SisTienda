@@ -12,6 +12,7 @@ import py.sistienda.core.service.AuthService;
 import py.sistienda.core.service.BackupService;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.CategoriaService;
+import py.sistienda.core.service.ClienteService;
 import py.sistienda.core.service.CodigoBarrasService;
 import py.sistienda.core.service.CompraService;
 import py.sistienda.core.service.ConfiguracionPosService;
@@ -31,6 +32,7 @@ import py.sistienda.data.repository.SqliteArqueoCajaRepository;
 import py.sistienda.data.repository.SqliteBackupRepository;
 import py.sistienda.data.repository.SqliteCajaRepository;
 import py.sistienda.data.repository.SqliteCategoriaRepository;
+import py.sistienda.data.repository.SqliteClienteRepository;
 import py.sistienda.data.repository.SqliteCompraRepository;
 import py.sistienda.data.repository.SqliteConfiguracionPosRepository;
 import py.sistienda.data.repository.SqliteEmpresaRepository;
@@ -50,6 +52,7 @@ import py.sistienda.ui.catalogo.CatalogoConsultaView;
 import py.sistienda.ui.catalogo.CatalogoView;
 import py.sistienda.ui.compras.ComprasView;
 import py.sistienda.ui.configuracion.ConfiguracionView;
+import py.sistienda.ui.fiado.FiadoView;
 import py.sistienda.ui.reportes.ReportesView;
 import py.sistienda.ui.usuarios.UsuariosView;
 
@@ -108,7 +111,8 @@ public class MainApp extends Application {
         var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
         var movimientoCajaService = new MovimientoCajaService(new SqliteMovimientoCajaRepository(connectionFactory));
         var arqueoCajaService = new ArqueoCajaService(new SqliteArqueoCajaRepository(connectionFactory));
-        var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory));
+        var clienteService = new ClienteService(new SqliteClienteRepository(connectionFactory), autorizacionService);
+        var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory), clienteService);
         var reporteService = new ReporteService(new SqliteReporteRepository(connectionFactory));
         var postventaService = new PostventaService(new SqlitePostventaRepository(connectionFactory), autorizacionService);
         var proveedorService = new ProveedorService(new SqliteProveedorRepository(connectionFactory));
@@ -126,6 +130,7 @@ public class MainApp extends Application {
                         : new CajaOperativaView(cajaService, movimientoCajaService, productoService, ventaService,
                         reporteService, empresaService, configuracionPosService, codigoBarrasService,
                         autorizacionService, usuario),
+                () -> new FiadoView(ventaService, cajaService, usuario, autorizacionService),
                 () -> new ReportesView(
                         reporteService, empresaService, configuracionPosService,
                         postventaService, cajaService, autorizacionService, usuario

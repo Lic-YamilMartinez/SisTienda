@@ -7,6 +7,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -14,6 +15,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.CajaSesion;
+import py.sistienda.core.model.Cliente;
 import py.sistienda.core.model.LineaVenta;
 import py.sistienda.core.model.MetodoPago;
 import py.sistienda.core.model.Producto;
@@ -28,6 +30,7 @@ import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 public final class VentaView extends HBox {
 
@@ -51,6 +54,7 @@ public final class VentaView extends HBox {
     private final Label total = new Label("Gs. 0");
     private final Label vuelto = new Label("Gs. 0");
     private final Label feedback = new Label();
+    private final Label creditHint = new Label("Seleccionaremos el cliente al registrar la venta. El importe quedará pendiente en su cuenta.");
 
     public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario, CajaSesion caja) {
         this(productoService, ventaService, usuario, caja, () -> { });
@@ -136,7 +140,8 @@ public final class VentaView extends HBox {
         VBox cartHeader = new VBox(4, title, feedback);
         cartHeader.setPadding(new Insets(11, 14, 8, 14));
 
-        metodoPago.getItems().setAll(MetodoPago.values());
+        metodoPago.getItems().setAll(MetodoPago.EFECTIVO, MetodoPago.TARJETA, MetodoPago.TRANSFERENCIA);
+        if (ventaService.puedeFiado(usuario)) metodoPago.getItems().add(MetodoPago.FIADO);
         metodoPago.setValue(MetodoPago.EFECTIVO);
         metodoPago.getStyleClass().add("pos-control");
         metodoPago.setMinWidth(220);
@@ -155,6 +160,20 @@ public final class VentaView extends HBox {
         HBox.setHgrow(receivedField, Priority.ALWAYS);
         HBox paymentFields = new HBox(8, paymentMethod, receivedField);
 
+        creditHint.getStyleClass().add("pos-credit-hint");
+        creditHint.setWrapText(true);
+        creditHint.setVisible(false);
+        creditHint.setManaged(false);
+
+        Button cuentas = new Button("Clientes & Fiado");
+        cuentas.getStyleClass().add("pos-credit-button");
+        boolean puedeFiado = ventaService.puedeFiado(usuario);
+        cuentas.setVisible(puedeFiado);
+        cuentas.setManaged(puedeFiado);
+        cuentas.setOnAction(event -> ClientesFiadoDialog.gestionar(
+                getScene() == null ? null : getScene().getWindow(), ventaService, usuario, caja
+        ));
+
         VBox totalBlock = summaryBlock("TOTAL", total, "pos-total");
         VBox changeBlock = summaryBlock("VUELTO", vuelto, "pos-change");
         HBox.setHgrow(totalBlock, Priority.ALWAYS);
@@ -162,11 +181,19 @@ public final class VentaView extends HBox {
         HBox summary = new HBox(8, totalBlock, changeBlock);
 
         Button cobrar = new Button("Cobrar venta");
+        cobrar.setId("pos-pay-action");
         cobrar.getStyleClass().add("pos-pay-button");
         cobrar.setMaxWidth(Double.MAX_VALUE);
         cobrar.setOnAction(event -> cobrar());
 
-        VBox payment = new VBox(8, paymentFields, summary, cobrar);
+        Region actionSpacer = new Region();
+        HBox.setHgrow(actionSpacer, Priority.ALWAYS);
+        HBox creditActions = new HBox(8, cuentas, actionSpacer);
+        creditActions.setAlignment(Pos.CENTER_LEFT);
+        creditActions.setVisible(puedeFiado);
+        creditActions.setManaged(puedeFiado);
+
+        VBox payment = new VBox(8, paymentFields, creditHint, creditActions, summary, cobrar);
         payment.getStyleClass().add("pos-payment");
         payment.setPadding(new Insets(10, 14, 12, 14));
 
@@ -343,12 +370,18 @@ public final class VentaView extends HBox {
     }
 
     private void actualizarFormaPago() {
-        boolean cash = metodoPago.getValue() == MetodoPago.EFECTIVO;
+        MetodoPago selected = metodoPago.getValue();
+        boolean cash = selected == MetodoPago.EFECTIVO;
+        boolean credit = selected == MetodoPago.FIADO;
         recibido.setDisable(!cash);
+        creditHint.setVisible(credit);
+        creditHint.setManaged(credit);
         if (!cash) {
             recibido.clear();
-            recibido.setPromptText("No aplica");
+            recibido.setPromptText(credit ? "Pendiente del cliente" : "No aplica");
         } else recibido.setPromptText("Efectivo recibido");
+        Node pay = lookup("#pos-pay-action");
+        if (pay instanceof Button button) button.setText(credit ? "Registrar venta a crédito" : "Cobrar venta");
         recalcular();
     }
 
@@ -402,10 +435,32 @@ public final class VentaView extends HBox {
     }
 
     private void cobrar() {
+        MetodoPago selectedMethod = metodoPago.getValue();
+        if (carrito.isEmpty()) {
+            showFeedback("Agregá al menos un producto a la venta.");
+            return;
+        }
+
+        Cliente cliente = null;
+        if (selectedMethod == MetodoPago.FIADO) {
+            double totalVenta = carrito.stream().mapToDouble(CartItem::subtotal).sum();
+            Optional<Cliente> selected = ClientesFiadoDialog.seleccionarCliente(
+                    getScene() == null ? null : getScene().getWindow(), ventaService, usuario, totalVenta
+            );
+            if (selected.isEmpty()) {
+                buscar.requestFocus();
+                return;
+            }
+            cliente = selected.get();
+        }
+
+        Cliente clienteSeleccionado = cliente;
         ejecutar(() -> {
             List<LineaVenta> lineas = carrito.stream().map(item -> new LineaVenta(item.producto, item.cantidad)).toList();
-            double recibidoValue = metodoPago.getValue() == MetodoPago.EFECTIVO ? parseMoneyOrZero(recibido.getText()) : 0;
-            VentaResultado result = ventaService.vender(usuario, caja, lineas, metodoPago.getValue(), recibidoValue);
+            double recibidoValue = selectedMethod == MetodoPago.EFECTIVO ? parseMoneyOrZero(recibido.getText()) : 0;
+            VentaResultado result = ventaService.vender(
+                    usuario, caja, lineas, selectedMethod, recibidoValue, clienteSeleccionado
+            );
 
             carrito.clear();
             recibido.clear();
@@ -415,7 +470,12 @@ public final class VentaView extends HBox {
             } catch (RuntimeException ignored) {
                 // La venta ya fue confirmada. El resumen se refrescará al volver a entrar a Caja.
             }
-            showFeedback("Venta registrada · Ticket #" + result.nroTicket() + " · " + formatCurrency(result.total()));
+            if (selectedMethod == MetodoPago.FIADO) {
+                showFeedback("Fiado registrado · " + clienteSeleccionado.nombre()
+                        + " · Ticket #" + result.nroTicket() + " · " + formatCurrency(result.total()));
+            } else {
+                showFeedback("Venta registrada · Ticket #" + result.nroTicket() + " · " + formatCurrency(result.total()));
+            }
             limpiarEscaneo();
         });
     }
