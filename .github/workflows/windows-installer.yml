@@ -1,0 +1,49 @@
+name: Windows Installer
+
+on:
+  push:
+    branches:
+      - feature/sprint-14-piloto-windows
+  workflow_dispatch:
+
+jobs:
+  package-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Build and test
+        shell: powershell
+        run: .\gradlew.bat clean build --no-daemon
+
+      - name: Ensure WiX Toolset
+        shell: powershell
+        run: |
+          if (-not (Get-Command candle.exe -ErrorAction SilentlyContinue)) {
+            choco install wixtoolset --no-progress -y
+            $wixBin = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v3*\bin" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($wixBin) {
+              $wixBin.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            }
+          }
+
+      - name: Generate SisTienda EXE
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File .\scripts\build-windows-installer.ps1 -SkipTests
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: SisTienda-Windows-Pilot-0.9.0
+          path: app-ui/build/installer/*.exe
+          if-no-files-found: error
+          retention-days: 14
