@@ -81,6 +81,7 @@ public final class ReportesView extends BorderPane {
     private final Label efectivoValue = paymentValueLabel();
     private final Label transferenciaValue = paymentValueLabel();
     private final Label tarjetaValue = paymentValueLabel();
+    private final Label fiadoValue = paymentValueLabel();
     private final Label resultadoHint = new Label();
     private final Label filterSummary = new Label();
     private final Label feedback = new Label();
@@ -146,7 +147,7 @@ public final class ReportesView extends BorderPane {
         periodo.setPrefWidth(145);
         desde.setPrefWidth(135);
         hasta.setPrefWidth(135);
-        pago.setPrefWidth(150);
+        pago.setPrefWidth(160);
         Button aplicar = new Button("Aplicar");
         aplicar.getStyleClass().add("primary-button");
         aplicar.setOnAction(event -> recargar());
@@ -210,7 +211,8 @@ public final class ReportesView extends BorderPane {
         HBox payments = new HBox(10,
                 paymentCard("EFECTIVO", efectivoValue),
                 paymentCard("TRANSFERENCIA", transferenciaValue),
-                paymentCard("TARJETA", tarjetaValue)
+                paymentCard("TARJETA", tarjetaValue),
+                paymentCard("FIADO / CRÉDITO", fiadoValue)
         );
         payments.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
 
@@ -267,7 +269,8 @@ public final class ReportesView extends BorderPane {
                 new OpcionPago("Todos", null),
                 new OpcionPago("Efectivo", MetodoPago.EFECTIVO),
                 new OpcionPago("Transferencia", MetodoPago.TRANSFERENCIA),
-                new OpcionPago("Tarjeta", MetodoPago.TARJETA)
+                new OpcionPago("Tarjeta", MetodoPago.TARJETA),
+                new OpcionPago("Fiado / Crédito", MetodoPago.FIADO)
         ));
         pago.setValue(pago.getItems().getFirst());
         pago.valueProperty().addListener((obs, oldValue, newValue) -> {
@@ -374,7 +377,7 @@ public final class ReportesView extends BorderPane {
         usuarioCol.setPrefWidth(100);
         TableColumn<VentaResumen, String> pagoCol = new TableColumn<>("Pago");
         pagoCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().metodoPago().descripcion()));
-        pagoCol.setPrefWidth(105);
+        pagoCol.setPrefWidth(110);
         TableColumn<VentaResumen, String> totalCol = new TableColumn<>("Original");
         totalCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().total())));
         totalCol.setPrefWidth(105);
@@ -466,6 +469,7 @@ public final class ReportesView extends BorderPane {
             efectivoValue.setText(formatCurrency(resumen.efectivo()));
             transferenciaValue.setText(formatCurrency(resumen.transferencia()));
             tarjetaValue.setText(formatCurrency(resumen.tarjeta()));
+            fiadoValue.setText(formatCurrency(resumen.fiado()));
 
             boolean filtered = metodoPago != null;
             resultadoHint.setText(filtered
