@@ -20,6 +20,8 @@ public final class DatabaseInitializer {
 
     public void initialize() {
         try {
+            DbPaths.migrateLegacyDataIfNeeded(connectionFactory.databaseFile());
+
             var parent = connectionFactory.databaseFile().getParent();
             if (parent != null) Files.createDirectories(parent);
 
