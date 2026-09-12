@@ -54,7 +54,8 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     COALESCE(SUM(ticket), 0) AS tickets,
                     COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN ventas ELSE 0 END), 0) AS efectivo,
                     COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN ventas ELSE 0 END), 0) AS transferencia,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN ventas ELSE 0 END), 0) AS tarjeta
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN ventas ELSE 0 END), 0) AS tarjeta,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'FIADO' THEN ventas ELSE 0 END), 0) AS fiado
                 FROM movimientos
                 WHERE date(fecha, 'localtime') = ?
                 """;
@@ -63,7 +64,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
             statement.setString(1, fecha.toString());
             try (var result = statement.executeQuery()) {
                 if (!result.next()) {
-                    return new ReporteDiario(fecha, 0, 0, 0, 0, 0, 0, 0);
+                    return new ReporteDiario(fecha, 0, 0, 0, 0, 0, 0, 0, 0);
                 }
                 double ventas = result.getDouble("ventas");
                 long tickets = result.getLong("tickets");
@@ -75,7 +76,8 @@ public final class SqliteReporteRepository implements ReporteRepository {
                         tickets == 0 ? 0d : ventas / tickets,
                         result.getDouble("efectivo"),
                         result.getDouble("transferencia"),
-                        result.getDouble("tarjeta")
+                        result.getDouble("tarjeta"),
+                        result.getDouble("fiado")
                 );
             }
         } catch (SQLException e) {
@@ -125,6 +127,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN ventas ELSE 0 END), 0) AS efectivo,
                     COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN ventas ELSE 0 END), 0) AS transferencia,
                     COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN ventas ELSE 0 END), 0) AS tarjeta,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'FIADO' THEN ventas ELSE 0 END), 0) AS fiado,
                     COALESCE(SUM(ganancia), 0) AS ganancia_global
                 FROM (
                 """ + movimientosComerciales + """
@@ -134,7 +137,9 @@ public final class SqliteReporteRepository implements ReporteRepository {
 
         String movementsSql = """
                 SELECT
-                    COALESCE(SUM(CASE WHEN tipo = 'INGRESO' THEN monto ELSE 0 END), 0) AS ingresos,
+                    COALESCE(SUM(CASE
+                        WHEN tipo = 'INGRESO' AND categoria <> 'Cobro de fiado' THEN monto
+                        ELSE 0 END), 0) AS ingresos,
                     COALESCE(SUM(CASE WHEN tipo = 'EGRESO' THEN monto ELSE 0 END), 0) AS egresos
                 FROM caja_movimiento
                 WHERE date(fecha, 'localtime') BETWEEN ? AND ?
@@ -161,6 +166,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
             double efectivo;
             double transferencia;
             double tarjeta;
+            double fiado;
             double gananciaGlobal;
             try (var statement = connection.prepareStatement(globalSalesSql)) {
                 statement.setString(1, desde.toString());
@@ -170,6 +176,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     efectivo = result.getDouble("efectivo");
                     transferencia = result.getDouble("transferencia");
                     tarjeta = result.getDouble("tarjeta");
+                    fiado = result.getDouble("fiado");
                     gananciaGlobal = result.getDouble("ganancia_global");
                 }
             }
@@ -198,6 +205,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     efectivo,
                     transferencia,
                     tarjeta,
+                    fiado,
                     ingresos,
                     egresos,
                     gananciaGlobal + ingresos - egresos
@@ -389,9 +397,11 @@ public final class SqliteReporteRepository implements ReporteRepository {
     public Optional<VentaDetalle> detalleVenta(long ventaId) {
         String saleSql = """
                 SELECT v.id, v.nro_ticket, v.fecha, u.username, v.metodo_pago,
-                       v.total, v.recibido, v.vuelto, v.ganancia_total, v.anulada
+                       v.total, v.recibido, v.vuelto, v.ganancia_total, v.anulada,
+                       c.nombre AS cliente
                 FROM venta v
                 JOIN usuario u ON u.id = v.usuario_id
+                LEFT JOIN cliente c ON c.id = v.cliente_id
                 WHERE v.id = ?
                 """;
         try (var connection = connectionFactory.open();
@@ -413,6 +423,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                         result.getDouble("vuelto"),
                         result.getDouble("ganancia_total"),
                         result.getInt("anulada") != 0,
+                        result.getString("cliente"),
                         items
                 ));
             }
