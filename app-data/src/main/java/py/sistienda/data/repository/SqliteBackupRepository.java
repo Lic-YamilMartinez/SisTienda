@@ -2,7 +2,6 @@ package py.sistienda.data.repository;
 
 import py.sistienda.core.model.BackupInfo;
 import py.sistienda.core.repository.BackupRepository;
-import py.sistienda.data.database.DbPaths;
 import py.sistienda.data.database.SqliteConnectionFactory;
 
 import java.io.IOException;
@@ -31,7 +30,7 @@ public final class SqliteBackupRepository implements BackupRepository {
     private final Path backupDirectory;
 
     public SqliteBackupRepository(SqliteConnectionFactory connectionFactory) {
-        this(connectionFactory, DbPaths.backupDir());
+        this(connectionFactory, defaultBackupDirectory(connectionFactory));
     }
 
     public SqliteBackupRepository(SqliteConnectionFactory connectionFactory, Path backupDirectory) {
@@ -162,5 +161,13 @@ public final class SqliteBackupRepository implements BackupRepository {
         } catch (IOException e) {
             throw new RuntimeException("No se pudo leer la información del backup.", e);
         }
+    }
+
+    private static Path defaultBackupDirectory(SqliteConnectionFactory connectionFactory) {
+        Path parent = Objects.requireNonNull(connectionFactory).databaseFile().toAbsolutePath().getParent();
+        if (parent == null) {
+            throw new IllegalArgumentException("La base de datos debe tener un directorio padre.");
+        }
+        return parent.resolve("backups");
     }
 }
