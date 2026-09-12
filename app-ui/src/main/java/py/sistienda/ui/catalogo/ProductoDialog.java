@@ -19,15 +19,19 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
 
     private static final ButtonType GUARDAR = new ButtonType("Guardar producto", ButtonBar.ButtonData.OK_DONE);
     private static final CategoriaProducto SIN_CATEGORIA = new CategoriaProducto(0L, "Sin categoría", true);
+    private static final double EPSILON = 0.000001d;
 
     private final TextField nombre = new TextField();
     private final ComboBox<CategoriaProducto> categoria = new ComboBox<>();
     private final ComboBox<UnidadMedida> unidad = new ComboBox<>();
     private final TextField precioVenta = new TextField();
     private final TextField costo = new TextField();
+    private final TextField stockMinimo = new TextField();
+    private final TextField stockIdeal = new TextField();
     private final TextField codigoBarras = new TextField();
     private final TextField pluBalanza = new TextField();
     private final Label identificacionHint = new Label();
+    private final Label reposicionHint = new Label();
     private final Label error = new Label();
 
     public ProductoDialog(Window owner, List<CategoriaProducto> categorias, Producto producto) {
@@ -49,14 +53,20 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         unidad.setPromptText("Cómo se vende");
         precioVenta.setPromptText("Ej.: 15000");
         costo.setPromptText("Ej.: 11000");
+        stockMinimo.setPromptText("Ej.: 5 · 0 si no querés alerta");
+        stockIdeal.setPromptText("Ej.: 20 · cantidad objetivo");
         codigoBarras.setPromptText("Escaneá o dejá vacío para generar código interno");
         pluBalanza.setPromptText("PLU 0 a 99999 · vacío = automático");
 
-        for (Control control : new Control[]{nombre, categoria, unidad, precioVenta, costo, codigoBarras, pluBalanza}) {
+        for (Control control : new Control[]{nombre, categoria, unidad, precioVenta, costo,
+                stockMinimo, stockIdeal, codigoBarras, pluBalanza}) {
             control.getStyleClass().add("form-control");
         }
         identificacionHint.getStyleClass().add("dialog-subtitle");
         identificacionHint.setWrapText(true);
+        reposicionHint.getStyleClass().add("dialog-subtitle");
+        reposicionHint.setWrapText(true);
+        reposicionHint.setText("Reposición: SisTienda avisa cuando el stock llega al mínimo y sugiere comprar hasta alcanzar el ideal. Con ideal 0 la alerta queda desactivada.");
         error.getStyleClass().add("form-error");
         error.setWrapText(true);
 
@@ -69,6 +79,8 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
             unidad.setValue(producto.unidadMedida());
             precioVenta.setText(formatInput(producto.precioVenta()));
             costo.setText(formatInput(producto.costo()));
+            stockMinimo.setText(formatInput(producto.stockMinimo()));
+            stockIdeal.setText(formatInput(producto.stockIdeal()));
             codigoBarras.setText(producto.codigoBarras() == null ? "" : producto.codigoBarras());
             pluBalanza.setText(producto.pluBalanza() == null ? "" : String.valueOf(producto.pluBalanza()));
             if (producto.stockActual() != 0d) {
@@ -77,6 +89,8 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
             }
         } else {
             unidad.setValue(UnidadMedida.UN);
+            stockMinimo.setText("0");
+            stockIdeal.setText("0");
         }
 
         unidad.valueProperty().addListener((obs, oldValue, newValue) -> actualizarIdentificacionHint());
@@ -103,10 +117,12 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
             if (button != GUARDAR) return null;
             return new ProductoForm(
                     nombre.getText().trim(), categoriaSeleccionada(), unidad.getValue(),
-                    parseNumero(precioVenta.getText(), "precio de venta"),
-                    parseNumero(costo.getText(), "costo"),
+                    parseNumero(precioVenta.getText(), "precio de venta", false),
+                    parseNumero(costo.getText(), "costo", false),
                     codigoBarras.getText() == null ? null : codigoBarras.getText().trim(),
-                    parsePluOpcional(pluBalanza.getText())
+                    parsePluOpcional(pluBalanza.getText()),
+                    parseNumero(stockMinimo.getText(), "stock mínimo", true),
+                    parseNumero(stockIdeal.getText(), "stock ideal", true)
             );
         });
     }
@@ -115,8 +131,8 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         Label title = new Label(nuevo ? "Agregar producto" : "Actualizar producto");
         title.getStyleClass().add("dialog-title");
         Label subtitle = new Label(nuevo
-                ? "Cargá los datos comerciales. SisTienda puede generar la identificación interna automáticamente."
-                : "Actualizá datos comerciales, código y PLU. El stock no se modifica desde esta pantalla.");
+                ? "Cargá los datos comerciales y, si querés, definí cuándo SisTienda debe avisarte que repongas."
+                : "Actualizá datos comerciales, identificación y niveles de reposición. El stock actual no se modifica acá.");
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("dialog-subtitle");
 
@@ -129,12 +145,14 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         addField(grid, 2, "Unidad de venta", unidad);
         addField(grid, 3, "Precio de venta (Gs.)", precioVenta);
         addField(grid, 4, "Costo (Gs.)", costo);
-        addField(grid, 5, "Código de barras", codigoBarras);
-        addField(grid, 6, "PLU de balanza", pluBalanza);
+        addField(grid, 5, "Stock mínimo", stockMinimo);
+        addField(grid, 6, "Stock ideal", stockIdeal);
+        addField(grid, 7, "Código de barras", codigoBarras);
+        addField(grid, 8, "PLU de balanza", pluBalanza);
 
-        VBox content = new VBox(8, title, subtitle, grid, identificacionHint, error);
+        VBox content = new VBox(8, title, subtitle, grid, reposicionHint, identificacionHint, error);
         content.setPadding(new Insets(8));
-        content.setPrefWidth(520);
+        content.setPrefWidth(540);
         return content;
     }
 
@@ -157,9 +175,18 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
     private void validar() {
         if (nombre.getText() == null || nombre.getText().isBlank()) throw new IllegalArgumentException("Ingresá el nombre del producto.");
         if (unidad.getValue() == null) throw new IllegalArgumentException("Seleccioná si el producto se vende por unidad o por kilogramo.");
-        double precio = parseNumero(precioVenta.getText(), "precio de venta");
-        double costoValue = parseNumero(costo.getText(), "costo");
-        if (precio < 0 || costoValue < 0) throw new IllegalArgumentException("Precio y costo no pueden ser negativos.");
+        double precio = parseNumero(precioVenta.getText(), "precio de venta", false);
+        double costoValue = parseNumero(costo.getText(), "costo", false);
+        double minimo = parseNumero(stockMinimo.getText(), "stock mínimo", true);
+        double ideal = parseNumero(stockIdeal.getText(), "stock ideal", true);
+        if (precio < 0 || costoValue < 0 || minimo < 0 || ideal < 0) {
+            throw new IllegalArgumentException("Precio, costo y niveles de reposición no pueden ser negativos.");
+        }
+        if (ideal + EPSILON < minimo) throw new IllegalArgumentException("El stock ideal no puede ser menor que el stock mínimo.");
+        if (unidad.getValue() == UnidadMedida.UN
+                && (Math.abs(minimo - Math.rint(minimo)) > EPSILON || Math.abs(ideal - Math.rint(ideal)) > EPSILON)) {
+            throw new IllegalArgumentException("Para productos por unidad, el stock mínimo e ideal deben ser números enteros.");
+        }
         String code = codigoBarras.getText() == null ? "" : codigoBarras.getText().trim();
         if (!code.isBlank() && !code.matches("[A-Za-z0-9._-]{3,64}")) {
             throw new IllegalArgumentException("Revisá el código de barras: sólo letras, números, punto, guion o guion bajo.");
@@ -183,8 +210,11 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         }
     }
 
-    private double parseNumero(String value, String campo) {
-        if (value == null || value.isBlank()) throw new IllegalArgumentException("Ingresá el " + campo + ".");
+    private double parseNumero(String value, String campo, boolean vacioEsCero) {
+        if (value == null || value.isBlank()) {
+            if (vacioEsCero) return 0d;
+            throw new IllegalArgumentException("Ingresá el " + campo + ".");
+        }
         String normalized = value.trim().replace("Gs.", "").replace("Gs", "").replace("₲", "").replace(" ", "");
         if (normalized.contains(",")) normalized = normalized.replace(".", "").replace(",", ".");
         else if (normalized.matches("\\d{1,3}(\\.\\d{3})+")) normalized = normalized.replace(".", "");
@@ -211,7 +241,9 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
             double precioVenta,
             double costo,
             String codigoBarras,
-            Integer pluBalanza
+            Integer pluBalanza,
+            double stockMinimo,
+            double stockIdeal
     ) {
     }
 }
