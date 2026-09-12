@@ -77,7 +77,7 @@ public final class ImportacionProductoService {
                 if (plusExistentes.contains(entrada.pluBalanza())) errores.add("El PLU ya existe en SisTienda");
             }
             resultado.add(new ImportacionProductoValidacion(
-                    item.fila(), item.nombre(), errores.isEmpty() ? entrada : entrada, List.copyOf(errores)));
+                    item.fila(), item.nombre(), entrada, List.copyOf(errores)));
         }
         return List.copyOf(resultado);
     }
@@ -174,12 +174,15 @@ public final class ImportacionProductoService {
     private Integer parsePlu(String value, List<String> errores) {
         String normalized = normalizar(value);
         if (normalized == null) return null;
+        normalized = normalized.replace(',', '.');
         try {
-            int result = Integer.parseInt(normalized.replace(".0", ""));
-            if (result < 0 || result > 99_999) throw new NumberFormatException();
-            return result;
+            double numeric = Double.parseDouble(normalized);
+            if (!Double.isFinite(numeric) || !esEntero(numeric) || numeric < 0 || numeric > 99_999) {
+                throw new NumberFormatException();
+            }
+            return (int) Math.rint(numeric);
         } catch (NumberFormatException e) {
-            errores.add("PLU inválido: debe estar entre 0 y 99999");
+            errores.add("PLU inválido: debe ser un entero entre 0 y 99999");
             return null;
         }
     }
