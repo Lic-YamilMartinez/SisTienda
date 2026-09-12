@@ -3,7 +3,8 @@ package py.sistienda.core.model;
 public enum MetodoPago {
     EFECTIVO("Efectivo"),
     TARJETA("Tarjeta"),
-    TRANSFERENCIA("Transferencia");
+    TRANSFERENCIA("Transferencia"),
+    FIADO("Fiado / Crédito");
 
     private final String descripcion;
 
