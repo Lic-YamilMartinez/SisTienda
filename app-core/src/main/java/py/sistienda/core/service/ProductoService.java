@@ -11,6 +11,7 @@ import java.util.Optional;
 
 public final class ProductoService {
 
+    private static final double EPSILON = 0.000001d;
     private final ProductoRepository productoRepository;
     private final CodigoBarrasService codigoBarrasService;
 
@@ -39,15 +40,24 @@ public final class ProductoService {
 
     public Producto crear(String nombre, Long categoriaId, String categoriaNombre,
                            UnidadMedida unidadMedida, double precioVenta, double costo) {
-        return crear(nombre, categoriaId, categoriaNombre, unidadMedida, precioVenta, costo, null, null);
+        return crear(nombre, categoriaId, categoriaNombre, unidadMedida, precioVenta, costo, null, null, 0d, 0d);
     }
 
     public Producto crear(String nombre, Long categoriaId, String categoriaNombre,
                            UnidadMedida unidadMedida, double precioVenta, double costo,
                            String codigoBarras, Integer pluBalanza) {
+        return crear(nombre, categoriaId, categoriaNombre, unidadMedida, precioVenta, costo,
+                codigoBarras, pluBalanza, 0d, 0d);
+    }
+
+    public Producto crear(String nombre, Long categoriaId, String categoriaNombre,
+                           UnidadMedida unidadMedida, double precioVenta, double costo,
+                           String codigoBarras, Integer pluBalanza,
+                           double stockMinimo, double stockIdeal) {
         validar(nombre, unidadMedida, precioVenta, costo, codigoBarras, pluBalanza);
+        validarReposicion(unidadMedida, stockMinimo, stockIdeal);
         Producto nuevo = new Producto(0L, normalizarNombre(nombre), categoriaId, categoriaNombre,
-                unidadMedida, precioVenta, costo, 0d, true,
+                unidadMedida, precioVenta, costo, 0d, stockMinimo, stockIdeal, true,
                 normalizarCodigo(codigoBarras), normalizarPlu(pluBalanza));
         Producto creado = productoRepository.create(nuevo);
         return completarIdentificacion(creado);
@@ -56,23 +66,41 @@ public final class ProductoService {
     public Producto actualizar(Producto actual, String nombre, Long categoriaId, String categoriaNombre,
                                UnidadMedida unidadMedida, double precioVenta, double costo) {
         return actualizar(actual, nombre, categoriaId, categoriaNombre, unidadMedida, precioVenta, costo,
-                actual.codigoBarras(), actual.pluBalanza());
+                actual.codigoBarras(), actual.pluBalanza(), actual.stockMinimo(), actual.stockIdeal());
     }
 
     public Producto actualizar(Producto actual, String nombre, Long categoriaId, String categoriaNombre,
                                UnidadMedida unidadMedida, double precioVenta, double costo,
                                String codigoBarras, Integer pluBalanza) {
+        return actualizar(actual, nombre, categoriaId, categoriaNombre, unidadMedida, precioVenta, costo,
+                codigoBarras, pluBalanza, actual.stockMinimo(), actual.stockIdeal());
+    }
+
+    public Producto actualizar(Producto actual, String nombre, Long categoriaId, String categoriaNombre,
+                               UnidadMedida unidadMedida, double precioVenta, double costo,
+                               String codigoBarras, Integer pluBalanza,
+                               double stockMinimo, double stockIdeal) {
         Objects.requireNonNull(actual);
         validar(nombre, unidadMedida, precioVenta, costo, codigoBarras, pluBalanza);
+        validarReposicion(unidadMedida, stockMinimo, stockIdeal);
 
         if (actual.unidadMedida() != unidadMedida && actual.stockActual() != 0d) {
             throw new ValidationException("Para cambiar entre unidad y kilogramo, primero dejá el stock en cero.");
         }
 
         Producto actualizado = new Producto(actual.id(), normalizarNombre(nombre), categoriaId,
-                categoriaNombre, unidadMedida, precioVenta, costo, actual.stockActual(), actual.activo(),
-                normalizarCodigo(codigoBarras), normalizarPlu(pluBalanza));
+                categoriaNombre, unidadMedida, precioVenta, costo, actual.stockActual(),
+                stockMinimo, stockIdeal, actual.activo(), normalizarCodigo(codigoBarras), normalizarPlu(pluBalanza));
         return productoRepository.update(completarIdentificacionSinPersistir(actualizado));
+    }
+
+    public Producto actualizarReposicion(Producto actual, double stockMinimo, double stockIdeal) {
+        Objects.requireNonNull(actual);
+        validarReposicion(actual.unidadMedida(), stockMinimo, stockIdeal);
+        Producto actualizado = new Producto(actual.id(), actual.nombre(), actual.categoriaId(), actual.categoriaNombre(),
+                actual.unidadMedida(), actual.precioVenta(), actual.costo(), actual.stockActual(),
+                stockMinimo, stockIdeal, actual.activo(), actual.codigoBarras(), actual.pluBalanza());
+        return productoRepository.update(actualizado);
     }
 
     public Producto asegurarIdentificacion(Producto producto) {
@@ -127,7 +155,7 @@ public final class ProductoService {
         }
         return new Producto(producto.id(), producto.nombre(), producto.categoriaId(), producto.categoriaNombre(),
                 producto.unidadMedida(), producto.precioVenta(), producto.costo(), producto.stockActual(),
-                producto.activo(), codigo, plu);
+                producto.stockMinimo(), producto.stockIdeal(), producto.activo(), codigo, plu);
     }
 
     private void validar(String nombre, UnidadMedida unidadMedida, double precioVenta, double costo,
@@ -153,6 +181,20 @@ public final class ProductoService {
         }
         if (pluBalanza != null && (pluBalanza < 0 || pluBalanza > 99_999)) {
             throw new ValidationException("El PLU de balanza debe estar entre 0 y 99999.");
+        }
+    }
+
+    private void validarReposicion(UnidadMedida unidadMedida, double stockMinimo, double stockIdeal) {
+        if (!Double.isFinite(stockMinimo) || stockMinimo < 0 || !Double.isFinite(stockIdeal) || stockIdeal < 0) {
+            throw new ValidationException("Stock mínimo e ideal deben ser iguales o mayores a cero.");
+        }
+        if (stockIdeal + EPSILON < stockMinimo) {
+            throw new ValidationException("El stock ideal no puede ser menor que el stock mínimo.");
+        }
+        if (unidadMedida == UnidadMedida.UN
+                && (Math.abs(stockMinimo - Math.rint(stockMinimo)) > EPSILON
+                || Math.abs(stockIdeal - Math.rint(stockIdeal)) > EPSILON)) {
+            throw new ValidationException("Para productos por unidad, stock mínimo e ideal deben ser enteros.");
         }
     }
 
