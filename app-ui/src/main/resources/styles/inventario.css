@@ -1,0 +1,122 @@
+.inventory-card {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 14;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.035), 12, 0.08, 0, 4);
+}
+
+.inventory-metric-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 12;
+}
+
+.inventory-metric-title {
+    -fx-text-fill: #667085;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+}
+
+.inventory-metric-value {
+    -fx-text-fill: #101828;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+}
+
+.inventory-metric-hint,
+.inventory-tip,
+.inventory-confirm-hint {
+    -fx-text-fill: #667085;
+    -fx-font-size: 9px;
+}
+
+.inventory-confirm-hint {
+    -fx-background-color: #fff7ed;
+    -fx-background-radius: 8;
+    -fx-text-fill: #9a3412;
+    -fx-padding: 9 10 9 10;
+}
+
+.inventory-table {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.inventory-table .column-header-background {
+    -fx-background-color: #f8fafc;
+}
+
+.inventory-table .column-header,
+.inventory-table .filler {
+    -fx-background-color: transparent;
+    -fx-size: 36;
+}
+
+.inventory-table .column-header .label {
+    -fx-text-fill: #667085;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+}
+
+.inventory-table .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #f0f2f5 transparent;
+    -fx-cell-size: 48;
+}
+
+.inventory-table .table-row-cell:hover {
+    -fx-background-color: #fffaf5;
+}
+
+.inventory-table .table-cell {
+    -fx-border-color: transparent;
+    -fx-alignment: center-left;
+    -fx-padding: 5 7 5 7;
+}
+
+.inventory-count-input {
+    -fx-background-color: #fffaf5;
+    -fx-background-radius: 7;
+    -fx-border-color: #fdba74;
+    -fx-border-radius: 7;
+    -fx-padding: 6 8 6 8;
+    -fx-font-weight: 800;
+}
+
+.inventory-count-input:focused {
+    -fx-background-color: white;
+    -fx-border-color: #f97316;
+    -fx-border-width: 1.5;
+}
+
+.inventory-diff-plus,
+.inventory-diff-minus,
+.inventory-diff-ok,
+.inventory-diff-pending {
+    -fx-background-radius: 999;
+    -fx-padding: 4 8 4 8;
+    -fx-font-size: 9px;
+    -fx-font-weight: 800;
+}
+
+.inventory-diff-plus {
+    -fx-background-color: #ecfdf3;
+    -fx-text-fill: #027a48;
+}
+
+.inventory-diff-minus {
+    -fx-background-color: #fef3f2;
+    -fx-text-fill: #b42318;
+}
+
+.inventory-diff-ok {
+    -fx-background-color: #f2f4f7;
+    -fx-text-fill: #475467;
+}
+
+.inventory-diff-pending {
+    -fx-background-color: #fffaeb;
+    -fx-text-fill: #b54708;
+}
