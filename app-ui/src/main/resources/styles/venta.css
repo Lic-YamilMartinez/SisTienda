@@ -185,3 +185,70 @@
     -fx-padding: 5 7 5 7;
     -fx-font-size: 9px;
 }
+
+.pos-credit-hint,
+.credit-hint {
+    -fx-background-color: #fff7ed;
+    -fx-background-radius: 8;
+    -fx-text-fill: #9a3412;
+    -fx-font-size: 10px;
+    -fx-padding: 7 9 7 9;
+}
+
+.pos-credit-button {
+    -fx-background-color: #ffedd5;
+    -fx-background-radius: 8;
+    -fx-text-fill: #c2410c;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-padding: 6 10 6 10;
+    -fx-cursor: hand;
+}
+
+.pos-credit-button:hover {
+    -fx-background-color: #fed7aa;
+}
+
+.credit-sale-total {
+    -fx-text-fill: #c2410c;
+    -fx-font-size: 24px;
+    -fx-font-weight: 900;
+}
+
+.credit-selected-client {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 8;
+    -fx-text-fill: #344054;
+    -fx-font-weight: 700;
+    -fx-padding: 9 11 9 11;
+}
+
+.credit-metric-card {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 10;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 10;
+}
+
+.credit-metric-value {
+    -fx-text-fill: #101828;
+    -fx-font-size: 18px;
+    -fx-font-weight: 900;
+}
+
+.credit-account-balance {
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+}
+
+.credit-debt {
+    -fx-text-fill: #b42318;
+}
+
+.credit-ok {
+    -fx-text-fill: #027a48;
+}
+
+.credit-favor {
+    -fx-text-fill: #175cd3;
+}
