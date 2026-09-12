@@ -100,6 +100,7 @@ public final class SqliteCajaRepository implements CajaRepository {
                     COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN importe ELSE 0 END), 0) AS efectivo,
                     COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN importe ELSE 0 END), 0) AS transferencia,
                     COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN importe ELSE 0 END), 0) AS tarjeta,
+                    COALESCE(SUM(CASE WHEN metodo_pago = 'FIADO' THEN importe ELSE 0 END), 0) AS fiado,
                     COALESCE(SUM(importe), 0) AS total
                 FROM movimientos_venta
                 """;
@@ -115,6 +116,7 @@ public final class SqliteCajaRepository implements CajaRepository {
                         result.getDouble("efectivo"),
                         result.getDouble("transferencia"),
                         result.getDouble("tarjeta"),
+                        result.getDouble("fiado"),
                         result.getDouble("total")
                 );
             }
