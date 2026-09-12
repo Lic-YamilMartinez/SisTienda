@@ -40,6 +40,7 @@ public final class MainShell extends BorderPane {
     private final Runnable onLogout;
     private final Supplier<Node> catalogoSupplier;
     private final Supplier<Node> cajaSupplier;
+    private final Supplier<Node> fiadoSupplier;
     private final Supplier<Node> reportesSupplier;
     private final Supplier<Node> comprasSupplier;
     private final Supplier<Node> configuracionSupplier;
@@ -47,6 +48,7 @@ public final class MainShell extends BorderPane {
 
     private Button catalogoButton;
     private Button cajaButton;
+    private Button fiadoButton;
     private Button reportesButton;
     private Button comprasButton;
     private Button configuracionButton;
@@ -57,6 +59,7 @@ public final class MainShell extends BorderPane {
     public MainShell(
             Supplier<Node> catalogoSupplier,
             Supplier<Node> cajaSupplier,
+            Supplier<Node> fiadoSupplier,
             Supplier<Node> reportesSupplier,
             Supplier<Node> comprasSupplier,
             Supplier<Node> configuracionSupplier,
@@ -71,6 +74,7 @@ public final class MainShell extends BorderPane {
         this.usuario = Objects.requireNonNull(usuario);
         this.catalogoSupplier = Objects.requireNonNull(catalogoSupplier);
         this.cajaSupplier = Objects.requireNonNull(cajaSupplier);
+        this.fiadoSupplier = Objects.requireNonNull(fiadoSupplier);
         this.reportesSupplier = Objects.requireNonNull(reportesSupplier);
         this.comprasSupplier = Objects.requireNonNull(comprasSupplier);
         this.configuracionSupplier = Objects.requireNonNull(configuracionSupplier);
@@ -114,6 +118,10 @@ public final class MainShell extends BorderPane {
         cajaButton.setOnAction(event -> showCaja());
         configureVisibility(cajaButton, Permiso.CAJA_OPERAR);
 
+        fiadoButton = navButton("◎", "Clientes & Fiado");
+        fiadoButton.setOnAction(event -> showFiado());
+        configureVisibility(fiadoButton, Permiso.FIADO_GESTIONAR);
+
         reportesButton = navButton("▤", "Reportes");
         reportesButton.setOnAction(event -> showReportes());
         configureVisibility(reportesButton, Permiso.REPORTES_VER);
@@ -148,12 +156,12 @@ public final class MainShell extends BorderPane {
         logout.setMaxWidth(Double.MAX_VALUE);
         logout.setOnAction(event -> onLogout.run());
 
-        Label version = new Label("PILOTO · 0.9.0");
+        Label version = new Label("PILOTO · 0.9.1");
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,
                 brandRow, section,
-                catalogoButton, cajaButton, reportesButton, comprasButton, configuracionButton, usuariosButton,
+                catalogoButton, cajaButton, fiadoButton, reportesButton, comprasButton, configuracionButton, usuariosButton,
                 spacer, userLabel, roleLabel, password, logout, version
         );
         sidebar.setPadding(new Insets(24, 18, 20, 18));
@@ -211,6 +219,12 @@ public final class MainShell extends BorderPane {
         autorizacionService.exigir(usuario, Permiso.CAJA_OPERAR);
         setCenter(cajaSupplier.get());
         activate(cajaButton);
+    }
+
+    private void showFiado() {
+        autorizacionService.exigir(usuario, Permiso.FIADO_GESTIONAR);
+        setCenter(fiadoSupplier.get());
+        activate(fiadoButton);
     }
 
     private void showReportes() {
@@ -320,7 +334,7 @@ public final class MainShell extends BorderPane {
     }
 
     private void activate(Button activeButton) {
-        for (Button button : new Button[]{catalogoButton, cajaButton, reportesButton, comprasButton,
+        for (Button button : new Button[]{catalogoButton, cajaButton, fiadoButton, reportesButton, comprasButton,
                 configuracionButton, usuariosButton}) {
             if (button != null) button.getStyleClass().remove("nav-button-active");
         }
