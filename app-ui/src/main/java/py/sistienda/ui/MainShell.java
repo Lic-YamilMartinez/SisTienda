@@ -148,7 +148,7 @@ public final class MainShell extends BorderPane {
         logout.setMaxWidth(Double.MAX_VALUE);
         logout.setOnAction(event -> onLogout.run());
 
-        Label version = new Label("MVP · Sprint 13");
+        Label version = new Label("PILOTO · 0.9.0");
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,
