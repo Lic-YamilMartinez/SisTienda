@@ -10,6 +10,11 @@ public record ReporteDiario(
         double ticketPromedio,
         double efectivo,
         double transferencia,
-        double tarjeta
+        double tarjeta,
+        double fiado
 ) {
+    public ReporteDiario(LocalDate fecha, double ventas, double ganancia, long tickets,
+                         double ticketPromedio, double efectivo, double transferencia, double tarjeta) {
+        this(fecha, ventas, ganancia, tickets, ticketPromedio, efectivo, transferencia, tarjeta, 0d);
+    }
 }
