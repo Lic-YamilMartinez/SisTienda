@@ -33,6 +33,7 @@ public final class DatabaseInitializer {
                     ensureHardwareColumns(connection);
                     ensureBrandingTable(connection);
                     ensureCreditSchema(connection);
+                    ensureInventorySchema(connection);
                     connection.commit();
                 } catch (Exception e) {
                     try {
@@ -124,6 +125,40 @@ public final class DatabaseInitializer {
                     """);
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_abono_cliente_fecha ON cliente_abono(cliente_id, fecha DESC)");
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_abono_caja_fecha ON cliente_abono(caja_sesion_id, fecha DESC)");
+        }
+    }
+
+    private void ensureInventorySchema(Connection connection) throws Exception {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS inventario_conteo (
+                      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                      usuario_id        INTEGER NOT NULL,
+                      fecha             TEXT NOT NULL DEFAULT (datetime('now')),
+                      motivo            TEXT NOT NULL,
+                      observacion       TEXT,
+                      total_contados    INTEGER NOT NULL DEFAULT 0 CHECK (total_contados >= 0),
+                      total_ajustados   INTEGER NOT NULL DEFAULT 0 CHECK (total_ajustados >= 0),
+                      FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+                    )
+                    """);
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_inventario_conteo_fecha ON inventario_conteo(fecha DESC)");
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS inventario_conteo_detalle (
+                      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                      inventario_id     INTEGER NOT NULL,
+                      producto_id       INTEGER NOT NULL,
+                      producto_nombre   TEXT NOT NULL,
+                      unidad_medida     TEXT NOT NULL CHECK (unidad_medida IN ('UN','KG')),
+                      stock_sistema     REAL NOT NULL CHECK (stock_sistema >= 0),
+                      stock_fisico      REAL NOT NULL CHECK (stock_fisico >= 0),
+                      diferencia        REAL NOT NULL,
+                      FOREIGN KEY (inventario_id) REFERENCES inventario_conteo(id) ON DELETE CASCADE,
+                      FOREIGN KEY (producto_id) REFERENCES producto(id)
+                    )
+                    """);
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_inventario_detalle_inventario ON inventario_conteo_detalle(inventario_id)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_inventario_detalle_producto ON inventario_conteo_detalle(producto_id)");
         }
     }
 
