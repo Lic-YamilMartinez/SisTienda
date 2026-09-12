@@ -12,7 +12,7 @@ public final class SqliteConnectionFactory {
     private final Path databaseFile;
 
     public SqliteConnectionFactory() {
-        this(DbPaths.devDbFile());
+        this(DbPaths.databaseFile());
     }
 
     public SqliteConnectionFactory(Path databaseFile) {
