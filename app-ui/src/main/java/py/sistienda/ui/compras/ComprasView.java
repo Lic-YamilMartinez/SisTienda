@@ -245,6 +245,9 @@ public final class ComprasView extends BorderPane {
         TableView<LineaCompra> lineTable = buildLineTable(lineas);
         Label total = new Label("TOTAL  Gs. 0");
         total.getStyleClass().add("purchase-total");
+        lineas.addListener((javafx.collections.ListChangeListener<LineaCompra>) change ->
+                total.setText("TOTAL  " + formatCurrency(lineas.stream().mapToDouble(LineaCompra::subtotal).sum()))
+        );
 
         agregar.setOnAction(event -> {
             try {
@@ -259,7 +262,6 @@ public final class ComprasView extends BorderPane {
                 if (unitCost < 0) throw new ValidationException("El costo no puede ser negativo.");
                 lineas.removeIf(linea -> linea.producto().id() == selected.id());
                 lineas.add(new LineaCompra(selected, qty, unitCost));
-                total.setText("TOTAL  " + formatCurrency(lineas.stream().mapToDouble(LineaCompra::subtotal).sum()));
                 producto.setValue(null); cantidad.clear(); costo.clear();
             } catch (ValidationException e) {
                 showInlineError(dialog, e.getMessage());
