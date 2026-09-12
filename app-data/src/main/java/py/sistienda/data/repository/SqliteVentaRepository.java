@@ -30,10 +30,24 @@ public final class SqliteVentaRepository implements VentaRepository {
             double vuelto,
             List<LineaVenta> lineas
     ) {
+        return register(cajaSesionId, usuarioId, metodoPago, recibido, vuelto, null, lineas);
+    }
+
+    @Override
+    public VentaResultado register(
+            long cajaSesionId,
+            long usuarioId,
+            MetodoPago metodoPago,
+            double recibido,
+            double vuelto,
+            Long clienteId,
+            List<LineaVenta> lineas
+    ) {
         try (Connection connection = connectionFactory.open()) {
             connection.setAutoCommit(false);
             try {
                 ensureCashOpen(connection, cajaSesionId, usuarioId);
+                validarClienteCredito(connection, metodoPago, clienteId);
 
                 int nroTicket = nextTicket(connection);
                 double total = lineas.stream().mapToDouble(LineaVenta::subtotal).sum();
@@ -48,7 +62,8 @@ public final class SqliteVentaRepository implements VentaRepository {
                         vuelto,
                         total,
                         ganancia,
-                        nroTicket
+                        nroTicket,
+                        clienteId
                 );
 
                 for (LineaVenta linea : lineas) {
@@ -98,6 +113,22 @@ public final class SqliteVentaRepository implements VentaRepository {
         }
     }
 
+    private void validarClienteCredito(Connection connection, MetodoPago metodoPago, Long clienteId) throws SQLException {
+        if (metodoPago == MetodoPago.FIADO) {
+            if (clienteId == null || clienteId <= 0) {
+                throw new ValidationException("La venta a crédito requiere un cliente.");
+            }
+            try (var statement = connection.prepareStatement("SELECT 1 FROM cliente WHERE id = ? AND activo = 1")) {
+                statement.setLong(1, clienteId);
+                try (var result = statement.executeQuery()) {
+                    if (!result.next()) throw new ValidationException("El cliente seleccionado no está disponible.");
+                }
+            }
+        } else if (clienteId != null) {
+            throw new ValidationException("Sólo las ventas a crédito pueden asociarse a un cliente.");
+        }
+    }
+
     private int nextTicket(Connection connection) throws SQLException {
         try (var update = connection.prepareStatement(
                 "UPDATE secuencia SET valor = valor + 1 WHERE clave = 'TICKET'")) {
@@ -125,13 +156,14 @@ public final class SqliteVentaRepository implements VentaRepository {
             double vuelto,
             double total,
             double ganancia,
-            int nroTicket
+            int nroTicket,
+            Long clienteId
     ) throws SQLException {
         String sql = """
                 INSERT INTO venta (
                     caja_sesion_id, usuario_id, total, total_lista, ganancia_total,
-                    metodo_pago, recibido, vuelto, nro_ticket, anulada
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                    metodo_pago, recibido, vuelto, nro_ticket, anulada, cliente_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
                 """;
         try (var statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             statement.setLong(1, cajaSesionId);
@@ -143,6 +175,8 @@ public final class SqliteVentaRepository implements VentaRepository {
             statement.setDouble(7, recibido);
             statement.setDouble(8, vuelto);
             statement.setInt(9, nroTicket);
+            if (clienteId == null) statement.setNull(10, java.sql.Types.INTEGER);
+            else statement.setLong(10, clienteId);
             statement.executeUpdate();
 
             try (var keys = statement.getGeneratedKeys()) {
