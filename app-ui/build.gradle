@@ -16,4 +16,18 @@ javafx {
 
 application {
     mainClass = 'py.sistienda.ui.MainApp'
+    applicationName = 'SisTienda'
+    applicationDefaultJvmArgs = ['-Dfile.encoding=UTF-8']
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': application.mainClass.get()
+    }
+}
+
+tasks.register('pilotDistribution') {
+    group = 'distribution'
+    description = 'Genera la distribución portable usada como entrada del instalador de SisTienda.'
+    dependsOn tasks.named('installDist')
 }
