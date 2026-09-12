@@ -52,6 +52,7 @@ import py.sistienda.ui.catalogo.CatalogoConsultaView;
 import py.sistienda.ui.catalogo.CatalogoView;
 import py.sistienda.ui.compras.ComprasView;
 import py.sistienda.ui.configuracion.ConfiguracionView;
+import py.sistienda.ui.fiado.FiadoView;
 import py.sistienda.ui.reportes.ReportesView;
 import py.sistienda.ui.usuarios.UsuariosView;
 
@@ -129,6 +130,7 @@ public class MainApp extends Application {
                         : new CajaOperativaView(cajaService, movimientoCajaService, productoService, ventaService,
                         reporteService, empresaService, configuracionPosService, codigoBarrasService,
                         autorizacionService, usuario),
+                () -> new FiadoView(ventaService, cajaService, usuario, autorizacionService),
                 () -> new ReportesView(
                         reporteService, empresaService, configuracionPosService,
                         postventaService, cajaService, autorizacionService, usuario
