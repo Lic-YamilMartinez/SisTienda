@@ -11,5 +11,11 @@ public interface ImportacionProductoRepository {
 
     Set<Integer> plusExistentes(List<Integer> plus);
 
+    /**
+     * Claves normalizadas nombre|unidad|categoria de productos existentes.
+     * Se usa como red de seguridad cuando el archivo no trae código/PLU.
+     */
+    Set<String> clavesProductoExistentes();
+
     ImportacionProductoResultado importar(List<ImportacionProductoEntrada> productos, long usuarioId);
 }
