@@ -183,9 +183,10 @@ public final class VentaView extends HBox {
         HBox.setHgrow(actionSpacer, Priority.ALWAYS);
         HBox creditActions = new HBox(8, cuentas, actionSpacer);
         creditActions.setAlignment(Pos.CENTER_LEFT);
-        creditActions.visibleProperty().bind(metodoPago.valueProperty().isEqualTo(MetodoPago.FIADO));
-        creditActions.managedProperty().bind(creditActions.visibleProperty());
-        if (!puedeFiado) {
+        if (puedeFiado) {
+            creditActions.visibleProperty().bind(metodoPago.valueProperty().isEqualTo(MetodoPago.FIADO));
+            creditActions.managedProperty().bind(creditActions.visibleProperty());
+        } else {
             creditActions.setVisible(false);
             creditActions.setManaged(false);
         }
