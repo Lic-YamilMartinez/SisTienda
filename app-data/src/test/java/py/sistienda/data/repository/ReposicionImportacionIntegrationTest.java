@@ -50,7 +50,7 @@ class ReposicionImportacionIntegrationTest {
 
         var result = service.importar(owner, validation);
         assertEquals(2, result.productosCreados());
-        assertEquals(1, result.categoriasCreadas());
+        assertEquals(2, result.categoriasCreadas());
         assertEquals(2, result.movimientosStock());
 
         ProductoService productoService = new ProductoService(new SqliteProductoRepository(factory), new CodigoBarrasService());
@@ -87,6 +87,16 @@ class ReposicionImportacionIntegrationTest {
         ));
         assertFalse(duplicate.getFirst().valida());
         assertTrue(duplicate.getFirst().resumenErrores().contains("ya existe"));
+
+        // La primera importación asignó un PLU interno a Carne molida. Si el mismo Excel
+        // se vuelve a cargar, el PLU sigue vacío en el archivo: nombre + unidad + categoría
+        // deben evitar crear un segundo producto accidentalmente.
+        var reimportSinIdentificador = service.validar(owner, List.of(
+                new ImportacionProductoFila(3, "Carne molida", "Carnes", "KG",
+                        "35000", "45000", "2,5", "1", "5", "", "")
+        ));
+        assertFalse(reimportSinIdentificador.getFirst().valida());
+        assertTrue(reimportSinIdentificador.getFirst().resumenErrores().contains("producto similar"));
 
         Usuario cashier = new Usuario(2, "cashier", "CAJERO", true);
         assertThrows(ValidationException.class, () -> service.validar(cashier, rows));
