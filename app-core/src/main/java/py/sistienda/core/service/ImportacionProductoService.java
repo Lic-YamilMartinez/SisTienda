@@ -11,6 +11,7 @@ import py.sistienda.core.repository.ImportacionProductoRepository;
 import py.sistienda.core.security.AutorizacionService;
 import py.sistienda.core.security.Permiso;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,12 +45,16 @@ public final class ImportacionProductoService {
         List<ImportacionProductoValidacion> preliminar = filas.stream().map(this::validarFila).toList();
         Map<String, Integer> codigos = new HashMap<>();
         Map<Integer, Integer> plus = new HashMap<>();
+        Map<String, Integer> similaresSinIdentificador = new HashMap<>();
         for (ImportacionProductoValidacion item : preliminar) {
             if (item.entrada() == null) continue;
             String codigo = item.entrada().codigoBarras();
             if (codigo != null) codigos.merge(codigo.toLowerCase(Locale.ROOT), 1, Integer::sum);
             Integer plu = item.entrada().pluBalanza();
             if (plu != null) plus.merge(plu, 1, Integer::sum);
+            if (sinIdentificadorExplicito(item.entrada())) {
+                similaresSinIdentificador.merge(claveSimilar(item.entrada()), 1, Integer::sum);
+            }
         }
 
         List<String> codigosConsulta = preliminar.stream()
@@ -60,6 +65,7 @@ public final class ImportacionProductoService {
                 .map(item -> item.entrada().pluBalanza()).distinct().toList();
         Set<String> codigosExistentes = repository.codigosExistentes(codigosConsulta);
         Set<Integer> plusExistentes = repository.plusExistentes(plusConsulta);
+        Set<String> similaresExistentes = repository.clavesProductoExistentes();
         Set<String> codigosExistentesLower = new HashSet<>();
         codigosExistentes.forEach(value -> codigosExistentesLower.add(value.toLowerCase(Locale.ROOT)));
 
@@ -75,6 +81,15 @@ public final class ImportacionProductoService {
             if (entrada != null && entrada.pluBalanza() != null) {
                 if (plus.getOrDefault(entrada.pluBalanza(), 0) > 1) errores.add("PLU repetido dentro del archivo");
                 if (plusExistentes.contains(entrada.pluBalanza())) errores.add("El PLU ya existe en SisTienda");
+            }
+            if (entrada != null && sinIdentificadorExplicito(entrada)) {
+                String key = claveSimilar(entrada);
+                if (similaresSinIdentificador.getOrDefault(key, 0) > 1) {
+                    errores.add("Producto sin código/PLU repetido dentro del archivo");
+                }
+                if (similaresExistentes.contains(key)) {
+                    errores.add("Ya existe un producto similar en SisTienda; revisá antes de volver a importarlo");
+                }
             }
             resultado.add(new ImportacionProductoValidacion(
                     item.fila(), item.nombre(), entrada, List.copyOf(errores)));
@@ -194,6 +209,23 @@ public final class ImportacionProductoService {
     private String normalizar(String value) {
         if (value == null || value.isBlank()) return null;
         return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private boolean sinIdentificadorExplicito(ImportacionProductoEntrada entrada) {
+        return entrada.codigoBarras() == null && entrada.pluBalanza() == null;
+    }
+
+    private String claveSimilar(ImportacionProductoEntrada entrada) {
+        return claveParte(entrada.nombre()) + "|" + entrada.unidadMedida().name() + "|" + claveParte(entrada.categoria());
+    }
+
+    private String claveParte(String value) {
+        if (value == null || value.isBlank()) return "";
+        String normalized = Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("\\s+", " ");
+        return normalized;
     }
 
     private void exigirPermiso(Usuario usuario) {
