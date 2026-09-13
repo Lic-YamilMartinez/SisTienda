@@ -191,6 +191,8 @@ public final class ReposicionView extends BorderPane {
         hint.getStyleClass().add("dialog-subtitle");
         Label error = new Label();
         error.getStyleClass().add("form-error");
+        error.setVisible(false);
+        error.setManaged(false);
         VBox content = new VBox(8,
                 field("Stock mínimo", minimo),
                 field("Stock ideal", ideal),
@@ -203,6 +205,7 @@ public final class ReposicionView extends BorderPane {
 
         double[][] parsed = {null};
         Node save = dialog.getDialogPane().lookupButton(guardar);
+        if (save instanceof Button button) button.getStyleClass().add("primary-button");
         save.addEventFilter(ActionEvent.ACTION, event -> {
             try {
                 double min = parseCantidad(minimo.getText());
@@ -214,8 +217,12 @@ public final class ReposicionView extends BorderPane {
                     throw new IllegalArgumentException("Este producto se maneja por unidad: usá cantidades enteras.");
                 }
                 parsed[0] = new double[]{min, target};
+                error.setVisible(false);
+                error.setManaged(false);
             } catch (IllegalArgumentException e) {
                 error.setText(e.getMessage());
+                error.setVisible(true);
+                error.setManaged(true);
                 event.consume();
             }
         });
@@ -305,12 +312,12 @@ public final class ReposicionView extends BorderPane {
     private String formatCantidad(double value, Producto producto) {
         String number = producto.unidadMedida() == UnidadMedida.UN
                 ? Long.toString(Math.round(value))
-                : BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+                : BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
         return number + (producto.unidadMedida() == UnidadMedida.KG ? " kg" : " un.");
     }
 
     private String formatInput(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
     private String formatCurrency(double value) {
