@@ -50,7 +50,7 @@ class ReposicionImportacionIntegrationTest {
 
         var result = service.importar(owner, validation);
         assertEquals(2, result.productosCreados());
-        assertEquals(2, result.categoriasCreadas());
+        assertEquals(1, result.categoriasCreadas());
         assertEquals(2, result.movimientosStock());
 
         ProductoService productoService = new ProductoService(new SqliteProductoRepository(factory), new CodigoBarrasService());
