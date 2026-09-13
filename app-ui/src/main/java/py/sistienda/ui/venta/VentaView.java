@@ -25,6 +25,7 @@ import py.sistienda.core.model.VentaResultado;
 import py.sistienda.core.service.CodigoBarrasService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.VentaService;
+import py.sistienda.ui.common.MoneyFieldSupport;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -80,16 +81,19 @@ public final class VentaView extends HBox {
         setSpacing(12);
         setPadding(Insets.EMPTY);
         setMaxHeight(Double.MAX_VALUE);
+        setMinHeight(0);
 
         VBox productPanel = buildProductPanel();
         VBox cartPanel = buildCartPanel();
         HBox.setHgrow(productPanel, Priority.ALWAYS);
         productPanel.setMaxWidth(Double.MAX_VALUE);
         productPanel.setMaxHeight(Double.MAX_VALUE);
+        productPanel.setMinHeight(0);
         cartPanel.setPrefWidth(470);
         cartPanel.setMinWidth(440);
         cartPanel.setMaxWidth(520);
         cartPanel.setMaxHeight(Double.MAX_VALUE);
+        cartPanel.setMinHeight(0);
         getChildren().addAll(productPanel, cartPanel);
 
         configurarFiltros();
@@ -124,9 +128,11 @@ public final class VentaView extends HBox {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(9, 14, 8, 14));
 
+        tablaProductos.setMinHeight(100);
         VBox panel = new VBox(0, header, tablaProductos);
         panel.getStyleClass().add("pos-panel");
         VBox.setVgrow(tablaProductos, Priority.ALWAYS);
+        panel.setMinHeight(0);
         return panel;
     }
 
@@ -138,7 +144,7 @@ public final class VentaView extends HBox {
         feedback.setVisible(false);
         feedback.setManaged(false);
         VBox cartHeader = new VBox(4, title, feedback);
-        cartHeader.setPadding(new Insets(11, 14, 8, 14));
+        cartHeader.setPadding(new Insets(9, 14, 6, 14));
 
         metodoPago.getItems().setAll(MetodoPago.EFECTIVO, MetodoPago.TARJETA, MetodoPago.TRANSFERENCIA);
         if (ventaService.puedeFiado(usuario)) metodoPago.getItems().add(MetodoPago.FIADO);
@@ -152,6 +158,7 @@ public final class VentaView extends HBox {
         recibido.getStyleClass().add("pos-control");
         recibido.setMinWidth(160);
         recibido.setMaxWidth(Double.MAX_VALUE);
+        MoneyFieldSupport.install(recibido);
 
         VBox paymentMethod = compactPaymentField("Pago", metodoPago);
         paymentMethod.setMinWidth(220);
@@ -193,13 +200,18 @@ public final class VentaView extends HBox {
         creditActions.setVisible(puedeFiado);
         creditActions.setManaged(puedeFiado);
 
-        VBox payment = new VBox(8, paymentFields, creditHint, creditActions, summary, cobrar);
+        VBox payment = new VBox(6, paymentFields, creditHint, creditActions, summary, cobrar);
         payment.getStyleClass().add("pos-payment");
-        payment.setPadding(new Insets(10, 14, 12, 14));
+        payment.setPadding(new Insets(7, 14, 9, 14));
+        payment.setMinHeight(Region.USE_PREF_SIZE);
+        payment.setMaxHeight(Region.USE_PREF_SIZE);
 
+        tablaCarrito.setMinHeight(72);
+        tablaCarrito.setPrefHeight(150);
         VBox panel = new VBox(0, cartHeader, tablaCarrito, payment);
         panel.getStyleClass().add("pos-panel");
         VBox.setVgrow(tablaCarrito, Priority.ALWAYS);
+        panel.setMinHeight(0);
         return panel;
     }
 
@@ -392,7 +404,7 @@ public final class VentaView extends HBox {
     private void pedirCantidad(Producto producto, CartItem existing) {
         String initial = existing == null
                 ? (producto.unidadMedida() == UnidadMedida.UN ? "1" : "0,5")
-                : BigDecimal.valueOf(existing.cantidad).stripTrailingZeros().toPlainString();
+                : BigDecimal.valueOf(existing.cantidad).stripTrailingZeros().toPlainString().replace('.', ',');
         TextInputDialog dialog = new TextInputDialog(initial);
         dialog.setTitle(existing == null ? "Agregar producto" : "Cambiar cantidad");
         dialog.setHeaderText(producto.nombre() + " · Stock: " + formatStock(producto));
@@ -537,7 +549,7 @@ public final class VentaView extends HBox {
     }
 
     private String formatQuantityValue(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
     private void ejecutar(Runnable action) {
