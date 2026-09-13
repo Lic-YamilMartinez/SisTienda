@@ -12,6 +12,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -67,6 +68,31 @@ public final class SqliteImportacionProductoRepository implements ImportacionPro
             return Set.copyOf(encontrados);
         } catch (Exception e) {
             throw new RuntimeException("No se pudieron validar los PLU existentes.", e);
+        }
+    }
+
+    @Override
+    public Set<String> clavesProductoExistentes() {
+        Set<String> encontrados = new HashSet<>();
+        String sql = """
+                SELECT p.nombre, p.unidad_medida, c.nombre AS categoria
+                FROM producto p
+                LEFT JOIN categoria_producto c ON c.id = p.categoria_id
+                WHERE p.activo = 1
+                """;
+        try (var connection = connectionFactory.open();
+             var statement = connection.createStatement();
+             var result = statement.executeQuery(sql)) {
+            while (result.next()) {
+                encontrados.add(claveSimilar(
+                        result.getString("nombre"),
+                        result.getString("unidad_medida"),
+                        result.getString("categoria")
+                ));
+            }
+            return Set.copyOf(encontrados);
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudieron validar productos similares existentes.", e);
         }
     }
 
@@ -217,6 +243,18 @@ public final class SqliteImportacionProductoRepository implements ImportacionPro
             statement.setLong(4, usuarioId);
             statement.executeUpdate();
         }
+    }
+
+    private String claveSimilar(String nombre, String unidad, String categoria) {
+        return claveParte(nombre) + "|" + (unidad == null ? "" : unidad.trim().toUpperCase(Locale.ROOT)) + "|" + claveParte(categoria);
+    }
+
+    private String claveParte(String value) {
+        if (value == null || value.isBlank()) return "";
+        return Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("\\s+", " ");
     }
 
     private RuntimeException translate(Exception error) {
