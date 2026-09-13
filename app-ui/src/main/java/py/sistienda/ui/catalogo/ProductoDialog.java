@@ -11,6 +11,7 @@ import javafx.util.StringConverter;
 import py.sistienda.core.model.CategoriaProducto;
 import py.sistienda.core.model.Producto;
 import py.sistienda.core.model.UnidadMedida;
+import py.sistienda.ui.common.MoneyFieldSupport;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -51,12 +52,14 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         nombre.setPromptText("Ej.: Coca Cola 2L");
         categoria.setPromptText("Seleccionar categoría");
         unidad.setPromptText("Cómo se vende");
-        precioVenta.setPromptText("Ej.: 15000");
-        costo.setPromptText("Ej.: 11000");
+        precioVenta.setPromptText("Ej.: 15.000");
+        costo.setPromptText("Ej.: 11.000");
         stockMinimo.setPromptText("Ej.: 5 · 0 si no querés alerta");
         stockIdeal.setPromptText("Ej.: 20 · cantidad objetivo");
         codigoBarras.setPromptText("Escaneá o dejá vacío para generar código interno");
         pluBalanza.setPromptText("PLU 0 a 99999 · vacío = automático");
+        MoneyFieldSupport.install(precioVenta);
+        MoneyFieldSupport.install(costo);
 
         for (Control control : new Control[]{nombre, categoria, unidad, precioVenta, costo,
                 stockMinimo, stockIdeal, codigoBarras, pluBalanza}) {
@@ -69,6 +72,8 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         reposicionHint.setText("Reposición: SisTienda avisa cuando el stock llega al mínimo y sugiere comprar hasta alcanzar el ideal. Con ideal 0 la alerta queda desactivada.");
         error.getStyleClass().add("form-error");
         error.setWrapText(true);
+        error.setVisible(false);
+        error.setManaged(false);
 
         if (producto != null) {
             nombre.setText(producto.nombre());
@@ -77,8 +82,8 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
                         .findFirst().ifPresent(categoria::setValue);
             }
             unidad.setValue(producto.unidadMedida());
-            precioVenta.setText(formatInput(producto.precioVenta()));
-            costo.setText(formatInput(producto.costo()));
+            precioVenta.setText(MoneyFieldSupport.format(producto.precioVenta()));
+            costo.setText(MoneyFieldSupport.format(producto.costo()));
             stockMinimo.setText(formatInput(producto.stockMinimo()));
             stockIdeal.setText(formatInput(producto.stockIdeal()));
             codigoBarras.setText(producto.codigoBarras() == null ? "" : producto.codigoBarras());
@@ -98,7 +103,16 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
 
         DialogPane pane = getDialogPane();
         pane.getButtonTypes().addAll(GUARDAR, ButtonType.CANCEL);
-        pane.setContent(buildContent(producto == null));
+        VBox form = buildContent(producto == null);
+        ScrollPane scroll = new ScrollPane(form);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setPrefViewportHeight(500);
+        scroll.setMaxHeight(520);
+        scroll.getStyleClass().add("product-dialog-scroll");
+        pane.setContent(scroll);
+        pane.setPrefWidth(580);
         pane.getStyleClass().add("product-dialog");
         applyStyles(pane);
 
@@ -107,8 +121,12 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
             try {
                 validar();
                 error.setText("");
+                error.setVisible(false);
+                error.setManaged(false);
             } catch (IllegalArgumentException e) {
                 error.setText(e.getMessage());
+                error.setVisible(true);
+                error.setManaged(true);
                 event.consume();
             }
         });
@@ -138,8 +156,8 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
 
         GridPane grid = new GridPane();
         grid.setHgap(14);
-        grid.setVgap(8);
-        grid.setPadding(new Insets(12, 0, 0, 0));
+        grid.setVgap(7);
+        grid.setPadding(new Insets(8, 0, 0, 0));
         addField(grid, 0, "Nombre del producto", nombre);
         addField(grid, 1, "Categoría", categoria);
         addField(grid, 2, "Unidad de venta", unidad);
@@ -150,9 +168,9 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         addField(grid, 7, "Código de barras", codigoBarras);
         addField(grid, 8, "PLU de balanza", pluBalanza);
 
-        VBox content = new VBox(8, title, subtitle, grid, reposicionHint, identificacionHint, error);
-        content.setPadding(new Insets(8));
-        content.setPrefWidth(540);
+        VBox content = new VBox(7, title, subtitle, grid, reposicionHint, identificacionHint, error);
+        content.setPadding(new Insets(6, 10, 8, 6));
+        content.setPrefWidth(530);
         return content;
     }
 
@@ -226,7 +244,7 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
     }
 
     private String formatInput(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
     private void applyStyles(DialogPane pane) {
