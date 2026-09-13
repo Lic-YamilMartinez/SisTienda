@@ -150,18 +150,18 @@ public final class VentaView extends HBox {
         if (ventaService.puedeFiado(usuario)) metodoPago.getItems().add(MetodoPago.FIADO);
         metodoPago.setValue(MetodoPago.EFECTIVO);
         metodoPago.getStyleClass().add("pos-control");
-        metodoPago.setMinWidth(220);
-        metodoPago.setPrefWidth(230);
+        metodoPago.setMinWidth(180);
+        metodoPago.setPrefWidth(210);
         metodoPago.setMaxWidth(Double.MAX_VALUE);
 
         recibido.setPromptText("Efectivo recibido");
         recibido.getStyleClass().add("pos-control");
-        recibido.setMinWidth(160);
+        recibido.setMinWidth(150);
         recibido.setMaxWidth(Double.MAX_VALUE);
         MoneyFieldSupport.install(recibido);
 
         VBox paymentMethod = compactPaymentField("Pago", metodoPago);
-        paymentMethod.setMinWidth(220);
+        paymentMethod.setMinWidth(180);
         VBox receivedField = compactPaymentField("Recibido (Gs.)", recibido);
         HBox.setHgrow(paymentMethod, Priority.ALWAYS);
         HBox.setHgrow(receivedField, Priority.ALWAYS);
@@ -175,42 +175,53 @@ public final class VentaView extends HBox {
         Button cuentas = new Button("Clientes & Fiado");
         cuentas.getStyleClass().add("pos-credit-button");
         boolean puedeFiado = ventaService.puedeFiado(usuario);
-        cuentas.setVisible(puedeFiado);
-        cuentas.setManaged(puedeFiado);
         cuentas.setOnAction(event -> ClientesFiadoDialog.gestionar(
                 getScene() == null ? null : getScene().getWindow(), ventaService, usuario, caja
         ));
-
-        VBox totalBlock = summaryBlock("TOTAL", total, "pos-total");
-        VBox changeBlock = summaryBlock("VUELTO", vuelto, "pos-change");
-        HBox.setHgrow(totalBlock, Priority.ALWAYS);
-        HBox.setHgrow(changeBlock, Priority.ALWAYS);
-        HBox summary = new HBox(8, totalBlock, changeBlock);
-
-        Button cobrar = new Button("Cobrar venta");
-        cobrar.setId("pos-pay-action");
-        cobrar.getStyleClass().add("pos-pay-button");
-        cobrar.setMaxWidth(Double.MAX_VALUE);
-        cobrar.setOnAction(event -> cobrar());
 
         Region actionSpacer = new Region();
         HBox.setHgrow(actionSpacer, Priority.ALWAYS);
         HBox creditActions = new HBox(8, cuentas, actionSpacer);
         creditActions.setAlignment(Pos.CENTER_LEFT);
-        creditActions.setVisible(puedeFiado);
-        creditActions.setManaged(puedeFiado);
+        creditActions.visibleProperty().bind(metodoPago.valueProperty().isEqualTo(MetodoPago.FIADO));
+        creditActions.managedProperty().bind(creditActions.visibleProperty());
+        if (!puedeFiado) {
+            creditActions.setVisible(false);
+            creditActions.setManaged(false);
+        }
 
-        VBox payment = new VBox(6, paymentFields, creditHint, creditActions, summary, cobrar);
+        VBox totalBlock = summaryBlock("TOTAL", total, "pos-total");
+        VBox changeBlock = summaryBlock("VUELTO", vuelto, "pos-change");
+        HBox.setHgrow(totalBlock, Priority.ALWAYS);
+        HBox.setHgrow(changeBlock, Priority.ALWAYS);
+
+        Button cobrar = new Button("Cobrar venta");
+        cobrar.setId("pos-pay-action");
+        cobrar.getStyleClass().add("pos-pay-button");
+        cobrar.setMinWidth(138);
+        cobrar.setPrefWidth(148);
+        cobrar.setPrefHeight(58);
+        cobrar.setMaxHeight(Double.MAX_VALUE);
+        cobrar.setOnAction(event -> cobrar());
+
+        HBox summaryAndAction = new HBox(8, totalBlock, changeBlock, cobrar);
+        summaryAndAction.setAlignment(Pos.CENTER);
+
+        VBox payment = new VBox(6, paymentFields, creditHint, creditActions, summaryAndAction);
         payment.getStyleClass().add("pos-payment");
-        payment.setPadding(new Insets(7, 14, 9, 14));
+        payment.setPadding(new Insets(6, 12, 8, 12));
         payment.setMinHeight(Region.USE_PREF_SIZE);
         payment.setMaxHeight(Region.USE_PREF_SIZE);
 
+        // El carrito tiene su propio scroll y no puede empujar el bloque de cobro
+        // fuera de la pantalla. En resoluciones bajas siempre priorizamos cobrar.
         tablaCarrito.setMinHeight(72);
-        tablaCarrito.setPrefHeight(150);
+        tablaCarrito.setPrefHeight(118);
+        tablaCarrito.setMaxHeight(150);
+
         VBox panel = new VBox(0, cartHeader, tablaCarrito, payment);
         panel.getStyleClass().add("pos-panel");
-        VBox.setVgrow(tablaCarrito, Priority.ALWAYS);
+        VBox.setVgrow(tablaCarrito, Priority.NEVER);
         panel.setMinHeight(0);
         return panel;
     }
