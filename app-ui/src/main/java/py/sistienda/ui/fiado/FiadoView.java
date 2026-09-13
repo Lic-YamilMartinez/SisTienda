@@ -35,9 +35,9 @@ import py.sistienda.core.security.AutorizacionService;
 import py.sistienda.core.security.Permiso;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.VentaService;
+import py.sistienda.ui.common.MoneyFieldSupport;
 import py.sistienda.ui.venta.ClientesFiadoDialog;
 
-import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -246,12 +246,15 @@ public final class FiadoView extends BorderPane {
             ));
             metodo.setValue(MetodoPago.EFECTIVO);
             metodo.setMaxWidth(Double.MAX_VALUE);
-            TextField monto = new TextField(BigDecimal.valueOf(saldo).stripTrailingZeros().toPlainString());
+            TextField monto = new TextField(MoneyFieldSupport.format(saldo));
+            MoneyFieldSupport.install(monto);
             TextField observacion = new TextField();
             observacion.setPromptText("Observación opcional");
             Label error = new Label();
             error.getStyleClass().add("form-error");
             error.setWrapText(true);
+            error.setVisible(false);
+            error.setManaged(false);
 
             VBox content = new VBox(9,
                     field("Forma de cobro", metodo),
@@ -269,8 +272,12 @@ public final class FiadoView extends BorderPane {
                     ventaService.registrarAbonoCliente(
                             usuario, caja, cliente, metodo.getValue(), parseMoney(monto.getText()), observacion.getText()
                     );
+                    error.setVisible(false);
+                    error.setManaged(false);
                 } catch (RuntimeException e) {
                     error.setText(rootMessage(e));
+                    error.setVisible(true);
+                    error.setManaged(true);
                     event.consume();
                 }
             });
