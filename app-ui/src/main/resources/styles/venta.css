@@ -107,6 +107,24 @@
     -fx-text-fill: #344054;
 }
 
+.pos-cart-table {
+    -fx-padding: 0 10 8 10;
+}
+
+.pos-cart-table .table-row-cell {
+    -fx-cell-size: 52;
+}
+
+.pos-cart-table .table-cell {
+    -fx-padding: 8 8 8 8;
+    -fx-font-size: 11px;
+}
+
+.pos-cart-table .table-cell:first-child {
+    -fx-font-weight: 700;
+    -fx-text-fill: #101828;
+}
+
 .pos-add-button {
     -fx-background-color: #fff7ed;
     -fx-background-radius: 7;
@@ -126,7 +144,7 @@
     -fx-background-radius: 6;
     -fx-text-fill: #475467;
     -fx-font-size: 9px;
-    -fx-padding: 4 6 4 6;
+    -fx-padding: 5 7 5 7;
     -fx-cursor: hand;
 }
 
