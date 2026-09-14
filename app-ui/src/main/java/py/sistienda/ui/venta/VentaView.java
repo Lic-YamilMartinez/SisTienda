@@ -89,9 +89,9 @@ public final class VentaView extends HBox {
         productPanel.setMaxWidth(Double.MAX_VALUE);
         productPanel.setMaxHeight(Double.MAX_VALUE);
         productPanel.setMinHeight(0);
-        cartPanel.setPrefWidth(470);
-        cartPanel.setMinWidth(440);
-        cartPanel.setMaxWidth(520);
+        cartPanel.setPrefWidth(510);
+        cartPanel.setMinWidth(460);
+        cartPanel.setMaxWidth(560);
         cartPanel.setMaxHeight(Double.MAX_VALUE);
         cartPanel.setMinHeight(0);
         getChildren().addAll(productPanel, cartPanel);
@@ -214,15 +214,15 @@ public final class VentaView extends HBox {
         payment.setMinHeight(Region.USE_PREF_SIZE);
         payment.setMaxHeight(Region.USE_PREF_SIZE);
 
-        // El carrito tiene su propio scroll y no puede empujar el bloque de cobro
-        // fuera de la pantalla. En resoluciones bajas siempre priorizamos cobrar.
-        tablaCarrito.setMinHeight(72);
-        tablaCarrito.setPrefHeight(118);
-        tablaCarrito.setMaxHeight(150);
+        // La lista de la venta gana espacio vertical, pero puede reducirse en pantallas bajas.
+        // El bloque de pago conserva siempre su tamaño y queda visible debajo del carrito.
+        tablaCarrito.setMinHeight(105);
+        tablaCarrito.setPrefHeight(235);
+        tablaCarrito.setMaxHeight(300);
 
         VBox panel = new VBox(0, cartHeader, tablaCarrito, payment);
         panel.getStyleClass().add("pos-panel");
-        VBox.setVgrow(tablaCarrito, Priority.NEVER);
+        VBox.setVgrow(tablaCarrito, Priority.ALWAYS);
         panel.setMinHeight(0);
         return panel;
     }
@@ -346,17 +346,17 @@ public final class VentaView extends HBox {
         tablaCarrito.setItems(carrito);
         tablaCarrito.setPlaceholder(new Label("Tu carrito está vacío."));
         tablaCarrito.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-        tablaCarrito.getStyleClass().add("pos-table");
+        tablaCarrito.getStyleClass().addAll("pos-table", "pos-cart-table");
 
         TableColumn<CartItem, String> productCol = new TableColumn<>("Producto");
         productCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().producto.nombre()));
-        productCol.setPrefWidth(150);
+        productCol.setPrefWidth(170);
         TableColumn<CartItem, String> qtyCol = new TableColumn<>("Cant.");
         qtyCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatQuantity(cell.getValue())));
         qtyCol.setPrefWidth(70);
         TableColumn<CartItem, String> subtotalCol = new TableColumn<>("Subtotal");
         subtotalCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().subtotal())));
-        subtotalCol.setPrefWidth(100);
+        subtotalCol.setPrefWidth(105);
         TableColumn<CartItem, CartItem> actionCol = new TableColumn<>("");
         actionCol.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
         actionCol.setPrefWidth(105);
