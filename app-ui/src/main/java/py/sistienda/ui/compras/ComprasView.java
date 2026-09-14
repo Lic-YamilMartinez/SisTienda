@@ -17,6 +17,7 @@ import py.sistienda.core.model.*;
 import py.sistienda.core.service.CompraService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ProveedorService;
+import py.sistienda.ui.common.MoneyFieldSupport;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -238,6 +239,7 @@ public final class ComprasView extends BorderPane {
         TextField costo = new TextField();
         costo.setPromptText("Costo unitario");
         costo.setPrefWidth(150);
+        MoneyFieldSupport.install(costo);
         Button agregar = new Button("Agregar");
         agregar.getStyleClass().add("purchase-add-button");
 
@@ -269,7 +271,7 @@ public final class ComprasView extends BorderPane {
         });
 
         producto.valueProperty().addListener((obs, oldValue, newValue) -> {
-            if (newValue != null) costo.setText(formatPlain(newValue.costo()));
+            if (newValue != null) costo.setText(MoneyFieldSupport.format(newValue.costo()));
         });
 
         VBox providerField = field("Proveedor *", proveedor);
@@ -503,8 +505,7 @@ public final class ComprasView extends BorderPane {
     private String formatCurrency(double value) {
         return "Gs. " + NumberFormat.getIntegerInstance(new Locale("es", "PY")).format(Math.round(value));
     }
-    private String formatPlain(double value) { return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString(); }
-    private String formatQuantity(double value) { return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString(); }
+    private String formatQuantity(double value) { return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ','); }
     private String orDash(String value) { return value == null || value.isBlank() ? "—" : value; }
     private String empty(String value) { return value == null ? "" : value; }
 

@@ -25,7 +25,10 @@ public final class SqliteCajaRepository implements CajaRepository {
     @Override
     public Optional<CajaSesion> findOpenByUser(long usuarioId) {
         String sql = """
-                SELECT id, usuario_id, fecha_apertura, fecha_cierre, monto_apertura, monto_cierre, estado, notas
+                SELECT id, usuario_id,
+                       datetime(fecha_apertura, 'localtime') AS fecha_apertura_local,
+                       CASE WHEN fecha_cierre IS NULL THEN NULL ELSE datetime(fecha_cierre, 'localtime') END AS fecha_cierre_local,
+                       monto_apertura, monto_cierre, estado, notas
                 FROM caja_sesion
                 WHERE usuario_id = ? AND estado = 'ABIERTA'
                 ORDER BY id DESC
@@ -127,7 +130,10 @@ public final class SqliteCajaRepository implements CajaRepository {
 
     private CajaSesion findById(java.sql.Connection connection, long id) throws SQLException {
         String sql = """
-                SELECT id, usuario_id, fecha_apertura, fecha_cierre, monto_apertura, monto_cierre, estado, notas
+                SELECT id, usuario_id,
+                       datetime(fecha_apertura, 'localtime') AS fecha_apertura_local,
+                       CASE WHEN fecha_cierre IS NULL THEN NULL ELSE datetime(fecha_cierre, 'localtime') END AS fecha_cierre_local,
+                       monto_apertura, monto_cierre, estado, notas
                 FROM caja_sesion
                 WHERE id = ?
                 """;
@@ -143,12 +149,12 @@ public final class SqliteCajaRepository implements CajaRepository {
     }
 
     private CajaSesion map(ResultSet result) throws SQLException {
-        String cierreRaw = result.getString("fecha_cierre");
+        String cierreRaw = result.getString("fecha_cierre_local");
         Double montoCierre = result.getObject("monto_cierre") == null ? null : result.getDouble("monto_cierre");
         return new CajaSesion(
                 result.getLong("id"),
                 result.getLong("usuario_id"),
-                LocalDateTime.parse(result.getString("fecha_apertura"), SQLITE_DATE),
+                LocalDateTime.parse(result.getString("fecha_apertura_local"), SQLITE_DATE),
                 cierreRaw == null ? null : LocalDateTime.parse(cierreRaw, SQLITE_DATE),
                 result.getDouble("monto_apertura"),
                 montoCierre,

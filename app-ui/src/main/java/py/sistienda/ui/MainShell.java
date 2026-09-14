@@ -42,6 +42,7 @@ public final class MainShell extends BorderPane {
     private final Supplier<Node> cajaSupplier;
     private final Supplier<Node> fiadoSupplier;
     private final Supplier<Node> inventarioSupplier;
+    private final Supplier<Node> reposicionSupplier;
     private final Supplier<Node> reportesSupplier;
     private final Supplier<Node> comprasSupplier;
     private final Supplier<Node> configuracionSupplier;
@@ -51,6 +52,7 @@ public final class MainShell extends BorderPane {
     private Button cajaButton;
     private Button fiadoButton;
     private Button inventarioButton;
+    private Button reposicionButton;
     private Button reportesButton;
     private Button comprasButton;
     private Button configuracionButton;
@@ -74,11 +76,34 @@ public final class MainShell extends BorderPane {
             LogoNegocioService logoNegocioService,
             Runnable onLogout
     ) {
+        this(catalogoSupplier, cajaSupplier, fiadoSupplier, inventarioSupplier, null,
+                reportesSupplier, comprasSupplier, configuracionSupplier, usuariosSupplier,
+                usuario, autorizacionService, usuarioService, empresaService, logoNegocioService, onLogout);
+    }
+
+    public MainShell(
+            Supplier<Node> catalogoSupplier,
+            Supplier<Node> cajaSupplier,
+            Supplier<Node> fiadoSupplier,
+            Supplier<Node> inventarioSupplier,
+            Supplier<Node> reposicionSupplier,
+            Supplier<Node> reportesSupplier,
+            Supplier<Node> comprasSupplier,
+            Supplier<Node> configuracionSupplier,
+            Supplier<Node> usuariosSupplier,
+            Usuario usuario,
+            AutorizacionService autorizacionService,
+            UsuarioService usuarioService,
+            EmpresaService empresaService,
+            LogoNegocioService logoNegocioService,
+            Runnable onLogout
+    ) {
         this.usuario = Objects.requireNonNull(usuario);
         this.catalogoSupplier = Objects.requireNonNull(catalogoSupplier);
         this.cajaSupplier = Objects.requireNonNull(cajaSupplier);
         this.fiadoSupplier = Objects.requireNonNull(fiadoSupplier);
         this.inventarioSupplier = Objects.requireNonNull(inventarioSupplier);
+        this.reposicionSupplier = reposicionSupplier;
         this.reportesSupplier = Objects.requireNonNull(reportesSupplier);
         this.comprasSupplier = Objects.requireNonNull(comprasSupplier);
         this.configuracionSupplier = Objects.requireNonNull(configuracionSupplier);
@@ -130,6 +155,12 @@ public final class MainShell extends BorderPane {
         inventarioButton.setOnAction(event -> showInventario());
         configureVisibility(inventarioButton, Permiso.INVENTARIO_GESTIONAR);
 
+        reposicionButton = navButton("↻", "Reposición");
+        reposicionButton.setOnAction(event -> showReposicion());
+        boolean reposicionVisible = reposicionSupplier != null && autorizacionService.puede(usuario, Permiso.STOCK_GESTIONAR);
+        reposicionButton.setVisible(reposicionVisible);
+        reposicionButton.setManaged(reposicionVisible);
+
         reportesButton = navButton("▤", "Reportes");
         reportesButton.setOnAction(event -> showReportes());
         configureVisibility(reportesButton, Permiso.REPORTES_VER);
@@ -164,12 +195,12 @@ public final class MainShell extends BorderPane {
         logout.setMaxWidth(Double.MAX_VALUE);
         logout.setOnAction(event -> onLogout.run());
 
-        Label version = new Label("PILOTO · 0.9.2");
+        Label version = new Label("PILOTO · 0.9.3");
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,
                 brandRow, section,
-                catalogoButton, cajaButton, fiadoButton, inventarioButton, reportesButton,
+                catalogoButton, cajaButton, fiadoButton, inventarioButton, reposicionButton, reportesButton,
                 comprasButton, configuracionButton, usuariosButton,
                 spacer, userLabel, roleLabel, password, logout, version
         );
@@ -240,6 +271,13 @@ public final class MainShell extends BorderPane {
         autorizacionService.exigir(usuario, Permiso.INVENTARIO_GESTIONAR);
         setCenter(inventarioSupplier.get());
         activate(inventarioButton);
+    }
+
+    private void showReposicion() {
+        if (reposicionSupplier == null) return;
+        autorizacionService.exigir(usuario, Permiso.STOCK_GESTIONAR);
+        setCenter(reposicionSupplier.get());
+        activate(reposicionButton);
     }
 
     private void showReportes() {
@@ -350,7 +388,7 @@ public final class MainShell extends BorderPane {
 
     private void activate(Button activeButton) {
         for (Button button : new Button[]{catalogoButton, cajaButton, fiadoButton, inventarioButton,
-                reportesButton, comprasButton, configuracionButton, usuariosButton}) {
+                reposicionButton, reportesButton, comprasButton, configuracionButton, usuariosButton}) {
             if (button != null) button.getStyleClass().remove("nav-button-active");
         }
         if (activeButton != null && !activeButton.getStyleClass().contains("nav-button-active")) {

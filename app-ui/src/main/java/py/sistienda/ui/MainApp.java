@@ -17,6 +17,7 @@ import py.sistienda.core.service.CodigoBarrasService;
 import py.sistienda.core.service.CompraService;
 import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
+import py.sistienda.core.service.ImportacionProductoService;
 import py.sistienda.core.service.InventarioService;
 import py.sistienda.core.service.LogoNegocioService;
 import py.sistienda.core.service.MovimientoCajaService;
@@ -24,6 +25,7 @@ import py.sistienda.core.service.PostventaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ProveedorService;
 import py.sistienda.core.service.ReporteService;
+import py.sistienda.core.service.ReposicionService;
 import py.sistienda.core.service.StockService;
 import py.sistienda.core.service.UsuarioService;
 import py.sistienda.core.service.VentaService;
@@ -37,6 +39,7 @@ import py.sistienda.data.repository.SqliteClienteRepository;
 import py.sistienda.data.repository.SqliteCompraRepository;
 import py.sistienda.data.repository.SqliteConfiguracionPosRepository;
 import py.sistienda.data.repository.SqliteEmpresaRepository;
+import py.sistienda.data.repository.SqliteImportacionProductoRepository;
 import py.sistienda.data.repository.SqliteInventarioRepository;
 import py.sistienda.data.repository.SqliteLogoNegocioRepository;
 import py.sistienda.data.repository.SqliteMovimientoCajaRepository;
@@ -57,6 +60,7 @@ import py.sistienda.ui.configuracion.ConfiguracionView;
 import py.sistienda.ui.fiado.FiadoView;
 import py.sistienda.ui.inventario.InventarioView;
 import py.sistienda.ui.reportes.ReportesView;
+import py.sistienda.ui.reposicion.ReposicionView;
 import py.sistienda.ui.usuarios.UsuariosView;
 
 public class MainApp extends Application {
@@ -111,6 +115,9 @@ public class MainApp extends Application {
         var categoriaService = new CategoriaService(new SqliteCategoriaRepository(connectionFactory));
         var productoService = new ProductoService(new SqliteProductoRepository(connectionFactory), codigoBarrasService);
         var stockService = new StockService(new SqliteMovimientoStockRepository(connectionFactory));
+        var reposicionService = new ReposicionService(productoService);
+        var importacionProductoService = new ImportacionProductoService(
+                new SqliteImportacionProductoRepository(connectionFactory), autorizacionService);
         var cajaService = new CajaService(new SqliteCajaRepository(connectionFactory));
         var movimientoCajaService = new MovimientoCajaService(new SqliteMovimientoCajaRepository(connectionFactory));
         var arqueoCajaService = new ArqueoCajaService(new SqliteArqueoCajaRepository(connectionFactory));
@@ -126,7 +133,7 @@ public class MainApp extends Application {
         MainShell root = new MainShell(
                 () -> autorizacionService.puede(usuario, Permiso.CATALOGO_GESTIONAR)
                         ? new CatalogoView(categoriaService, productoService, stockService,
-                        configuracionPosService, codigoBarrasService)
+                        configuracionPosService, codigoBarrasService, importacionProductoService, usuario)
                         : new CatalogoConsultaView(productoService),
                 () -> autorizacionService.puede(usuario, Permiso.ARQUEO_VER)
                         ? new CajaView(cajaService, movimientoCajaService, arqueoCajaService, productoService, ventaService,
@@ -136,6 +143,7 @@ public class MainApp extends Application {
                         autorizacionService, usuario),
                 () -> new FiadoView(ventaService, cajaService, usuario, autorizacionService),
                 () -> new InventarioView(productoService, inventarioService, usuario, autorizacionService),
+                () -> new ReposicionView(reposicionService),
                 () -> new ReportesView(
                         reporteService, empresaService, configuracionPosService,
                         postventaService, cajaService, autorizacionService, usuario
@@ -183,6 +191,7 @@ public class MainApp extends Application {
         addStyle(scene, "/styles/caja.css");
         addStyle(scene, "/styles/venta.css");
         addStyle(scene, "/styles/inventario.css");
+        addStyle(scene, "/styles/reposicion.css");
         addStyle(scene, "/styles/reportes.css");
         addStyle(scene, "/styles/compras.css");
         addStyle(scene, "/styles/configuracion.css");

@@ -49,7 +49,9 @@ public final class SqliteCompraRepository implements CompraRepository {
                     e.addSuppressed(rollbackError);
                 }
                 if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed: compra.proveedor_id, compra.nro_documento")) {
-                    throw new RuntimeException("Ya existe una compra de este proveedor con el mismo número de documento.", e);
+                    // No conservamos el SQLException como causa para que la UI no termine mostrando
+                    // el mensaje técnico de SQLite al usuario final.
+                    throw new RuntimeException("Ya existe una compra de este proveedor con el mismo número de documento.");
                 }
                 throw e;
             }

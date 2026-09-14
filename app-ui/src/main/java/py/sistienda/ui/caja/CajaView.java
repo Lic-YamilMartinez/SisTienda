@@ -29,6 +29,7 @@ import py.sistienda.core.service.MovimientoCajaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.VentaService;
+import py.sistienda.ui.common.MoneyFieldSupport;
 import py.sistienda.ui.ticket.TicketDialog;
 import py.sistienda.ui.venta.VentaView;
 
@@ -138,8 +139,9 @@ public final class CajaView extends BorderPane {
         subtitle.setWrapText(true);
 
         TextField apertura = new TextField();
-        apertura.setPromptText("Ej.: 250000");
+        apertura.setPromptText("Ej.: 250.000");
         apertura.getStyleClass().add("cash-input");
+        MoneyFieldSupport.install(apertura);
         TextField notas = new TextField();
         notas.setPromptText("Nota opcional");
         notas.getStyleClass().add("cash-input");
@@ -361,6 +363,7 @@ public final class CajaView extends BorderPane {
         concepto.setPromptText(tipo == TipoMovimientoCaja.INGRESO ? "Ej.: Aporte de efectivo" : "Ej.: Pago de flete");
         TextField monto = new TextField();
         monto.setPromptText("Monto en Gs.");
+        MoneyFieldSupport.install(monto);
         TextField referencia = new TextField();
         referencia.setPromptText("Factura, recibo o referencia opcional");
 
@@ -417,6 +420,7 @@ public final class CajaView extends BorderPane {
         TextField cierre = new TextField();
         cierre.setPromptText("Monto contado");
         cierre.getStyleClass().add("cash-input");
+        MoneyFieldSupport.install(cierre);
         TextField notas = new TextField();
         notas.setPromptText("Nota opcional");
         notas.getStyleClass().add("cash-input");

@@ -1,0 +1,16 @@
+.replenishment-qty {
+    -fx-font-weight: 800;
+}
+
+.replenishment-empty-row {
+    -fx-background-color: rgba(203, 67, 53, 0.08);
+}
+
+.replenishment-low-row {
+    -fx-background-color: rgba(243, 156, 18, 0.07);
+}
+
+.replenishment-empty-row:selected,
+.replenishment-low-row:selected {
+    -fx-background-color: -fx-selection-bar;
+}
