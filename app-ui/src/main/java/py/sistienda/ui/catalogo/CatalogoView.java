@@ -338,13 +338,13 @@ public final class CatalogoView extends BorderPane {
                         form.nombre(), category == null ? null : category.id(), category == null ? null : category.nombre(),
                         form.unidadMedida(), form.precioVenta(), form.costo(), form.codigoBarras(), form.pluBalanza(),
                         form.stockMinimo(), form.stockIdeal());
-                mostrarFeedback("Producto creado · " + creado.identificacionComercial() + ". Ahora podés registrar su stock.");
+                mostrarFeedback("Producto creado · " + creado.identificacionSistema() + " · " + creado.identificacionComercial() + ". Ahora podés registrar su stock.");
             } else {
                 Producto guardado = productoService.actualizar(
                         producto, form.nombre(), category == null ? null : category.id(), category == null ? null : category.nombre(),
                         form.unidadMedida(), form.precioVenta(), form.costo(), form.codigoBarras(), form.pluBalanza(),
                         form.stockMinimo(), form.stockIdeal());
-                mostrarFeedback("Producto actualizado · " + guardado.identificacionComercial() + ".");
+                mostrarFeedback("Producto actualizado · " + guardado.identificacionSistema() + " · " + guardado.identificacionComercial() + ".");
             }
             recargar();
         }));
