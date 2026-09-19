@@ -45,6 +45,25 @@ class VentaServiceTest {
     }
 
     @Test
+    void venderKg_redondeaSubtotalCostoGananciaYVueltoAGuaraniEntero() {
+        FakeVentaRepository repository = new FakeVentaRepository();
+        VentaService service = new VentaService(repository);
+        Producto producto = producto(UnidadMedida.KG, 9999, 6000, 5);
+
+        VentaResultado result = service.vender(
+                usuario,
+                caja,
+                List.of(new LineaVenta(producto, 0.345)),
+                MetodoPago.EFECTIVO,
+                5000
+        );
+
+        assertEquals(3450d, result.total(), 0.001);
+        assertEquals(1550d, result.vuelto(), 0.001);
+        assertEquals(1380d, result.gananciaTotal(), 0.001);
+    }
+
+    @Test
     void vender_rechazaStockInsuficiente() {
         VentaService service = new VentaService(new FakeVentaRepository());
         Producto producto = producto(UnidadMedida.UN, 8000, 6000, 1);
