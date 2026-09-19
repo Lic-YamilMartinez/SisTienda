@@ -102,7 +102,7 @@ public final class StockDialog extends Dialog<StockDialog.StockForm> {
     }
 
     private VBox buildContent() {
-        Label title = new Label(producto.nombre());
+        Label title = new Label(producto.nombre() + " · " + producto.identificacionSistema());
         title.getStyleClass().add("dialog-title");
 
         Label stock = new Label("Stock actual: " + formatStock(producto));
