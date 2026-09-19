@@ -176,7 +176,7 @@ public final class EtiquetaDialog {
     }
 
     private static String formatQty(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
     private static String rootMessage(Throwable error) {
