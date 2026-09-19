@@ -360,7 +360,11 @@ public final class CatalogoView extends BorderPane {
     private void moverStock(Producto producto) {
         StockDialog dialog = new StockDialog(getScene().getWindow(), producto);
         dialog.showAndWait().ifPresent(form -> ejecutar(() -> {
-            stockService.registrar(producto, form.tipo(), form.motivo(), form.cantidad(), form.referencia(), form.observacion());
+            if (usuario != null) {
+                stockService.registrar(usuario, producto, form.tipo(), form.motivo(), form.cantidad(), form.referencia(), form.observacion());
+            } else {
+                stockService.registrar(producto, form.tipo(), form.motivo(), form.cantidad(), form.referencia(), form.observacion());
+            }
             recargar();
             mostrarFeedback("Stock actualizado correctamente.");
         }));
