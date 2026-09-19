@@ -41,7 +41,7 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
 
     public ProductoDialog(Window owner, List<CategoriaProducto> categorias, Producto producto) {
         initOwner(owner);
-        setTitle(producto == null ? "Nuevo producto" : "Editar producto");
+        setTitle(producto == null ? "Nuevo producto" : "Editar producto · " + producto.identificacionSistema());
         setHeaderText(null);
 
         categoria.getItems().add(SIN_CATEGORIA);
@@ -154,7 +154,8 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         title.getStyleClass().add("dialog-title");
         Label subtitle = new Label(nuevo
                 ? "Cargá los datos comerciales y, si querés, definí cuándo SisTienda debe avisarte que repongas."
-                : "Actualizá datos comerciales, identificación y niveles de reposición. El stock actual no se modifica acá.");
+                : "Actualizá datos comerciales, identificación y niveles de reposición. " + producto.identificacionSistema()
+                        + " es permanente y no se puede editar. El stock actual no se modifica acá.");
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("dialog-subtitle");
 
