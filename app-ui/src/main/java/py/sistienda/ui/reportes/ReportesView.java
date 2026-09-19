@@ -20,7 +20,9 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.TilePane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -192,29 +194,29 @@ public final class ReportesView extends BorderPane {
     }
 
     private ScrollPane buildDashboard() {
-        HBox primaryMetrics = new HBox(10,
+        TilePane primaryMetrics = new TilePane(10, 10,
                 metricCard("FACTURACIÓN", ventasValue, "Ventas netas de devoluciones según el filtro"),
                 metricCard("COSTO MERCADERÍA", costoValue, "Costo histórico neto de mercadería"),
                 metricCard("GANANCIA COMERCIAL", gananciaValue, "Facturación - costo de mercadería"),
                 metricCard("RESULTADO NETO", resultadoValue, resultadoHint)
         );
-        primaryMetrics.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
+        primaryMetrics.setPrefTileWidth(220);
 
-        HBox secondaryMetrics = new HBox(10,
+        TilePane secondaryMetrics = new TilePane(10, 10,
                 compactCard("TICKETS", ticketsValue),
                 compactCard("TICKET PROMEDIO", promedioValue),
                 compactCard("OTROS INGRESOS", ingresosValue),
                 compactCard("EGRESOS / GASTOS", egresosValue)
         );
-        secondaryMetrics.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
+        secondaryMetrics.setPrefTileWidth(220);
 
-        HBox payments = new HBox(10,
+        TilePane payments = new TilePane(10, 10,
                 paymentCard("EFECTIVO", efectivoValue),
                 paymentCard("TRANSFERENCIA", transferenciaValue),
                 paymentCard("TARJETA", tarjetaValue),
                 paymentCard("FIADO / CRÉDITO", fiadoValue)
         );
-        payments.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
+        payments.setPrefTileWidth(220);
 
         VBox chartCard = sectionCard("Evolución del período",
                 "Facturación y ganancia comercial netas. Las devoluciones descuentan en la fecha en que se procesan.", timeline);
@@ -222,10 +224,9 @@ public final class ReportesView extends BorderPane {
                 "Top 10 neto del período, considerando las devoluciones registradas.", productos);
         chartCard.setMinWidth(520);
         productCard.setMinWidth(430);
-        HBox.setHgrow(chartCard, Priority.ALWAYS);
-        HBox.setHgrow(productCard, Priority.ALWAYS);
-        HBox analysis = new HBox(10, chartCard, productCard);
+        FlowPane analysis = new FlowPane(10, 10, chartCard, productCard);
         analysis.setAlignment(Pos.TOP_LEFT);
+        analysis.setPrefWrapLength(980);
 
         VBox body = new VBox(10, primaryMetrics, secondaryMetrics, payments, analysis);
         body.setPadding(new Insets(10, 2, 14, 2));
