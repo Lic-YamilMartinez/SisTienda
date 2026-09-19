@@ -12,6 +12,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -113,9 +114,8 @@ public final class CatalogoView extends BorderPane {
         nuevoProducto.getStyleClass().add("primary-button");
         nuevoProducto.setOnAction(event -> editarProducto(null));
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox titleRow = new HBox(10, new VBox(2, eyebrow, title, subtitle), spacer, importar, nuevaCategoria, nuevoProducto);
+        VBox heading = new VBox(2, eyebrow, title, subtitle);
+        FlowPane titleRow = new FlowPane(10, 8, heading, importar, nuevaCategoria, nuevoProducto);
         titleRow.setAlignment(Pos.CENTER_LEFT);
 
         feedback.getStyleClass().add("feedback-label");
