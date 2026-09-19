@@ -175,7 +175,7 @@ public final class StockDialog extends Dialog<StockDialog.StockForm> {
     }
 
     private String formatStock(Producto value) {
-        String number = BigDecimal.valueOf(value.stockActual()).stripTrailingZeros().toPlainString();
+        String number = BigDecimal.valueOf(value.stockActual()).stripTrailingZeros().toPlainString().replace('.', ',');
         return number + (value.unidadMedida() == UnidadMedida.KG ? " kg" : " un.");
     }
 
