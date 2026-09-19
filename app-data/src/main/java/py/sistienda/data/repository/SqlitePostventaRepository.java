@@ -8,6 +8,7 @@ import py.sistienda.core.model.UnidadMedida;
 import py.sistienda.core.model.VentaPostventa;
 import py.sistienda.core.model.VentaPostventaLinea;
 import py.sistienda.core.repository.PostventaRepository;
+import py.sistienda.core.util.MoneyMath;
 import py.sistienda.data.database.SqliteConnectionFactory;
 
 import java.sql.Connection;
@@ -138,12 +139,12 @@ public final class SqlitePostventaRepository implements PostventaRepository {
                             || cantidad - linea.cantidadDisponible() > EPSILON) {
                         throw new ValidationException("La cantidad a devolver de “" + linea.producto() + "” ya no es válida.");
                     }
-                    double subtotal = cantidad * linea.precioUnitario();
-                    double costoLinea = cantidad * linea.costoUnitario();
-                    double gananciaLinea = subtotal - costoLinea;
-                    total += subtotal;
-                    costo += costoLinea;
-                    ganancia += gananciaLinea;
+                    double subtotal = MoneyMath.subtotal(linea.precioUnitario(), cantidad);
+                    double costoLinea = MoneyMath.subtotal(linea.costoUnitario(), cantidad);
+                    double gananciaLinea = MoneyMath.guaranies(subtotal - costoLinea);
+                    total = MoneyMath.guaranies(total + subtotal);
+                    costo = MoneyMath.guaranies(costo + costoLinea);
+                    ganancia = MoneyMath.guaranies(ganancia + gananciaLinea);
                     calculadas.add(new LineaCalculada(linea, cantidad, subtotal, gananciaLinea));
                 }
                 if (total <= EPSILON) {
