@@ -1,5 +1,7 @@
 package py.sistienda.ui.reportes;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.geometry.Insets;
@@ -130,7 +132,7 @@ public final class PostventaDialog {
                 );
                 onChanged.run();
             } catch (RuntimeException e) {
-                showError(feedback, rootMessage(e));
+                showError(feedback, UserErrorMessages.message(e));
             }
         });
 
@@ -159,7 +161,7 @@ public final class PostventaDialog {
                 );
                 onChanged.run();
             } catch (RuntimeException e) {
-                showError(feedback, rootMessage(e));
+                showError(feedback, UserErrorMessages.message(e));
             }
         });
 
