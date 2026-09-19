@@ -1,5 +1,7 @@
 package py.sistienda.ui.inventario;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -321,7 +323,7 @@ public final class InventarioView extends BorderPane {
                     var result = inventarioService.registrar(usuario, motivo.getText(), observacion.getText(), items);
                     inventoryId[0] = result.id();
                 } catch (RuntimeException e) {
-                    error.setText(rootMessage(e));
+                    error.setText(UserErrorMessages.message(e));
                     event.consume();
                 }
             });
@@ -481,7 +483,7 @@ public final class InventarioView extends BorderPane {
             feedback.setManaged(false);
             action.run();
         } catch (RuntimeException e) {
-            feedback.setText(rootMessage(e));
+            feedback.setText(UserErrorMessages.message(e));
             feedback.setVisible(true);
             feedback.setManaged(true);
         }
