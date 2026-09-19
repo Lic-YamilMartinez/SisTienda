@@ -152,7 +152,10 @@ public class MainApp extends Application {
                         : new CajaOperativaView(cajaService, movimientoCajaService, productoService, ventaService,
                         reporteService, empresaService, configuracionPosService, codigoBarrasService,
                         autorizacionService, usuario),
-                () -> new FiadoView(ventaService, cajaService, usuario, autorizacionService),
+                () -> new FiadoView(
+                        ventaService, cajaService, reporteService, empresaService,
+                        configuracionPosService, usuario, autorizacionService
+                ),
                 () -> new InventarioView(productoService, inventarioService, usuario, autorizacionService),
                 () -> new ReposicionView(reposicionService),
                 () -> new ReportesView(
