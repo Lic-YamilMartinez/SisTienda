@@ -1,5 +1,7 @@
 package py.sistienda.ui.compras;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -217,7 +219,7 @@ public final class ComprasView extends BorderPane {
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
         dialog.getDialogPane().lookupButton(ButtonType.OK).setDisable(false);
         ((Button) dialog.getDialogPane().lookupButton(ButtonType.OK)).setText("Registrar compra");
-        dialog.getDialogPane().setPrefSize(860, 650);
+        ResponsiveDialogSupport.fit(dialog, 860, 650);
 
         ComboBox<Proveedor> proveedor = new ComboBox<>(FXCollections.observableArrayList(proveedores));
         proveedor.setValue(proveedores.getFirst());
@@ -351,7 +353,7 @@ public final class ComprasView extends BorderPane {
         dialog.setTitle("Proveedores");
         dialog.setHeaderText("Gestionar proveedores");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(760, 560);
+        ResponsiveDialogSupport.fit(dialog, 760, 560);
 
         ObservableList<Proveedor> items = FXCollections.observableArrayList(proveedorService.listarActivos());
         FilteredList<Proveedor> filtered = new FilteredList<>(items, value -> true);
@@ -444,7 +446,7 @@ public final class ComprasView extends BorderPane {
             dialog.setTitle("Compra #" + detalle.id());
             dialog.setHeaderText(detalle.proveedor().nombre() + " · " + DATE_TIME.format(detalle.fecha()));
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            dialog.getDialogPane().setPrefSize(700, 540);
+            ResponsiveDialogSupport.fit(dialog, 700, 540);
 
             Label meta = new Label("Documento: " + orDash(detalle.nroDocumento()) + "   ·   Usuario: " + detalle.usuario());
             meta.getStyleClass().add("purchase-detail-meta");
