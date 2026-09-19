@@ -258,18 +258,16 @@ public final class CatalogoView extends BorderPane {
 
         TableColumn<Producto, Producto> actionsColumn = new TableColumn<>("Acciones");
         actionsColumn.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        actionsColumn.setPrefWidth(280);
+        actionsColumn.setPrefWidth(125);
         actionsColumn.setCellFactory(column -> new TableCell<>() {
-            private final Button edit = smallButton("Editar");
-            private final Button stock = smallButton("Stock +/-");
-            private final Button label = smallButton("Etiqueta");
-            private final Button disable = smallButton("Desactivar");
-            private final HBox box = new HBox(5, edit, stock, label, disable);
+            private final MenuButton menu = new MenuButton("Acciones");
+            private final MenuItem edit = new MenuItem("Editar");
+            private final MenuItem stock = new MenuItem("Stock +/-");
+            private final MenuItem label = new MenuItem("Etiqueta");
+            private final MenuItem disable = new MenuItem("Desactivar");
             {
-                stock.getStyleClass().add("stock-action-button");
-                label.getStyleClass().add("stock-action-button");
-                disable.getStyleClass().add("danger-link-button");
-                box.setAlignment(Pos.CENTER);
+                menu.getItems().addAll(edit, stock, label, new SeparatorMenuItem(), disable);
+                menu.getStyleClass().add("table-action-button");
             }
             @Override protected void updateItem(Producto value, boolean empty) {
                 super.updateItem(value, empty);
@@ -278,7 +276,8 @@ public final class CatalogoView extends BorderPane {
                 stock.setOnAction(event -> moverStock(value));
                 label.setOnAction(event -> imprimirEtiqueta(value));
                 disable.setOnAction(event -> desactivarProducto(value));
-                setGraphic(box);
+                setAlignment(Pos.CENTER);
+                setGraphic(menu);
             }
         });
 
