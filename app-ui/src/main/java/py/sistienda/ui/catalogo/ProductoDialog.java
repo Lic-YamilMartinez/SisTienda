@@ -107,7 +107,7 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
 
         DialogPane pane = getDialogPane();
         pane.getButtonTypes().addAll(GUARDAR, ButtonType.CANCEL);
-        VBox form = buildContent(producto == null);
+        VBox form = buildContent(producto);
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -149,7 +149,8 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         });
     }
 
-    private VBox buildContent(boolean nuevo) {
+    private VBox buildContent(Producto producto) {
+        boolean nuevo = producto == null;
         Label title = new Label(nuevo ? "Agregar producto" : "Actualizar producto");
         title.getStyleClass().add("dialog-title");
         Label subtitle = new Label(nuevo
