@@ -1,7 +1,9 @@
 package py.sistienda.ui;
 
 import javafx.application.Application;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.security.AutorizacionService;
@@ -99,13 +101,14 @@ public class MainApp extends Application {
         var empresa = empresaService.obtener();
         var logo = logoNegocioService.obtener().orElse(null);
         var login = new LoginView(authService, usuario -> showMain(stage, usuario), empresa, logo);
-        var scene = new Scene(login, 1180, 760);
+        Rectangle2D visual = Screen.getPrimary().getVisualBounds();
+        var scene = new Scene(login,
+                Math.min(1180, Math.max(860, visual.getWidth() - 32)),
+                Math.min(760, Math.max(560, visual.getHeight() - 32)));
         applyStyles(scene);
         stage.setTitle(empresa.nombre() + " · SisTienda · Acceso");
-        stage.setMinWidth(980);
-        stage.setMinHeight(680);
         stage.setScene(scene);
-        stage.centerOnScreen();
+        fitStage(stage, 1180, 760, 900, 560);
         stage.show();
     }
 
@@ -169,13 +172,27 @@ public class MainApp extends Application {
         );
         shellHolder[0] = root;
 
-        var scene = new Scene(root, 1360, 820);
+        Rectangle2D visual = Screen.getPrimary().getVisualBounds();
+        var scene = new Scene(root,
+                Math.min(1360, Math.max(960, visual.getWidth() - 24)),
+                Math.min(820, Math.max(580, visual.getHeight() - 24)));
         applyStyles(scene);
         updateStageTitle(stage, usuario);
-        stage.setMinWidth(1080);
-        stage.setMinHeight(700);
         stage.setScene(scene);
-        stage.centerOnScreen();
+        fitStage(stage, 1360, 820, 960, 580);
+    }
+
+    private void fitStage(Stage stage, double preferredWidth, double preferredHeight,
+                          double minimumWidth, double minimumHeight) {
+        Rectangle2D visual = Screen.getPrimary().getVisualBounds();
+        double maxWidth = Math.max(800, visual.getWidth() - 16);
+        double maxHeight = Math.max(520, visual.getHeight() - 16);
+        stage.setMinWidth(Math.min(minimumWidth, maxWidth));
+        stage.setMinHeight(Math.min(minimumHeight, maxHeight));
+        stage.setWidth(Math.min(preferredWidth, maxWidth));
+        stage.setHeight(Math.min(preferredHeight, maxHeight));
+        stage.setX(visual.getMinX() + Math.max(0, (visual.getWidth() - stage.getWidth()) / 2));
+        stage.setY(visual.getMinY() + Math.max(0, (visual.getHeight() - stage.getHeight()) / 2));
     }
 
     private void updateStageTitle(Stage stage, Usuario usuario) {
