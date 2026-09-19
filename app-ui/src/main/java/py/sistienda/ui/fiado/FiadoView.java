@@ -1,5 +1,7 @@
 package py.sistienda.ui.fiado;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -296,7 +298,7 @@ public final class FiadoView extends BorderPane {
             dialog.setTitle("Cuenta de " + cliente.nombre());
             dialog.setHeaderText(cliente.nombre());
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            dialog.getDialogPane().setPrefSize(800, 620);
+            ResponsiveDialogSupport.fit(dialog, 800, 620);
 
             Label saldo = new Label();
             saldo.getStyleClass().add("credit-account-balance");
