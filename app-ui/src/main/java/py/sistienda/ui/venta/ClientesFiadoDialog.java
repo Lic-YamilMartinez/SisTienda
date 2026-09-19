@@ -64,7 +64,6 @@ public final class ClientesFiadoDialog {
         dialog.setHeaderText("¿A quién le dejamos esta compra?");
         ButtonType usar = new ButtonType("Registrar fiado", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(usar, ButtonType.CANCEL);
-        ResponsiveDialogSupport.fit(dialog, 720, 560);
 
         Label amount = new Label(formatCurrency(totalVenta));
         amount.getStyleClass().add("credit-sale-total");
@@ -122,7 +121,7 @@ public final class ClientesFiadoDialog {
         );
         VBox.setVgrow(table, Priority.ALWAYS);
         content.setPadding(new Insets(4));
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 720, 560);
         applyStyles(dialog);
 
         dialog.setResultConverter(button -> button == usar && table.getSelectionModel().getSelectedItem() != null
@@ -142,7 +141,6 @@ public final class ClientesFiadoDialog {
         dialog.setTitle("Clientes & Fiado");
         dialog.setHeaderText("Cuentas corrientes de clientes");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        ResponsiveDialogSupport.fit(dialog, 940, 680);
 
         Label porCobrar = metricValue();
         Label clientesDeudores = metricValue();
@@ -217,7 +215,7 @@ public final class ClientesFiadoDialog {
         VBox content = new VBox(10, metrics, toolbar, table, cashHint);
         VBox.setVgrow(table, Priority.ALWAYS);
         content.setPadding(new Insets(4));
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 940, 680);
         applyStyles(dialog);
         dialog.showAndWait();
     }
@@ -301,7 +299,6 @@ public final class ClientesFiadoDialog {
         dialog.setHeaderText(cliente.nombre());
         ButtonType cerrar = ButtonType.CLOSE;
         dialog.getDialogPane().getButtonTypes().add(cerrar);
-        ResponsiveDialogSupport.fit(dialog, 780, 620);
 
         Label saldo = new Label();
         saldo.getStyleClass().add("credit-account-balance");
@@ -339,7 +336,7 @@ public final class ClientesFiadoDialog {
 
         VBox content = new VBox(12, accountHeader, movements);
         VBox.setVgrow(movements, Priority.ALWAYS);
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 780, 620);
         applyStyles(dialog);
         dialog.showAndWait();
     }
