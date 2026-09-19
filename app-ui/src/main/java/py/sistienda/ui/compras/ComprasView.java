@@ -1,5 +1,7 @@
 package py.sistienda.ui.compras;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -302,7 +304,7 @@ public final class ComprasView extends BorderPane {
             try {
                 saved[0] = compraService.registrar(usuario, proveedor.getValue(), documento.getText(), List.copyOf(lineas), observacion.getText());
             } catch (RuntimeException e) {
-                showInlineError(dialog, rootMessage(e));
+                showInlineError(dialog, UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -432,7 +434,7 @@ public final class ComprasView extends BorderPane {
                 if (actual == null) proveedorService.crear(nombre.getText(), ruc.getText(), telefono.getText(), email.getText(), direccion.getText());
                 else proveedorService.actualizar(actual, nombre.getText(), ruc.getText(), telefono.getText(), email.getText(), direccion.getText());
             } catch (RuntimeException e) {
-                showInlineError(dialog, rootMessage(e));
+                showInlineError(dialog, UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -529,7 +531,7 @@ public final class ComprasView extends BorderPane {
         try {
             feedback.setVisible(false); feedback.setManaged(false); action.run();
         } catch (RuntimeException e) {
-            mostrarFeedback(rootMessage(e));
+            mostrarFeedback(UserErrorMessages.message(e));
         }
     }
 
