@@ -43,7 +43,7 @@ public final class MovimientoCajaService {
 
     public ControlEfectivoCaja control(CajaSesion caja, double ventasEfectivo) {
         Objects.requireNonNull(caja);
-        if (!Double.isFinite(ventasEfectivo) || ventasEfectivo < 0) {
+        if (!Double.isFinite(ventasEfectivo)) {
             throw new ValidationException("Las ventas en efectivo no son válidas.");
         }
         var resumen = repository.summary(caja.id());
