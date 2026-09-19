@@ -29,6 +29,7 @@ import py.sistienda.core.service.LogoNegocioService;
 import py.sistienda.core.service.UsuarioService;
 import py.sistienda.ui.branding.BrandingImageFactory;
 import py.sistienda.ui.common.AppVersion;
+import py.sistienda.ui.common.TooltipSupport;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -192,11 +193,13 @@ public final class MainShell extends BorderPane {
         Button password = new Button("Cambiar contraseña");
         password.getStyleClass().add("nav-button");
         password.setMaxWidth(Double.MAX_VALUE);
+        TooltipSupport.install(password, "Cambiar la contraseña de tu usuario actual.");
         password.setOnAction(event -> cambiarMiPassword());
 
         Button logout = new Button("Cerrar sesión");
         logout.getStyleClass().add("nav-button");
         logout.setMaxWidth(Double.MAX_VALUE);
+        TooltipSupport.install(logout, "Cerrar esta sesión y volver a la pantalla de acceso.");
         logout.setOnAction(event -> onLogout.run());
 
         Label version = new Label("PILOTO · " + AppVersion.current());
@@ -254,6 +257,18 @@ public final class MainShell extends BorderPane {
         button.setGraphic(content);
         button.setMaxWidth(Double.MAX_VALUE);
         button.getStyleClass().add("nav-button");
+        TooltipSupport.install(button, switch (text) {
+            case "Catálogo & Stock" -> "Productos, precios, categorías y movimientos de stock.";
+            case "Caja" -> "Abrir/cerrar caja, vender y controlar el turno actual.";
+            case "Clientes & Fiado" -> "Consultar deudas, ventas a crédito y registrar cobros.";
+            case "Inventario físico" -> "Contar existencias reales y ajustar diferencias auditadas.";
+            case "Reposición" -> "Ver productos bajo mínimo y cantidades sugeridas para reponer.";
+            case "Reportes" -> "Consultar ventas, rentabilidad, medios de pago y resultados.";
+            case "Compras" -> "Registrar compras a proveedores y actualizar costo/stock.";
+            case "Configuración" -> "Identidad del negocio, hardware POS, backups y preferencias.";
+            case "Usuarios & Roles" -> "Administrar usuarios, roles, accesos y contraseñas.";
+            default -> "Abrir " + text + ".";
+        });
         return button;
     }
 
