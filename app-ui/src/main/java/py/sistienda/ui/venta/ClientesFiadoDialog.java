@@ -1,5 +1,7 @@
 package py.sistienda.ui.venta;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -278,7 +280,7 @@ public final class ClientesFiadoDialog {
                         usuario, nombre.getText(), documento.getText(), telefono.getText(), direccion.getText(), nota.getText()
                 );
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -398,7 +400,7 @@ public final class ClientesFiadoDialog {
                 );
                 id[0] = result.id();
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             }
         });
