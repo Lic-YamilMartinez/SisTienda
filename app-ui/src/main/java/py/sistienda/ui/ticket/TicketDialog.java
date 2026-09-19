@@ -194,7 +194,7 @@ public final class TicketDialog {
     }
 
     private static String formatQuantity(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
     private static void addStyle(Dialog<?> dialog, String path) {
