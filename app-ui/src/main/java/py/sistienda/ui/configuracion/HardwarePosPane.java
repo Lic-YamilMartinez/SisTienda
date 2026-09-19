@@ -1,5 +1,7 @@
 package py.sistienda.ui.configuracion;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
