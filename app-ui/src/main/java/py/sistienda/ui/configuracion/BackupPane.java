@@ -1,5 +1,8 @@
 package py.sistienda.ui.configuracion;
 
+import javafx.application.Platform;
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
@@ -132,8 +135,13 @@ public final class BackupPane extends VBox {
                 .filter(ButtonType.OK::equals)
                 .ifPresent(button -> ejecutar(() -> {
                     backupService.restaurar(selected.archivo());
-                    refrescar();
-                    status.setText("Backup restaurado. Reiniciá SisTienda para cargar los datos restaurados.");
+                    status.setText("Backup restaurado correctamente.");
+                    Alert done = new Alert(Alert.AlertType.INFORMATION);
+                    done.setTitle("Restauración completada");
+                    done.setHeaderText("SisTienda se cerrará para cargar la base restaurada");
+                    done.setContentText("Volvé a abrir SisTienda normalmente. La copia de emergencia del estado anterior quedó guardada.");
+                    done.showAndWait();
+                    Platform.exit();
                 }));
     }
 
@@ -167,11 +175,7 @@ public final class BackupPane extends VBox {
         try {
             action.run();
         } catch (RuntimeException e) {
-            Throwable current = e;
-            while (current.getCause() != null) {
-                current = current.getCause();
-            }
-            status.setText(current.getMessage() == null ? "No se pudo completar la operación." : current.getMessage());
+            status.setText(UserErrorMessages.message(e));
         }
     }
 
