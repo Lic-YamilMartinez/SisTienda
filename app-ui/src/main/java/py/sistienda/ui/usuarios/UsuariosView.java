@@ -143,15 +143,15 @@ public final class UsuariosView extends BorderPane {
 
         TableColumn<Usuario, Usuario> acciones = new TableColumn<>("Acciones");
         acciones.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        acciones.setPrefWidth(330);
+        acciones.setPrefWidth(135);
         acciones.setCellFactory(column -> new TableCell<>() {
-            private final Button role = actionButton("Cambiar rol");
-            private final Button password = actionButton("Contraseña");
-            private final Button state = actionButton("Desactivar");
-            private final HBox box = new HBox(7, role, password, state);
+            private final MenuButton menu = new MenuButton("Acciones");
+            private final MenuItem role = new MenuItem("Cambiar rol");
+            private final MenuItem password = new MenuItem("Restablecer contraseña");
+            private final MenuItem state = new MenuItem("Desactivar");
             {
-                state.getStyleClass().add("danger-link-button");
-                box.setAlignment(Pos.CENTER_LEFT);
+                menu.getItems().addAll(role, password, new SeparatorMenuItem(), state);
+                menu.getStyleClass().add("table-action-button");
             }
             @Override
             protected void updateItem(Usuario item, boolean empty) {
@@ -166,7 +166,8 @@ public final class UsuariosView extends BorderPane {
                 state.setText(item.activo() ? "Desactivar" : "Activar");
                 state.setDisable(item.id() == actor.id());
                 state.setOnAction(event -> cambiarEstado(item));
-                setGraphic(box);
+                setAlignment(Pos.CENTER);
+                setGraphic(menu);
             }
         });
 
