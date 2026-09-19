@@ -49,6 +49,10 @@ public record Producto(
                 stockActual, 0d, 0d, activo, null, null);
     }
 
+    public String identificacionSistema() {
+        return "ID " + id;
+    }
+
     public String identificacionComercial() {
         if (unidadMedida == UnidadMedida.KG && pluBalanza != null) {
             return "PLU " + String.format("%05d", pluBalanza);
