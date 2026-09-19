@@ -173,10 +173,10 @@ public final class CajaView extends BorderPane {
                 ventaService,
                 usuario,
                 sesion,
-                () -> {
+                result -> {
                     actualizarResumenVentas(sesion);
                     actualizarControlEfectivo(sesion);
-                    mostrarUltimoTicket();
+                    mostrarTicket(result.ventaId());
                 },
                 codigoBarrasService,
                 prefijoPeso
@@ -396,12 +396,11 @@ public final class CajaView extends BorderPane {
         return List.of("Alquiler", "Luz", "Agua", "Internet", "Flete", "Compra menor", "Retiro", "Otro");
     }
 
-    private void mostrarUltimoTicket() {
-        var ventas = reporteService.listarVentas(LocalDate.now());
-        if (ventas.isEmpty()) return;
-        var ultima = ventas.getFirst();
-        var config = configuracionPosService == null ? py.sistienda.core.model.ConfiguracionPos.porDefecto() : configuracionPosService.obtener();
-        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ultima.id()), config);
+    private void mostrarTicket(long ventaId) {
+        var config = configuracionPosService == null
+                ? py.sistienda.core.model.ConfiguracionPos.porDefecto()
+                : configuracionPosService.obtener();
+        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ventaId), config);
     }
 
     private Region separator() {
