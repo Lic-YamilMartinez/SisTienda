@@ -32,6 +32,7 @@ import py.sistienda.core.service.StockService;
 import py.sistienda.core.service.UsuarioService;
 import py.sistienda.core.service.VentaService;
 import py.sistienda.data.database.DatabaseInitializer;
+import py.sistienda.data.database.DbPaths;
 import py.sistienda.data.database.SqliteConnectionFactory;
 import py.sistienda.data.repository.SqliteArqueoCajaRepository;
 import py.sistienda.data.repository.SqliteBackupRepository;
@@ -53,6 +54,8 @@ import py.sistienda.data.repository.SqliteReporteRepository;
 import py.sistienda.data.repository.SqliteUsuarioRepository;
 import py.sistienda.data.repository.SqliteVentaRepository;
 import py.sistienda.ui.auth.LoginView;
+import py.sistienda.ui.common.AppLog;
+import py.sistienda.ui.common.AppVersion;
 import py.sistienda.ui.caja.CajaOperativaView;
 import py.sistienda.ui.caja.CajaView;
 import py.sistienda.ui.catalogo.CatalogoConsultaView;
@@ -77,6 +80,10 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) {
+        AppLog.init(DbPaths.dataDir());
+        Thread.setDefaultUncaughtExceptionHandler((thread, error) ->
+                AppLog.error("Error no controlado en " + thread.getName(), error));
+        AppLog.info("Iniciando SisTienda " + AppVersion.current() + " · datos: " + DbPaths.dataDir());
         connectionFactory = new SqliteConnectionFactory();
         new DatabaseInitializer(connectionFactory).initialize();
 
