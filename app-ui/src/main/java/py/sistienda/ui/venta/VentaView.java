@@ -32,6 +32,7 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public final class VentaView extends HBox {
 
@@ -41,7 +42,7 @@ public final class VentaView extends HBox {
     private final String prefijoPeso;
     private final Usuario usuario;
     private final CajaSesion caja;
-    private final Runnable onVentaRegistrada;
+    private final Consumer<VentaResultado> onVentaRegistrada;
 
     private final ObservableList<Producto> productos = FXCollections.observableArrayList();
     private final FilteredList<Producto> filtrados = new FilteredList<>(productos, value -> true);
@@ -58,22 +59,32 @@ public final class VentaView extends HBox {
     private final Label creditHint = new Label("Seleccionaremos el cliente al registrar la venta. El importe quedará pendiente en su cuenta.");
 
     public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario, CajaSesion caja) {
-        this(productoService, ventaService, usuario, caja, () -> { });
+        this(productoService, ventaService, usuario, caja, result -> { }, new CodigoBarrasService(), "20");
     }
 
     public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario,
                      CajaSesion caja, Runnable onVentaRegistrada) {
-        this(productoService, ventaService, usuario, caja, onVentaRegistrada, new CodigoBarrasService(), "20");
+        this(productoService, ventaService, usuario, caja,
+                result -> { if (onVentaRegistrada != null) onVentaRegistrada.accept(result); },
+                new CodigoBarrasService(), "20");
     }
 
     public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario,
                      CajaSesion caja, Runnable onVentaRegistrada, CodigoBarrasService codigoBarrasService,
                      String prefijoPeso) {
+        this(productoService, ventaService, usuario, caja,
+                result -> { if (onVentaRegistrada != null) onVentaRegistrada.run(); },
+                codigoBarrasService, prefijoPeso);
+    }
+
+    public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario,
+                     CajaSesion caja, Consumer<VentaResultado> onVentaRegistrada,
+                     CodigoBarrasService codigoBarrasService, String prefijoPeso) {
         this.productoService = productoService;
         this.ventaService = ventaService;
         this.usuario = usuario;
         this.caja = caja;
-        this.onVentaRegistrada = onVentaRegistrada == null ? () -> { } : onVentaRegistrada;
+        this.onVentaRegistrada = onVentaRegistrada == null ? result -> { } : onVentaRegistrada;
         this.codigoBarrasService = codigoBarrasService == null ? new CodigoBarrasService() : codigoBarrasService;
         this.prefijoPeso = prefijoPeso == null || !prefijoPeso.matches("2\\d") ? "20" : prefijoPeso;
 
