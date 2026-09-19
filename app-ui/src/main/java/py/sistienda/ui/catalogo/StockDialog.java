@@ -1,5 +1,7 @@
 package py.sistienda.ui.catalogo;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import py.sistienda.ui.common.UserErrorMessages;
 
 import javafx.event.ActionEvent;
@@ -70,6 +72,7 @@ public final class StockDialog extends Dialog<StockDialog.StockForm> {
         DialogPane pane = getDialogPane();
         pane.getButtonTypes().addAll(REGISTRAR, ButtonType.CANCEL);
         pane.setContent(buildContent());
+        ResponsiveDialogSupport.fit(this, 520, 580);
         pane.getStyleClass().add("product-dialog");
         applyStyles(pane);
 
