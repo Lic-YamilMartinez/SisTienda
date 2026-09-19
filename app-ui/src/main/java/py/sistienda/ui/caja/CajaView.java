@@ -295,7 +295,6 @@ public final class CajaView extends BorderPane {
         dialog.setTitle("Movimientos de caja");
         dialog.setHeaderText("Ingresos y egresos del turno actual");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        ResponsiveDialogSupport.fit(dialog, 820, 560);
 
         ObservableList<MovimientoCaja> items = FXCollections.observableArrayList(movimientoCajaService.listar(sesion));
         TableView<MovimientoCaja> table = new TableView<>(items);
@@ -347,7 +346,7 @@ public final class CajaView extends BorderPane {
         toolbar.setAlignment(Pos.CENTER_LEFT);
         VBox content = new VBox(10, toolbar, table);
         VBox.setVgrow(table, Priority.ALWAYS);
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 820, 560);
         applyDialogStyles(dialog);
         dialog.showAndWait();
     }
