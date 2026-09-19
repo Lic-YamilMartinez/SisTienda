@@ -1,5 +1,7 @@
 package py.sistienda.ui;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -360,7 +362,7 @@ public final class MainShell extends BorderPane {
             try {
                 usuarioService.cambiarMiPassword(usuario, oldSecret, newSecret);
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             } finally {
                 Arrays.fill(oldSecret, '\0');
