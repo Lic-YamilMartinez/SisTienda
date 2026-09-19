@@ -13,6 +13,7 @@ import py.sistienda.core.model.UnidadMedida;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.model.VentaResultado;
 import py.sistienda.core.repository.VentaRepository;
+import py.sistienda.core.util.MoneyMath;
 
 import java.util.HashMap;
 import java.util.List;
@@ -74,7 +75,7 @@ public final class VentaService {
         }
         validarStockAcumulado(lineas);
 
-        double total = lineas.stream().mapToDouble(LineaVenta::subtotal).sum();
+        double total = MoneyMath.guaranies(lineas.stream().mapToDouble(LineaVenta::subtotal).sum());
         if (!Double.isFinite(total) || total <= 0) {
             throw new ValidationException("El total de la venta debe ser mayor a cero.");
         }
@@ -102,13 +103,13 @@ public final class VentaService {
             if (!Double.isFinite(recibido) || recibido < total) {
                 throw new ValidationException("El efectivo recibido debe cubrir el total de la venta.");
             }
-            recibidoNormalizado = recibido;
-            vuelto = recibido - total;
+            recibidoNormalizado = MoneyMath.guaranies(recibido);
+            vuelto = MoneyMath.guaranies(recibidoNormalizado - total);
         } else if (metodoPago == MetodoPago.FIADO) {
             recibidoNormalizado = 0;
             vuelto = 0;
         } else {
-            recibidoNormalizado = total;
+            recibidoNormalizado = MoneyMath.guaranies(total);
             vuelto = 0;
         }
 
