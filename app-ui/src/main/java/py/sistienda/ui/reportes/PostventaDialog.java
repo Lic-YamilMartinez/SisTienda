@@ -58,7 +58,6 @@ public final class PostventaDialog {
         dialog.setTitle("Postventa · Ticket #" + venta.nroTicket());
         dialog.setHeaderText("Anulación y devolución");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        ResponsiveDialogSupport.fit(dialog, 760, 650);
 
         Label summary = new Label(
                 "Ticket #" + venta.nroTicket()
@@ -186,7 +185,7 @@ public final class PostventaDialog {
                 feedback, note, actions
         );
         content.setPadding(new Insets(5));
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 760, 650);
         applyStyle(dialog.getDialogPane());
         dialog.showAndWait();
     }
