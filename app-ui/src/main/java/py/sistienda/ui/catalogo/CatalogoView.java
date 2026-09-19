@@ -419,7 +419,7 @@ public final class CatalogoView extends BorderPane {
     }
 
     private String formatStock(Producto producto) {
-        String number = BigDecimal.valueOf(producto.stockActual()).stripTrailingZeros().toPlainString();
+        String number = BigDecimal.valueOf(producto.stockActual()).stripTrailingZeros().toPlainString().replace('.', ',');
         return number + (producto.unidadMedida() == UnidadMedida.KG ? " kg" : " un.");
     }
 
@@ -431,7 +431,7 @@ public final class CatalogoView extends BorderPane {
 
     private String formatCantidad(double value, UnidadMedida unidad) {
         if (unidad == UnidadMedida.UN) return Long.toString(Math.round(value));
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
     private void mostrarFeedback(String message) {
