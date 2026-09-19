@@ -1,5 +1,7 @@
 package py.sistienda.ui.reportes;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -54,7 +56,7 @@ public final class PostventaDialog {
         dialog.setTitle("Postventa · Ticket #" + venta.nroTicket());
         dialog.setHeaderText("Anulación y devolución");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(760, 650);
+        ResponsiveDialogSupport.fit(dialog, 760, 650);
 
         Label summary = new Label(
                 "Ticket #" + venta.nroTicket()
