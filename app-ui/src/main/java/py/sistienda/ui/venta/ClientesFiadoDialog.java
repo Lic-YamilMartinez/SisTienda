@@ -1,5 +1,7 @@
 package py.sistienda.ui.venta;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -60,7 +62,7 @@ public final class ClientesFiadoDialog {
         dialog.setHeaderText("¿A quién le dejamos esta compra?");
         ButtonType usar = new ButtonType("Registrar fiado", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(usar, ButtonType.CANCEL);
-        dialog.getDialogPane().setPrefSize(720, 560);
+        ResponsiveDialogSupport.fit(dialog, 720, 560);
 
         Label amount = new Label(formatCurrency(totalVenta));
         amount.getStyleClass().add("credit-sale-total");
@@ -138,7 +140,7 @@ public final class ClientesFiadoDialog {
         dialog.setTitle("Clientes & Fiado");
         dialog.setHeaderText("Cuentas corrientes de clientes");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(940, 680);
+        ResponsiveDialogSupport.fit(dialog, 940, 680);
 
         Label porCobrar = metricValue();
         Label clientesDeudores = metricValue();
@@ -297,7 +299,7 @@ public final class ClientesFiadoDialog {
         dialog.setHeaderText(cliente.nombre());
         ButtonType cerrar = ButtonType.CLOSE;
         dialog.getDialogPane().getButtonTypes().add(cerrar);
-        dialog.getDialogPane().setPrefSize(780, 620);
+        ResponsiveDialogSupport.fit(dialog, 780, 620);
 
         Label saldo = new Label();
         saldo.getStyleClass().add("credit-account-balance");
