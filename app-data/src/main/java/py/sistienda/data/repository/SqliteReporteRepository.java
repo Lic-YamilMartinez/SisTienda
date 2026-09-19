@@ -289,7 +289,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     SELECT v.fecha, v.metodo_pago, d.producto_id,
                            d.cantidad AS cantidad,
                            d.subtotal AS ventas,
-                           d.costo_unitario * d.cantidad AS costo,
+                           d.subtotal - d.ganancia_linea AS costo,
                            d.ganancia_linea AS ganancia
                     FROM venta_detalle d
                     JOIN venta v ON v.id = d.venta_id
@@ -298,7 +298,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     SELECT dv.fecha, dv.metodo_pago, dd.producto_id,
                            -dd.cantidad AS cantidad,
                            -dd.subtotal AS ventas,
-                           -(dd.costo_unitario * dd.cantidad) AS costo,
+                           -(dd.subtotal - dd.ganancia_revertida) AS costo,
                            -dd.ganancia_revertida AS ganancia
                     FROM devolucion_detalle dd
                     JOIN devolucion dv ON dv.id = dd.devolucion_id
