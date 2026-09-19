@@ -1,5 +1,7 @@
 package py.sistienda.ui.auth;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -205,7 +207,7 @@ public final class LoginView extends StackPane {
         } catch (ValidationException e) {
             showError(e.getMessage());
         } catch (RuntimeException e) {
-            showError(rootMessage(e));
+            showError(UserErrorMessages.message(e));
         } finally {
             Arrays.fill(passwordValue, '\0');
             Arrays.fill(confirmValue, '\0');
