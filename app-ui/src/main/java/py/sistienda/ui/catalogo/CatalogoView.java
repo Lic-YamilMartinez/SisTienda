@@ -148,7 +148,7 @@ public final class CatalogoView extends BorderPane {
     }
 
     private VBox buildWorkspace() {
-        buscar.setPromptText("Buscar por nombre, categoría, código o PLU...");
+        buscar.setPromptText("Buscar por ID, nombre, categoría, código o PLU...");
         buscar.getStyleClass().add("search-field");
         buscar.setPrefWidth(350);
         filtroCategoria.setPrefWidth(230);
@@ -199,7 +199,7 @@ public final class CatalogoView extends BorderPane {
                 } else {
                     name.setText(value.nombre());
                     String category = value.categoriaNombre() == null ? "Sin categoría" : value.categoriaNombre();
-                    detail.setText(category + " · " + value.identificacionComercial());
+                    detail.setText(value.identificacionSistema() + " · " + category + " · " + value.identificacionComercial());
                     setGraphic(box);
                 }
             }
@@ -296,6 +296,7 @@ public final class CatalogoView extends BorderPane {
         String category = filtroCategoria.getValue();
         productosFiltrados.setPredicate(producto -> {
             boolean textMatches = query.isBlank()
+                    || String.valueOf(producto.id()).contains(query)
                     || producto.nombre().toLowerCase(Locale.ROOT).contains(query)
                     || (producto.categoriaNombre() != null && producto.categoriaNombre().toLowerCase(Locale.ROOT).contains(query))
                     || (producto.codigoBarras() != null && producto.codigoBarras().toLowerCase(Locale.ROOT).contains(query))
