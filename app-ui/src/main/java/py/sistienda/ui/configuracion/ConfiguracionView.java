@@ -10,6 +10,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -135,8 +136,9 @@ public final class ConfiguracionView extends BorderPane {
         preview.setPrefWidth(330);
         preview.setMinWidth(300);
 
-        HBox body = new HBox(18, form, preview);
+        FlowPane body = new FlowPane(18, 18, form, preview);
         body.setAlignment(Pos.TOP_LEFT);
+        body.setPrefWrapLength(860);
 
         VBox card = new VBox(14, title, hint, body);
         card.getStyleClass().add("config-card");
