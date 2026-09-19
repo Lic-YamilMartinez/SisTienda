@@ -7,6 +7,12 @@ $Root = Split-Path -Parent $PSScriptRoot
 $Gradle = Join-Path $Root "gradlew.bat"
 $InstallerDir = Join-Path $Root "app-ui\build\installer"
 $DistributionLib = Join-Path $Root "app-ui\build\install\SisTienda\lib"
+$BuildFile = Join-Path $Root "build.gradle"
+$BuildText = Get-Content $BuildFile -Raw
+if ($BuildText -notmatch "version\s*=\s*'([^']+)'") {
+    throw "No se pudo determinar la versión desde build.gradle."
+}
+$AppVersion = $Matches[1]
 
 Push-Location $Root
 try {
@@ -48,7 +54,7 @@ try {
     & $Jpackage `
         --type exe `
         --name "SisTienda" `
-        --app-version "0.9.0" `
+        --app-version $AppVersion `
         --vendor "SisTienda" `
         --description "Sistema de gestión y punto de venta para comercios" `
         --input $DistributionLib `
@@ -74,6 +80,7 @@ try {
     Write-Host ""
     Write-Host "Instalador generado correctamente:" -ForegroundColor Green
     Write-Host $Installer.FullName -ForegroundColor Cyan
+    Write-Host "Versión: $AppVersion" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Los datos del cliente NO se guardan dentro del programa instalado." -ForegroundColor Yellow
     Write-Host "En Windows se guardan por defecto en %LOCALAPPDATA%\SisTienda" -ForegroundColor Yellow
