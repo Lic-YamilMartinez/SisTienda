@@ -164,7 +164,7 @@ public final class ReportesView extends BorderPane {
             recargar();
         });
 
-        HBox filters = new HBox(8,
+        FlowPane filters = new FlowPane(8, 8,
                 filterField("Período", periodo),
                 filterField("Desde", desde),
                 filterField("Hasta", hasta),
