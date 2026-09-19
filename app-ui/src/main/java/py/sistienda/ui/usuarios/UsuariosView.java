@@ -1,5 +1,7 @@
 package py.sistienda.ui.usuarios;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -227,7 +229,7 @@ public final class UsuariosView extends BorderPane {
             try {
                 usuarioService.crear(actor, username.getText(), secret, rol.getValue());
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             } finally {
                 Arrays.fill(secret, '\0');
@@ -288,7 +290,7 @@ public final class UsuariosView extends BorderPane {
             try {
                 usuarioService.restablecerPassword(actor, usuario.id(), secret);
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             } finally {
                 Arrays.fill(secret, '\0');
@@ -358,7 +360,7 @@ public final class UsuariosView extends BorderPane {
         } catch (ValidationException e) {
             mostrarFeedback(e.getMessage());
         } catch (RuntimeException e) {
-            mostrarFeedback(rootMessage(e));
+            mostrarFeedback(UserErrorMessages.message(e));
         }
     }
 
