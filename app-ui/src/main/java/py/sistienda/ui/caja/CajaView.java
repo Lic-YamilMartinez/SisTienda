@@ -1,5 +1,7 @@
 package py.sistienda.ui.caja;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -291,7 +293,7 @@ public final class CajaView extends BorderPane {
         dialog.setTitle("Movimientos de caja");
         dialog.setHeaderText("Ingresos y egresos del turno actual");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(820, 560);
+        ResponsiveDialogSupport.fit(dialog, 820, 560);
 
         ObservableList<MovimientoCaja> items = FXCollections.observableArrayList(movimientoCajaService.listar(sesion));
         TableView<MovimientoCaja> table = new TableView<>(items);
