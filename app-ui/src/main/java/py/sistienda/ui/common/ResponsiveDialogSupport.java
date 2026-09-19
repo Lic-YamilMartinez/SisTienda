@@ -5,7 +5,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.ScrollPane;
 import javafx.stage.Screen;
-import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import java.util.Objects;
@@ -32,15 +31,7 @@ public final class ResponsiveDialogSupport {
         pane.setPrefSize(width, height);
         pane.setMaxSize(maxWidth, maxHeight);
 
-        dialog.setOnShown(event -> {
-            Window window = pane.getScene() == null ? null : pane.getScene().getWindow();
-            if (window instanceof Stage stage) {
-                stage.setMaxWidth(maxWidth);
-                stage.setMaxHeight(maxHeight);
-                if (stage.getWidth() > maxWidth) stage.setWidth(maxWidth);
-                if (stage.getHeight() > maxHeight) stage.setHeight(maxHeight);
-            }
-        });
+        dialog.setResizable(true);
     }
 
     /**
