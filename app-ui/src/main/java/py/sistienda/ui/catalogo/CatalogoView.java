@@ -1,5 +1,7 @@
 package py.sistienda.ui.catalogo;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
