@@ -174,7 +174,7 @@ public final class SqliteClienteRepository implements ClienteRepository {
     @Override
     public List<ClienteCuentaMovimiento> movimientos(long clienteId) {
         String sql = """
-                SELECT fecha, tipo, referencia, cargo, abono, detalle, medio_pago
+                SELECT fecha, tipo, referencia, cargo, abono, detalle, medio_pago, venta_id
                 FROM (
                     SELECT v.fecha AS fecha,
                            'VENTA FIADA' AS tipo,
@@ -183,6 +183,7 @@ public final class SqliteClienteRepository implements ClienteRepository {
                            0 AS abono,
                            'Compra a crédito' AS detalle,
                            'FIADO' AS medio_pago,
+                           v.id AS venta_id,
                            v.id * 10 + 1 AS orden
                     FROM venta v
                     WHERE v.cliente_id = ? AND v.metodo_pago = 'FIADO'
@@ -194,6 +195,7 @@ public final class SqliteClienteRepository implements ClienteRepository {
                            v.total AS abono,
                            'Venta anulada: ' || a.motivo AS detalle,
                            'FIADO' AS medio_pago,
+                           v.id AS venta_id,
                            v.id * 10 + 2 AS orden
                     FROM venta_anulacion a
                     JOIN venta v ON v.id = a.venta_id
@@ -206,6 +208,7 @@ public final class SqliteClienteRepository implements ClienteRepository {
                            d.total AS abono,
                            'Devolución: ' || d.motivo AS detalle,
                            'FIADO' AS medio_pago,
+                           v.id AS venta_id,
                            d.id * 10 + 3 AS orden
                     FROM devolucion d
                     JOIN venta v ON v.id = d.venta_id
@@ -218,6 +221,7 @@ public final class SqliteClienteRepository implements ClienteRepository {
                            ca.monto AS abono,
                            COALESCE(ca.observacion, 'Cobro de cuenta') AS detalle,
                            ca.metodo_pago AS medio_pago,
+                           NULL AS venta_id,
                            ca.id * 10 + 4 AS orden
                     FROM cliente_abono ca
                     WHERE ca.cliente_id = ?
@@ -239,7 +243,8 @@ public final class SqliteClienteRepository implements ClienteRepository {
                             result.getDouble("cargo"),
                             result.getDouble("abono"),
                             result.getString("detalle"),
-                            result.getString("medio_pago")
+                            result.getString("medio_pago"),
+                            result.getObject("venta_id") == null ? null : result.getLong("venta_id")
                     ));
                 }
                 return List.copyOf(items);
