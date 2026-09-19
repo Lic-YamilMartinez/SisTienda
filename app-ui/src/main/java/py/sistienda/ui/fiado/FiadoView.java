@@ -300,7 +300,6 @@ public final class FiadoView extends BorderPane {
             dialog.setTitle("Cuenta de " + cliente.nombre());
             dialog.setHeaderText(cliente.nombre());
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            ResponsiveDialogSupport.fit(dialog, 800, 620);
 
             Label saldo = new Label();
             saldo.getStyleClass().add("credit-account-balance");
@@ -329,7 +328,7 @@ public final class FiadoView extends BorderPane {
             top.setAlignment(Pos.CENTER_LEFT);
             VBox content = new VBox(12, top, movimientos);
             VBox.setVgrow(movimientos, Priority.ALWAYS);
-            dialog.getDialogPane().setContent(content);
+            ResponsiveDialogSupport.scrollContent(dialog, content, 800, 620);
             applyStyles(dialog);
             dialog.showAndWait();
             recargar();
