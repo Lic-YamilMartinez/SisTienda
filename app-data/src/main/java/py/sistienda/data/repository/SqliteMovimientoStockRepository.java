@@ -19,10 +19,21 @@ public final class SqliteMovimientoStockRepository implements MovimientoStockRep
     @Override
     public void register(long productoId, TipoMovimientoStock tipo, String motivo, double cantidad,
                          String referencia, String observacion) {
+        registerInternal(productoId, null, tipo, motivo, cantidad, referencia, observacion);
+    }
+
+    @Override
+    public void register(long productoId, long usuarioId, TipoMovimientoStock tipo, String motivo,
+                         double cantidad, String referencia, String observacion) {
+        registerInternal(productoId, usuarioId, tipo, motivo, cantidad, referencia, observacion);
+    }
+
+    private void registerInternal(long productoId, Long usuarioId, TipoMovimientoStock tipo, String motivo,
+                                  double cantidad, String referencia, String observacion) {
         String sql = """
                 INSERT INTO mov_stock
-                    (producto_id, tipo, motivo, cantidad, referencia, observacion)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (producto_id, tipo, motivo, cantidad, referencia, usuario_id, observacion)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (var connection = connectionFactory.open();
@@ -32,7 +43,9 @@ public final class SqliteMovimientoStockRepository implements MovimientoStockRep
             statement.setString(3, motivo);
             statement.setDouble(4, cantidad);
             statement.setString(5, referencia);
-            statement.setString(6, observacion);
+            if (usuarioId == null) statement.setNull(6, java.sql.Types.INTEGER);
+            else statement.setLong(6, usuarioId);
+            statement.setString(7, observacion);
             statement.executeUpdate();
         } catch (Exception e) {
             String message = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
