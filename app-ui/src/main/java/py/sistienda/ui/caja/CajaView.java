@@ -1,5 +1,7 @@
 package py.sistienda.ui.caja;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -384,7 +386,7 @@ public final class CajaView extends BorderPane {
                         parseMonto(monto.getText(), "monto"), referencia.getText());
                 saved[0] = true;
             } catch (RuntimeException e) {
-                dialog.setHeaderText(rootMessage(e));
+                dialog.setHeaderText(UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -527,7 +529,7 @@ public final class CajaView extends BorderPane {
         } catch (ValidationException e) {
             mostrarFeedback(e.getMessage());
         } catch (RuntimeException e) {
-            mostrarFeedback(rootMessage(e));
+            mostrarFeedback(UserErrorMessages.message(e));
         }
     }
 
