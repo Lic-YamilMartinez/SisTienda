@@ -40,7 +40,6 @@ final class ImportacionProductosDialog {
         dialog.setTitle("Importar productos");
         dialog.setHeaderText(null);
         dialog.getDialogPane().getButtonTypes().addAll(IMPORTAR, ButtonType.CANCEL);
-        ResponsiveDialogSupport.fit(dialog, 980, 690);
 
         ObservableList<ImportacionProductoValidacion> rows = FXCollections.observableArrayList();
         Label archivo = new Label("Todavía no seleccionaste un archivo.");
@@ -82,7 +81,7 @@ final class ImportacionProductosDialog {
         VBox content = new VBox(10, title, subtitle, actions, metrics, table, note, estado);
         content.setPadding(new Insets(8));
         VBox.setVgrow(table, Priority.ALWAYS);
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 980, 690);
         applyStyles(dialog.getDialogPane());
 
         Node importNode = dialog.getDialogPane().lookupButton(IMPORTAR);
