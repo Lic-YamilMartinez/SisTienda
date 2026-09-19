@@ -91,11 +91,11 @@ public final class SqliteCajaRepository implements CajaRepository {
     public ResumenVentasCaja salesSummary(long cajaSesionId) {
         String sql = """
                 WITH movimientos_venta AS (
-                    SELECT metodo_pago, total AS importe
+                    SELECT metodo_pago, total AS importe, ganancia_total AS ganancia
                     FROM venta
                     WHERE caja_sesion_id = ? AND anulada = 0
                     UNION ALL
-                    SELECT metodo_pago, -total AS importe
+                    SELECT metodo_pago, -total AS importe, -ganancia_revertida AS ganancia
                     FROM devolucion
                     WHERE caja_sesion_id = ?
                 )
@@ -104,7 +104,8 @@ public final class SqliteCajaRepository implements CajaRepository {
                     COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN importe ELSE 0 END), 0) AS transferencia,
                     COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN importe ELSE 0 END), 0) AS tarjeta,
                     COALESCE(SUM(CASE WHEN metodo_pago = 'FIADO' THEN importe ELSE 0 END), 0) AS fiado,
-                    COALESCE(SUM(importe), 0) AS total
+                    COALESCE(SUM(importe), 0) AS total,
+                    COALESCE(SUM(ganancia), 0) AS ganancia
                 FROM movimientos_venta
                 """;
         try (var connection = connectionFactory.open();
@@ -120,7 +121,8 @@ public final class SqliteCajaRepository implements CajaRepository {
                         result.getDouble("transferencia"),
                         result.getDouble("tarjeta"),
                         result.getDouble("fiado"),
-                        result.getDouble("total")
+                        result.getDouble("total"),
+                        result.getDouble("ganancia")
                 );
             }
         } catch (SQLException e) {
