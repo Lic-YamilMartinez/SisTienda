@@ -1,5 +1,7 @@
 package py.sistienda.ui.catalogo;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -36,7 +38,7 @@ final class ImportacionProductosDialog {
         dialog.setTitle("Importar productos");
         dialog.setHeaderText(null);
         dialog.getDialogPane().getButtonTypes().addAll(IMPORTAR, ButtonType.CANCEL);
-        dialog.getDialogPane().setPrefSize(980, 690);
+        ResponsiveDialogSupport.fit(dialog, 980, 690);
 
         ObservableList<ImportacionProductoValidacion> rows = FXCollections.observableArrayList();
         Label archivo = new Label("Todavía no seleccionaste un archivo.");
