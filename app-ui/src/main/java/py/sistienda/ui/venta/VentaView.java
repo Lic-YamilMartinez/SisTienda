@@ -125,11 +125,11 @@ public final class VentaView extends HBox {
         eyebrow.getStyleClass().add("eyebrow");
         Label title = new Label("Productos");
         title.getStyleClass().add("pos-section-title");
-        Label scanHint = new Label("Escaneá código/etiqueta o buscá por nombre");
+        Label scanHint = new Label("Escaneá código/etiqueta o buscá por ID o nombre");
         scanHint.getStyleClass().add("pos-scan-hint");
         VBox heading = new VBox(1, eyebrow, title, scanHint);
 
-        buscar.setPromptText("Escanear código o buscar producto...");
+        buscar.setPromptText("Escanear código o buscar por ID/nombre...");
         buscar.getStyleClass().add("pos-search");
         buscar.setPrefWidth(360);
         buscar.setMinWidth(210);
@@ -262,6 +262,7 @@ public final class VentaView extends HBox {
         buscar.textProperty().addListener((obs, oldValue, newValue) -> {
             String query = newValue == null ? "" : newValue.trim().toLowerCase(Locale.ROOT);
             filtrados.setPredicate(producto -> query.isBlank()
+                    || String.valueOf(producto.id()).contains(query)
                     || producto.nombre().toLowerCase(Locale.ROOT).contains(query)
                     || (producto.categoriaNombre() != null && producto.categoriaNombre().toLowerCase(Locale.ROOT).contains(query))
                     || (producto.codigoBarras() != null && producto.codigoBarras().toLowerCase(Locale.ROOT).contains(query))
@@ -282,6 +283,22 @@ public final class VentaView extends HBox {
                 return;
             }
 
+            if (code.matches("\\d+")) {
+                try {
+                    long productoId = Long.parseLong(code);
+                    var porId = productoService.buscarPorId(productoId);
+                    if (porId.isPresent()) {
+                        Producto producto = porId.get();
+                        if (producto.unidadMedida() == UnidadMedida.UN) agregarCantidad(producto, 1d, true);
+                        else pedirCantidad(producto, encontrarEnCarrito(producto));
+                        limpiarEscaneo();
+                        return;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Si no entra en long, puede seguir siendo un código/etiqueta de balanza.
+                }
+            }
+
             var lectura = codigoBarrasService.decodificarCodigoPeso(code, prefijoPeso);
             if (lectura.isPresent()) {
                 var producto = productoService.buscarPorPlu(lectura.get().plu())
@@ -294,7 +311,7 @@ public final class VentaView extends HBox {
                 limpiarEscaneo();
                 return;
             }
-            throw new ValidationException("Código no reconocido. Revisá el código de barras o la configuración de la balanza.");
+            throw new ValidationException("Producto no reconocido. Revisá el ID, código de barras o la configuración de la balanza.");
         });
     }
 
@@ -325,7 +342,7 @@ public final class VentaView extends HBox {
                 if (empty || item == null) { setGraphic(null); return; }
                 name.setText(item.nombre());
                 String category = item.categoriaNombre() == null ? "Sin categoría" : item.categoriaNombre();
-                detail.setText(category + " · " + item.identificacionComercial());
+                detail.setText(item.identificacionSistema() + " · " + category + " · " + item.identificacionComercial());
                 setGraphic(box);
             }
         });
