@@ -1,5 +1,7 @@
 package py.sistienda.ui.inventario;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.property.SimpleStringProperty;
@@ -338,7 +340,7 @@ public final class InventarioView extends BorderPane {
             dialog.setTitle("Historial de inventarios");
             dialog.setHeaderText("Conteos físicos registrados");
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            dialog.getDialogPane().setPrefSize(900, 620);
+            ResponsiveDialogSupport.fit(dialog, 900, 620);
 
             TableView<InventarioConteoResumen> history = new TableView<>(FXCollections.observableArrayList(
                     inventarioService.recientes(usuario, 100)
@@ -386,7 +388,7 @@ public final class InventarioView extends BorderPane {
         dialog.setTitle("Inventario #" + resumen.id());
         dialog.setHeaderText(resumen.motivo() + " · " + DATE_TIME.format(resumen.fecha()));
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(760, 560);
+        ResponsiveDialogSupport.fit(dialog, 760, 560);
 
         TableView<InventarioConteoDetalle> detail = new TableView<>(FXCollections.observableArrayList(
                 inventarioService.detalle(usuario, resumen.id())
