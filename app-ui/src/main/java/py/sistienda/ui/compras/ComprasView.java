@@ -489,7 +489,9 @@ public final class ComprasView extends BorderPane {
 
     private StringConverter<Producto> productoConverter() {
         return new StringConverter<>() {
-            @Override public String toString(Producto value) { return value == null ? "" : value.nombre(); }
+            @Override public String toString(Producto value) {
+                return value == null ? "" : value.identificacionSistema() + " · " + value.nombre();
+            }
             @Override public Producto fromString(String value) { return null; }
         };
     }
