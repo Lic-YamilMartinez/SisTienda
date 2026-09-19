@@ -56,6 +56,7 @@ import py.sistienda.data.repository.SqliteVentaRepository;
 import py.sistienda.ui.auth.LoginView;
 import py.sistienda.ui.common.AppLog;
 import py.sistienda.ui.common.AppVersion;
+import py.sistienda.ui.common.ViewportPolicy;
 import py.sistienda.ui.caja.CajaOperativaView;
 import py.sistienda.ui.caja.CajaView;
 import py.sistienda.ui.catalogo.CatalogoConsultaView;
@@ -192,12 +193,16 @@ public class MainApp extends Application {
     private void fitStage(Stage stage, double preferredWidth, double preferredHeight,
                           double minimumWidth, double minimumHeight) {
         Rectangle2D visual = Screen.getPrimary().getVisualBounds();
-        double maxWidth = Math.max(800, visual.getWidth() - 16);
-        double maxHeight = Math.max(520, visual.getHeight() - 16);
-        stage.setMinWidth(Math.min(minimumWidth, maxWidth));
-        stage.setMinHeight(Math.min(minimumHeight, maxHeight));
-        stage.setWidth(Math.min(preferredWidth, maxWidth));
-        stage.setHeight(Math.min(preferredHeight, maxHeight));
+        var size = ViewportPolicy.window(
+                visual.getWidth(), visual.getHeight(),
+                preferredWidth, preferredHeight,
+                minimumWidth, minimumHeight,
+                16
+        );
+        stage.setMinWidth(size.minimumWidth());
+        stage.setMinHeight(size.minimumHeight());
+        stage.setWidth(size.width());
+        stage.setHeight(size.height());
         stage.setX(visual.getMinX() + Math.max(0, (visual.getWidth() - stage.getWidth()) / 2));
         stage.setY(visual.getMinY() + Math.max(0, (visual.getHeight() - stage.getHeight()) / 2));
     }
