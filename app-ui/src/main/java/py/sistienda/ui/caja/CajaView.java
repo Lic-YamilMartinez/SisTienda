@@ -34,6 +34,7 @@ import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.VentaService;
 import py.sistienda.ui.common.MoneyFieldSupport;
+import py.sistienda.ui.common.TooltipSupport;
 import py.sistienda.ui.ticket.TicketDialog;
 import py.sistienda.ui.venta.VentaView;
 
@@ -64,7 +65,9 @@ public final class CajaView extends BorderPane {
     private final Label ventasEfectivo = new Label("Gs. 0");
     private final Label ventasTransferencia = new Label("Gs. 0");
     private final Label ventasTarjeta = new Label("Gs. 0");
+    private final Label ventasFiado = new Label("Gs. 0");
     private final Label ventasTotal = new Label("Gs. 0");
+    private final Label gananciaActual = new Label("Gs. 0");
     private final Label movimientosIngresos = new Label("Gs. 0");
     private final Label movimientosEgresos = new Label("Gs. 0");
     private final Label efectivoEsperado = new Label("Gs. 0");
@@ -205,6 +208,7 @@ public final class CajaView extends BorderPane {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         Button close = new Button("Cerrar caja");
         close.getStyleClass().addAll("secondary-button", "cash-close-button");
+        TooltipSupport.install(close, "Cerrar el turno y comparar el efectivo contado contra el esperado.");
         close.setOnAction(event -> mostrarDialogoCierre(sesion));
         HBox bar = new HBox(12, status, opened, separator(), fund, separator(), user, spacer, close);
         bar.setAlignment(Pos.CENTER_LEFT);
@@ -218,6 +222,7 @@ public final class CajaView extends BorderPane {
                 salesMetric("EFECTIVO", ventasEfectivo, false),
                 salesMetric("TRANSFERENCIA", ventasTransferencia, false),
                 salesMetric("TARJETA", ventasTarjeta, false),
+                salesMetric("FIADO", ventasFiado, false),
                 salesMetric("TOTAL VENDIDO", ventasTotal, true)
         );
         bar.getStyleClass().add("cash-sales-summary");
@@ -236,17 +241,26 @@ public final class CajaView extends BorderPane {
         Label esperadoTitle = new Label("EFECTIVO ESPERADO");
         esperadoTitle.getStyleClass().add("cash-control-label");
         efectivoEsperado.getStyleClass().addAll("cash-control-value", "cash-control-expected");
+        Label gananciaTitle = new Label("GANANCIA ACTUAL");
+        gananciaTitle.getStyleClass().add("cash-control-label");
+        gananciaActual.getStyleClass().addAll("cash-control-value", "cash-control-income");
 
         HBox ingresos = compactMetric(ingresosTitle, movimientosIngresos);
         HBox egresos = compactMetric(egresosTitle, movimientosEgresos);
         HBox esperado = compactMetric(esperadoTitle, efectivoEsperado);
+        HBox ganancia = compactMetric(gananciaTitle, gananciaActual);
+        TooltipSupport.install(ingresos, "Ingresos manuales del turno y cobros de fiado en efectivo.");
+        TooltipSupport.install(egresos, "Egresos y gastos manuales registrados durante el turno.");
+        TooltipSupport.install(esperado, "Fondo inicial + ventas en efectivo + ingresos - egresos.");
+        TooltipSupport.install(ganancia, "Ganancia comercial neta del turno: ventas menos costo, descontando devoluciones y anulaciones.");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         Button movimientos = new Button("Movimientos");
         movimientos.getStyleClass().add("cash-movement-button");
+        TooltipSupport.install(movimientos, "Ver y registrar ingresos o egresos manuales de esta caja.");
         movimientos.setOnAction(event -> mostrarMovimientos(sesion));
 
-        HBox bar = new HBox(14, ingresos, separator(), egresos, separator(), esperado, spacer, movimientos);
+        HBox bar = new HBox(12, ingresos, separator(), egresos, separator(), esperado, separator(), ganancia, spacer, movimientos);
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.setPadding(new Insets(6, 10, 6, 12));
         bar.getStyleClass().add("cash-control-bar");
@@ -267,6 +281,7 @@ public final class CajaView extends BorderPane {
         value.getStyleClass().add("cash-sales-value");
         if (totalMetric) value.getStyleClass().add("cash-sales-value-total");
         VBox card = new VBox(1, title, value);
+        TooltipSupport.install(card, salesMetricHelp(titleText));
         card.getStyleClass().add("cash-sales-metric");
         if (totalMetric) card.getStyleClass().add("cash-sales-metric-total");
         card.setMaxWidth(Double.MAX_VALUE);
@@ -278,7 +293,20 @@ public final class CajaView extends BorderPane {
         ventasEfectivo.setText(formatCurrency(resumen.efectivo()));
         ventasTransferencia.setText(formatCurrency(resumen.transferencia()));
         ventasTarjeta.setText(formatCurrency(resumen.tarjeta()));
+        ventasFiado.setText(formatCurrency(resumen.fiado()));
         ventasTotal.setText(formatCurrency(resumen.total()));
+        gananciaActual.setText(formatCurrency(resumen.ganancia()));
+    }
+
+    private String salesMetricHelp(String title) {
+        return switch (title) {
+            case "EFECTIVO" -> "Ventas netas cobradas en efectivo durante esta caja.";
+            case "TRANSFERENCIA" -> "Ventas netas cobradas por transferencia durante esta caja.";
+            case "TARJETA" -> "Ventas netas cobradas con tarjeta durante esta caja.";
+            case "FIADO" -> "Ventas a crédito registradas en esta caja. Los abonos posteriores no se cuentan como una nueva venta.";
+            case "TOTAL VENDIDO" -> "Total neto vendido por todos los medios de pago, incluyendo fiado y descontando devoluciones/anulaciones.";
+            default -> title;
+        };
     }
 
     private ControlEfectivoCaja actualizarControlEfectivo(CajaSesion sesion) {
