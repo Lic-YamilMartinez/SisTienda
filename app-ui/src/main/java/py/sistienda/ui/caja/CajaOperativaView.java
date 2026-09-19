@@ -152,9 +152,9 @@ public final class CajaOperativaView extends BorderPane {
                 ventaService,
                 usuario,
                 sesion,
-                () -> {
+                result -> {
                     actualizarResumen(sesion);
-                    mostrarUltimoTicket();
+                    mostrarTicket(result.ventaId());
                 },
                 codigoBarrasService,
                 configuracionPosService.obtener().prefijoPeso()
@@ -325,12 +325,9 @@ public final class CajaOperativaView extends BorderPane {
         });
     }
 
-    private void mostrarUltimoTicket() {
-        var ventas = reporteService.listarVentas(LocalDate.now());
-        if (ventas.isEmpty()) return;
-        var ultima = ventas.getFirst();
+    private void mostrarTicket(long ventaId) {
         ConfiguracionPos config = configuracionPosService.obtener();
-        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ultima.id()), config);
+        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ventaId), config);
     }
 
     private VBox field(String text, Control control) {
