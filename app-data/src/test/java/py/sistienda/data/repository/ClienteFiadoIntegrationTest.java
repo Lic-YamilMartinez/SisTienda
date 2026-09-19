@@ -48,6 +48,10 @@ class ClienteFiadoIntegrationTest {
         }
 
         assertEquals(100_000d, service.saldo(owner, cliente.id()), 0.001d);
+        var movimientoVenta = service.movimientos(owner, cliente.id()).getFirst();
+        assertEquals("VENTA FIADA", movimientoVenta.tipo());
+        assertTrue(movimientoVenta.tieneVenta());
+        assertTrue(movimientoVenta.ventaId() > 0);
 
         var abono = service.registrarAbono(owner, caja, cliente, MetodoPago.EFECTIVO, 40_000d, "Entrega parcial");
         assertEquals(100_000d, abono.saldoAnterior(), 0.001d);
