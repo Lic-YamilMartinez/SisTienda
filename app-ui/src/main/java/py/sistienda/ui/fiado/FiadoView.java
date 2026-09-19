@@ -1,5 +1,7 @@
 package py.sistienda.ui.fiado;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -277,7 +279,7 @@ public final class FiadoView extends BorderPane {
                     error.setVisible(false);
                     error.setManaged(false);
                 } catch (RuntimeException e) {
-                    error.setText(rootMessage(e));
+                    error.setText(UserErrorMessages.message(e));
                     error.setVisible(true);
                     error.setManaged(true);
                     event.consume();
@@ -418,7 +420,7 @@ public final class FiadoView extends BorderPane {
             feedback.setManaged(false);
             action.run();
         } catch (RuntimeException e) {
-            feedback.setText(rootMessage(e));
+            feedback.setText(UserErrorMessages.message(e));
             feedback.setVisible(true);
             feedback.setManaged(true);
         }
