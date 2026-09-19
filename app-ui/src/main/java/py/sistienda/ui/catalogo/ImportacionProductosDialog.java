@@ -1,5 +1,7 @@
 package py.sistienda.ui.catalogo;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -114,7 +116,7 @@ final class ImportacionProductosDialog {
             } catch (RuntimeException e) {
                 rows.clear();
                 refreshMetrics.run();
-                estado.setText(rootMessage(e));
+                estado.setText(UserErrorMessages.message(e));
                 archivo.setText("No pudimos preparar el archivo seleccionado.");
             }
         });
@@ -131,7 +133,7 @@ final class ImportacionProductosDialog {
                 estado.setStyle("");
                 estado.setText("Plantilla guardada en: " + selected.getAbsolutePath());
             } catch (RuntimeException e) {
-                estado.setText(rootMessage(e));
+                estado.setText(UserErrorMessages.message(e));
             }
         });
 
@@ -150,7 +152,7 @@ final class ImportacionProductosDialog {
                 applyStyles(success.getDialogPane());
                 success.showAndWait();
             } catch (RuntimeException e) {
-                estado.setText(rootMessage(e));
+                estado.setText(UserErrorMessages.message(e));
                 event.consume();
             }
         });
