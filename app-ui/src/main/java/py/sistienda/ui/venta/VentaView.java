@@ -65,7 +65,7 @@ public final class VentaView extends HBox {
     public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario,
                      CajaSesion caja, Runnable onVentaRegistrada) {
         this(productoService, ventaService, usuario, caja,
-                result -> { if (onVentaRegistrada != null) onVentaRegistrada.accept(result); },
+                result -> { if (onVentaRegistrada != null) onVentaRegistrada.run(); },
                 new CodigoBarrasService(), "20");
     }
 
@@ -501,7 +501,7 @@ public final class VentaView extends HBox {
             recibido.clear();
             recargarProductos();
             try {
-                onVentaRegistrada.run();
+                onVentaRegistrada.accept(result);
             } catch (RuntimeException ignored) {
                 // La venta ya fue confirmada. El resumen se refrescará al volver a entrar a Caja.
             }
