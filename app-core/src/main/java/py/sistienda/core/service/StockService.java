@@ -4,6 +4,7 @@ import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.Producto;
 import py.sistienda.core.model.TipoMovimientoStock;
 import py.sistienda.core.model.UnidadMedida;
+import py.sistienda.core.model.Usuario;
 import py.sistienda.core.repository.MovimientoStockRepository;
 
 import java.util.Objects;
@@ -18,6 +19,17 @@ public final class StockService {
 
     public void registrar(Producto producto, TipoMovimientoStock tipo, String motivo, double cantidad,
                           String referencia, String observacion) {
+        registrarInterno(null, producto, tipo, motivo, cantidad, referencia, observacion);
+    }
+
+    public void registrar(Usuario usuario, Producto producto, TipoMovimientoStock tipo, String motivo,
+                          double cantidad, String referencia, String observacion) {
+        Objects.requireNonNull(usuario);
+        registrarInterno(usuario.id(), producto, tipo, motivo, cantidad, referencia, observacion);
+    }
+
+    private void registrarInterno(Long usuarioId, Producto producto, TipoMovimientoStock tipo, String motivo,
+                                  double cantidad, String referencia, String observacion) {
         Objects.requireNonNull(producto);
         if (producto.id() <= 0) {
             throw new ValidationException("Producto inválido.");
@@ -38,14 +50,17 @@ public final class StockService {
             throw new ValidationException("No hay stock suficiente para realizar esa salida.");
         }
 
-        movimientoStockRepository.register(
-                producto.id(),
-                tipo,
-                motivo.trim(),
-                cantidad,
-                limpiarOpcional(referencia),
-                limpiarOpcional(observacion)
-        );
+        if (usuarioId == null) {
+            movimientoStockRepository.register(
+                    producto.id(), tipo, motivo.trim(), cantidad,
+                    limpiarOpcional(referencia), limpiarOpcional(observacion)
+            );
+        } else {
+            movimientoStockRepository.register(
+                    producto.id(), usuarioId, tipo, motivo.trim(), cantidad,
+                    limpiarOpcional(referencia), limpiarOpcional(observacion)
+            );
+        }
     }
 
     private String limpiarOpcional(String valor) {
