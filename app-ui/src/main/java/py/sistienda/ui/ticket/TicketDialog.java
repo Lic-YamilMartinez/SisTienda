@@ -43,10 +43,9 @@ public final class TicketDialog {
 
         ButtonType printType = new ButtonType("Imprimir", ButtonBar.ButtonData.APPLY);
         dialog.getDialogPane().getButtonTypes().addAll(printType, ButtonType.CLOSE);
-        ResponsiveDialogSupport.fit(dialog, config.anchoTicketMm() == 58 ? 390 : 470, 700);
 
         VBox ticket = buildTicket(empresa, detalle, config);
-        dialog.getDialogPane().setContent(ticket);
+        ResponsiveDialogSupport.scrollContent(dialog, ticket, config.anchoTicketMm() == 58 ? 390 : 470, 700);
         addStyle(dialog, "/styles/app.css");
         addStyle(dialog, "/styles/ticket.css");
 
