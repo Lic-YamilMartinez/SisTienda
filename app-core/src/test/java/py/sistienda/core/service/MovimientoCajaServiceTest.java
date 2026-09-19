@@ -47,6 +47,21 @@ class MovimientoCajaServiceTest {
     }
 
     @Test
+    void rechazaMovimientoSobreCajaDeOtroUsuario() {
+        MovimientoCajaRepository repo = new MovimientoCajaRepository() {
+            @Override public MovimientoCaja create(long cajaSesionId, long usuarioId, TipoMovimientoCaja tipo, String categoria, String concepto, double monto, String referencia) { throw new AssertionError("No debe persistir"); }
+            @Override public List<MovimientoCaja> findByCaja(long cajaSesionId) { return List.of(); }
+            @Override public ResumenMovimientosCaja summary(long cajaSesionId) { return ResumenMovimientosCaja.vacio(); }
+        };
+        var service = new MovimientoCajaService(repo);
+        var caja = new CajaSesion(1, 99, LocalDateTime.now(), null, 100000, null, EstadoCaja.ABIERTA, null);
+        var usuario = new Usuario(1, "admin", "DUENIO", true);
+
+        assertThrows(ValidationException.class, () -> service.registrar(
+                caja, usuario, TipoMovimientoCaja.EGRESO, "Flete", "Entrega", 5000, null));
+    }
+
+    @Test
     void rechazaMovimientoSinMontoPositivo() {
         MovimientoCajaRepository repo = new MovimientoCajaRepository() {
             @Override public MovimientoCaja create(long cajaSesionId, long usuarioId, TipoMovimientoCaja tipo, String categoria, String concepto, double monto, String referencia) { throw new AssertionError("No debe persistir"); }
