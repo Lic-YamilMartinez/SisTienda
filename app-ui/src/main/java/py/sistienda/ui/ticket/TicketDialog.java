@@ -1,5 +1,7 @@
 package py.sistienda.ui.ticket;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -41,11 +43,9 @@ public final class TicketDialog {
 
         ButtonType printType = new ButtonType("Imprimir", ButtonBar.ButtonData.APPLY);
         dialog.getDialogPane().getButtonTypes().addAll(printType, ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefWidth(config.anchoTicketMm() == 58 ? 390 : 470);
-        dialog.getDialogPane().setPrefHeight(700);
 
         VBox ticket = buildTicket(empresa, detalle, config);
-        dialog.getDialogPane().setContent(ticket);
+        ResponsiveDialogSupport.scrollContent(dialog, ticket, config.anchoTicketMm() == 58 ? 390 : 470, 700);
         addStyle(dialog, "/styles/app.css");
         addStyle(dialog, "/styles/ticket.css");
 
@@ -193,7 +193,7 @@ public final class TicketDialog {
     }
 
     private static String formatQuantity(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
     private static void addStyle(Dialog<?> dialog, String path) {

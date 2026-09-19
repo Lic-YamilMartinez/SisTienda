@@ -5,6 +5,7 @@ import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.Producto;
 import py.sistienda.core.model.TipoMovimientoStock;
 import py.sistienda.core.model.UnidadMedida;
+import py.sistienda.core.model.Usuario;
 import py.sistienda.core.repository.MovimientoStockRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,6 +32,18 @@ class StockServiceTest {
     }
 
     @Test
+    void registrar_conUsuarioAuditaActor() {
+        CapturingRepository repository = new CapturingRepository();
+        StockService service = new StockService(repository);
+        Producto producto = producto(UnidadMedida.UN, 10);
+        Usuario usuario = new Usuario(33L, "owner", "DUENIO", true);
+
+        service.registrar(usuario, producto, TipoMovimientoStock.ENTRADA, "Compra", 2, null, null);
+
+        assertEquals(33L, repository.usuarioId);
+    }
+
+    @Test
     void registrar_entradaValidaDelegaAlRepositorio() {
         CapturingRepository repository = new CapturingRepository();
         StockService service = new StockService(repository);
@@ -51,10 +64,18 @@ class StockServiceTest {
 
     private static final class CapturingRepository implements MovimientoStockRepository {
         private long productoId;
+        private long usuarioId;
         private TipoMovimientoStock tipo;
         private String motivo;
         private double cantidad;
         private String referencia;
+
+        @Override
+        public void register(long productoId, long usuarioId, TipoMovimientoStock tipo, String motivo, double cantidad,
+                             String referencia, String observacion) {
+            this.usuarioId = usuarioId;
+            register(productoId, tipo, motivo, cantidad, referencia, observacion);
+        }
 
         @Override
         public void register(long productoId, TipoMovimientoStock tipo, String motivo, double cantidad,

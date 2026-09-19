@@ -1,5 +1,9 @@
 package py.sistienda.ui.catalogo;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Node;

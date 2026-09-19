@@ -1,5 +1,7 @@
 package py.sistienda.ui.reposicion;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;

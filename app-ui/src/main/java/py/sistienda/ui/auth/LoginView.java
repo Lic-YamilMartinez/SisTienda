@@ -1,5 +1,7 @@
 package py.sistienda.ui.auth;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -53,7 +55,7 @@ public final class LoginView extends StackPane {
         this.logo = logo;
 
         getStyleClass().add("auth-screen");
-        setPadding(new Insets(36));
+        setPadding(new Insets(20));
         getChildren().add(buildLayout());
     }
 
@@ -61,7 +63,7 @@ public final class LoginView extends StackPane {
         VBox hero = buildHero();
         VBox card = buildCard();
 
-        HBox layout = new HBox(42, hero, card);
+        HBox layout = new HBox(28, hero, card);
         layout.setAlignment(Pos.CENTER);
         layout.setMaxWidth(1080);
         HBox.setHgrow(hero, Priority.ALWAYS);
@@ -98,7 +100,7 @@ public final class LoginView extends StackPane {
         HBox identityRow = new HBox(12, mark, identity);
         identityRow.setAlignment(Pos.CENTER_LEFT);
         VBox hero = new VBox(18, identityRow, eyebrow, title, subtitle);
-        hero.setMaxWidth(520);
+        hero.setMaxWidth(470);
         hero.setAlignment(Pos.CENTER_LEFT);
         return hero;
     }
@@ -169,8 +171,8 @@ public final class LoginView extends StackPane {
 
         VBox card = new VBox(18, title, subtitle, spacer, fields, error, submit);
         card.getStyleClass().add("auth-card");
-        card.setPadding(new Insets(30));
-        card.setPrefWidth(390);
+        card.setPadding(new Insets(24));
+        card.setPrefWidth(370);
         card.setMaxWidth(390);
         return card;
     }
@@ -205,7 +207,7 @@ public final class LoginView extends StackPane {
         } catch (ValidationException e) {
             showError(e.getMessage());
         } catch (RuntimeException e) {
-            showError(rootMessage(e));
+            showError(UserErrorMessages.message(e));
         } finally {
             Arrays.fill(passwordValue, '\0');
             Arrays.fill(confirmValue, '\0');

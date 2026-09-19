@@ -1,5 +1,7 @@
 package py.sistienda.ui.venta;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -32,6 +34,7 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public final class VentaView extends HBox {
 
@@ -41,7 +44,7 @@ public final class VentaView extends HBox {
     private final String prefijoPeso;
     private final Usuario usuario;
     private final CajaSesion caja;
-    private final Runnable onVentaRegistrada;
+    private final Consumer<VentaResultado> onVentaRegistrada;
 
     private final ObservableList<Producto> productos = FXCollections.observableArrayList();
     private final FilteredList<Producto> filtrados = new FilteredList<>(productos, value -> true);
@@ -58,22 +61,32 @@ public final class VentaView extends HBox {
     private final Label creditHint = new Label("Seleccionaremos el cliente al registrar la venta. El importe quedará pendiente en su cuenta.");
 
     public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario, CajaSesion caja) {
-        this(productoService, ventaService, usuario, caja, () -> { });
+        this(productoService, ventaService, usuario, caja, result -> { }, new CodigoBarrasService(), "20");
     }
 
     public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario,
                      CajaSesion caja, Runnable onVentaRegistrada) {
-        this(productoService, ventaService, usuario, caja, onVentaRegistrada, new CodigoBarrasService(), "20");
+        this(productoService, ventaService, usuario, caja,
+                result -> { if (onVentaRegistrada != null) onVentaRegistrada.run(); },
+                new CodigoBarrasService(), "20");
     }
 
     public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario,
                      CajaSesion caja, Runnable onVentaRegistrada, CodigoBarrasService codigoBarrasService,
                      String prefijoPeso) {
+        this(productoService, ventaService, usuario, caja,
+                result -> { if (onVentaRegistrada != null) onVentaRegistrada.run(); },
+                codigoBarrasService, prefijoPeso);
+    }
+
+    public VentaView(ProductoService productoService, VentaService ventaService, Usuario usuario,
+                     CajaSesion caja, Consumer<VentaResultado> onVentaRegistrada,
+                     CodigoBarrasService codigoBarrasService, String prefijoPeso) {
         this.productoService = productoService;
         this.ventaService = ventaService;
         this.usuario = usuario;
         this.caja = caja;
-        this.onVentaRegistrada = onVentaRegistrada == null ? () -> { } : onVentaRegistrada;
+        this.onVentaRegistrada = onVentaRegistrada == null ? result -> { } : onVentaRegistrada;
         this.codigoBarrasService = codigoBarrasService == null ? new CodigoBarrasService() : codigoBarrasService;
         this.prefijoPeso = prefijoPeso == null || !prefijoPeso.matches("2\\d") ? "20" : prefijoPeso;
 
@@ -89,9 +102,9 @@ public final class VentaView extends HBox {
         productPanel.setMaxWidth(Double.MAX_VALUE);
         productPanel.setMaxHeight(Double.MAX_VALUE);
         productPanel.setMinHeight(0);
-        cartPanel.setPrefWidth(510);
-        cartPanel.setMinWidth(460);
-        cartPanel.setMaxWidth(560);
+        cartPanel.setPrefWidth(460);
+        cartPanel.setMinWidth(390);
+        cartPanel.setMaxWidth(530);
         cartPanel.setMaxHeight(Double.MAX_VALUE);
         cartPanel.setMinHeight(0);
         getChildren().addAll(productPanel, cartPanel);
@@ -119,7 +132,7 @@ public final class VentaView extends HBox {
         buscar.setPromptText("Escanear código o buscar producto...");
         buscar.getStyleClass().add("pos-search");
         buscar.setPrefWidth(360);
-        buscar.setMinWidth(260);
+        buscar.setMinWidth(210);
         buscar.setOnAction(event -> procesarEntradaRapida());
 
         Region spacer = new Region();
@@ -490,7 +503,7 @@ public final class VentaView extends HBox {
             recibido.clear();
             recargarProductos();
             try {
-                onVentaRegistrada.run();
+                onVentaRegistrada.accept(result);
             } catch (RuntimeException ignored) {
                 // La venta ya fue confirmada. El resumen se refrescará al volver a entrar a Caja.
             }

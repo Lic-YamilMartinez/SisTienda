@@ -1,5 +1,9 @@
 package py.sistienda.ui.reportes;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -54,7 +58,6 @@ public final class PostventaDialog {
         dialog.setTitle("Postventa · Ticket #" + venta.nroTicket());
         dialog.setHeaderText("Anulación y devolución");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(760, 650);
 
         Label summary = new Label(
                 "Ticket #" + venta.nroTicket()
@@ -128,7 +131,7 @@ public final class PostventaDialog {
                 );
                 onChanged.run();
             } catch (RuntimeException e) {
-                showError(feedback, rootMessage(e));
+                showError(feedback, UserErrorMessages.message(e));
             }
         });
 
@@ -157,7 +160,7 @@ public final class PostventaDialog {
                 );
                 onChanged.run();
             } catch (RuntimeException e) {
-                showError(feedback, rootMessage(e));
+                showError(feedback, UserErrorMessages.message(e));
             }
         });
 
@@ -168,7 +171,8 @@ public final class PostventaDialog {
 
         Label note = new Label(
                 "Anular corrige una venta cargada por error y sólo está disponible mientras la caja original siga abierta. "
-                        + "Para una venta de una caja ya cerrada, utilizá devolución."
+                        + "Para una venta de una caja ya cerrada, utilizá devolución. "
+                        + "Toda devolución se registra y debe reintegrarse por el mismo medio de pago de la venta original."
         );
         note.setWrapText(true);
         note.getStyleClass().add("post-sale-note");
@@ -182,7 +186,7 @@ public final class PostventaDialog {
                 feedback, note, actions
         );
         content.setPadding(new Insets(5));
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 760, 650);
         applyStyle(dialog.getDialogPane());
         dialog.showAndWait();
     }

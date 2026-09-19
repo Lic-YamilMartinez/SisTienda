@@ -1,5 +1,7 @@
 package py.sistienda.ui;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -10,6 +12,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -25,6 +28,7 @@ import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.LogoNegocioService;
 import py.sistienda.core.service.UsuarioService;
 import py.sistienda.ui.branding.BrandingImageFactory;
+import py.sistienda.ui.common.AppVersion;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -120,7 +124,7 @@ public final class MainShell extends BorderPane {
         showCatalogo();
     }
 
-    private VBox buildSidebar() {
+    private ScrollPane buildSidebar() {
         businessLogo.setMinSize(48, 48);
         businessLogo.setPrefSize(48, 48);
         businessLogo.setMaxSize(48, 48);
@@ -195,7 +199,7 @@ public final class MainShell extends BorderPane {
         logout.setMaxWidth(Double.MAX_VALUE);
         logout.setOnAction(event -> onLogout.run());
 
-        Label version = new Label("PILOTO · 0.9.3");
+        Label version = new Label("PILOTO · " + AppVersion.current());
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,
@@ -204,10 +208,20 @@ public final class MainShell extends BorderPane {
                 comprasButton, configuracionButton, usuariosButton,
                 spacer, userLabel, roleLabel, password, logout, version
         );
-        sidebar.setPadding(new Insets(24, 18, 20, 18));
-        sidebar.setPrefWidth(230);
+        sidebar.setPadding(new Insets(20, 16, 18, 16));
+        sidebar.setMinWidth(205);
+        sidebar.setPrefWidth(220);
         sidebar.getStyleClass().add("sidebar");
-        return sidebar;
+
+        ScrollPane scroll = new ScrollPane(sidebar);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setMinWidth(205);
+        scroll.setPrefWidth(220);
+        scroll.setMaxWidth(235);
+        scroll.getStyleClass().add("sidebar-scroll");
+        return scroll;
     }
 
     public void refreshBranding() {
@@ -348,7 +362,7 @@ public final class MainShell extends BorderPane {
             try {
                 usuarioService.cambiarMiPassword(usuario, oldSecret, newSecret);
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             } finally {
                 Arrays.fill(oldSecret, '\0');

@@ -1,5 +1,9 @@
 package py.sistienda.ui.inventario;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.property.SimpleStringProperty;
@@ -319,7 +323,7 @@ public final class InventarioView extends BorderPane {
                     var result = inventarioService.registrar(usuario, motivo.getText(), observacion.getText(), items);
                     inventoryId[0] = result.id();
                 } catch (RuntimeException e) {
-                    error.setText(rootMessage(e));
+                    error.setText(UserErrorMessages.message(e));
                     event.consume();
                 }
             });
@@ -338,7 +342,6 @@ public final class InventarioView extends BorderPane {
             dialog.setTitle("Historial de inventarios");
             dialog.setHeaderText("Conteos físicos registrados");
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            dialog.getDialogPane().setPrefSize(900, 620);
 
             TableView<InventarioConteoResumen> history = new TableView<>(FXCollections.observableArrayList(
                     inventarioService.recientes(usuario, 100)
@@ -374,7 +377,7 @@ public final class InventarioView extends BorderPane {
             hint.getStyleClass().add("inventory-tip");
             VBox content = new VBox(8, hint, history);
             VBox.setVgrow(history, Priority.ALWAYS);
-            dialog.getDialogPane().setContent(content);
+            ResponsiveDialogSupport.scrollContent(dialog, content, 900, 620);
             applyStyles(dialog);
             dialog.showAndWait();
         });
@@ -386,7 +389,6 @@ public final class InventarioView extends BorderPane {
         dialog.setTitle("Inventario #" + resumen.id());
         dialog.setHeaderText(resumen.motivo() + " · " + DATE_TIME.format(resumen.fecha()));
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(760, 560);
 
         TableView<InventarioConteoDetalle> detail = new TableView<>(FXCollections.observableArrayList(
                 inventarioService.detalle(usuario, resumen.id())
@@ -413,7 +415,7 @@ public final class InventarioView extends BorderPane {
         meta.setWrapText(true);
         VBox content = new VBox(8, meta, detail);
         VBox.setVgrow(detail, Priority.ALWAYS);
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 760, 560);
         applyStyles(dialog);
         dialog.showAndWait();
     }
@@ -479,7 +481,7 @@ public final class InventarioView extends BorderPane {
             feedback.setManaged(false);
             action.run();
         } catch (RuntimeException e) {
-            feedback.setText(rootMessage(e));
+            feedback.setText(UserErrorMessages.message(e));
             feedback.setVisible(true);
             feedback.setManaged(true);
         }

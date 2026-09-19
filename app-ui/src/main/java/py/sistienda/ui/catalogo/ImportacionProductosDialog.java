@@ -1,5 +1,9 @@
 package py.sistienda.ui.catalogo;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -36,7 +40,6 @@ final class ImportacionProductosDialog {
         dialog.setTitle("Importar productos");
         dialog.setHeaderText(null);
         dialog.getDialogPane().getButtonTypes().addAll(IMPORTAR, ButtonType.CANCEL);
-        dialog.getDialogPane().setPrefSize(980, 690);
 
         ObservableList<ImportacionProductoValidacion> rows = FXCollections.observableArrayList();
         Label archivo = new Label("Todavía no seleccionaste un archivo.");
@@ -78,7 +81,7 @@ final class ImportacionProductosDialog {
         VBox content = new VBox(10, title, subtitle, actions, metrics, table, note, estado);
         content.setPadding(new Insets(8));
         VBox.setVgrow(table, Priority.ALWAYS);
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 980, 690);
         applyStyles(dialog.getDialogPane());
 
         Node importNode = dialog.getDialogPane().lookupButton(IMPORTAR);
@@ -112,7 +115,7 @@ final class ImportacionProductosDialog {
             } catch (RuntimeException e) {
                 rows.clear();
                 refreshMetrics.run();
-                estado.setText(rootMessage(e));
+                estado.setText(UserErrorMessages.message(e));
                 archivo.setText("No pudimos preparar el archivo seleccionado.");
             }
         });
@@ -129,7 +132,7 @@ final class ImportacionProductosDialog {
                 estado.setStyle("");
                 estado.setText("Plantilla guardada en: " + selected.getAbsolutePath());
             } catch (RuntimeException e) {
-                estado.setText(rootMessage(e));
+                estado.setText(UserErrorMessages.message(e));
             }
         });
 
@@ -148,7 +151,7 @@ final class ImportacionProductosDialog {
                 applyStyles(success.getDialogPane());
                 success.showAndWait();
             } catch (RuntimeException e) {
-                estado.setText(rootMessage(e));
+                estado.setText(UserErrorMessages.message(e));
                 event.consume();
             }
         });

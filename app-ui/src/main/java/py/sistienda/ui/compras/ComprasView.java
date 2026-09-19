@@ -1,5 +1,9 @@
 package py.sistienda.ui.compras;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -217,7 +221,6 @@ public final class ComprasView extends BorderPane {
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
         dialog.getDialogPane().lookupButton(ButtonType.OK).setDisable(false);
         ((Button) dialog.getDialogPane().lookupButton(ButtonType.OK)).setText("Registrar compra");
-        dialog.getDialogPane().setPrefSize(860, 650);
 
         ComboBox<Proveedor> proveedor = new ComboBox<>(FXCollections.observableArrayList(proveedores));
         proveedor.setValue(proveedores.getFirst());
@@ -291,7 +294,7 @@ public final class ComprasView extends BorderPane {
         VBox content = new VBox(10, top, field("Observación", observacion), new Separator(), addRow, lineTable, totalRow);
         VBox.setVgrow(lineTable, Priority.ALWAYS);
         content.setPadding(new Insets(6));
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 860, 650);
         applyDialogStyles(dialog);
 
         Node ok = dialog.getDialogPane().lookupButton(ButtonType.OK);
@@ -300,7 +303,7 @@ public final class ComprasView extends BorderPane {
             try {
                 saved[0] = compraService.registrar(usuario, proveedor.getValue(), documento.getText(), List.copyOf(lineas), observacion.getText());
             } catch (RuntimeException e) {
-                showInlineError(dialog, rootMessage(e));
+                showInlineError(dialog, UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -351,7 +354,6 @@ public final class ComprasView extends BorderPane {
         dialog.setTitle("Proveedores");
         dialog.setHeaderText("Gestionar proveedores");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(760, 560);
 
         ObservableList<Proveedor> items = FXCollections.observableArrayList(proveedorService.listarActivos());
         FilteredList<Proveedor> filtered = new FilteredList<>(items, value -> true);
@@ -400,7 +402,7 @@ public final class ComprasView extends BorderPane {
         HBox actions = new HBox(8, search, spacer, add, edit, deactivate);
         actions.setAlignment(Pos.CENTER_LEFT);
         VBox content = new VBox(10, actions, table); VBox.setVgrow(table, Priority.ALWAYS);
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 760, 560);
         applyDialogStyles(dialog);
         dialog.showAndWait();
         recargar();
@@ -430,7 +432,7 @@ public final class ComprasView extends BorderPane {
                 if (actual == null) proveedorService.crear(nombre.getText(), ruc.getText(), telefono.getText(), email.getText(), direccion.getText());
                 else proveedorService.actualizar(actual, nombre.getText(), ruc.getText(), telefono.getText(), email.getText(), direccion.getText());
             } catch (RuntimeException e) {
-                showInlineError(dialog, rootMessage(e));
+                showInlineError(dialog, UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -444,7 +446,6 @@ public final class ComprasView extends BorderPane {
             dialog.setTitle("Compra #" + detalle.id());
             dialog.setHeaderText(detalle.proveedor().nombre() + " · " + DATE_TIME.format(detalle.fecha()));
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            dialog.getDialogPane().setPrefSize(700, 540);
 
             Label meta = new Label("Documento: " + orDash(detalle.nroDocumento()) + "   ·   Usuario: " + detalle.usuario());
             meta.getStyleClass().add("purchase-detail-meta");
@@ -467,7 +468,7 @@ public final class ComprasView extends BorderPane {
             Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
             HBox footer = new HBox(10, obs, spacer, total); footer.setAlignment(Pos.CENTER_LEFT);
             VBox content = new VBox(10, meta, items, footer); VBox.setVgrow(items, Priority.ALWAYS);
-            dialog.getDialogPane().setContent(content);
+            ResponsiveDialogSupport.scrollContent(dialog, content, 700, 540);
             applyDialogStyles(dialog);
             dialog.showAndWait();
         });
@@ -527,7 +528,7 @@ public final class ComprasView extends BorderPane {
         try {
             feedback.setVisible(false); feedback.setManaged(false); action.run();
         } catch (RuntimeException e) {
-            mostrarFeedback(rootMessage(e));
+            mostrarFeedback(UserErrorMessages.message(e));
         }
     }
 

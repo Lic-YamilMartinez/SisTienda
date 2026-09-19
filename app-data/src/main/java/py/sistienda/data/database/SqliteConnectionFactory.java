@@ -22,7 +22,7 @@ public final class SqliteConnectionFactory {
     public Connection open() throws SQLException {
         Connection connection = DriverManager.getConnection(jdbcUrl());
         try {
-            enableForeignKeys(connection);
+            configureConnection(connection);
             return connection;
         } catch (SQLException e) {
             try {
@@ -42,9 +42,10 @@ public final class SqliteConnectionFactory {
         return databaseFile;
     }
 
-    private void enableForeignKeys(Connection connection) throws SQLException {
+    private void configureConnection(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             statement.execute("PRAGMA foreign_keys = ON");
+            statement.execute("PRAGMA busy_timeout = 5000");
         }
     }
 }

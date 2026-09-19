@@ -29,16 +29,19 @@ public final class CompraService {
             if (linea == null || linea.producto() == null) {
                 throw new ValidationException("Hay una línea de compra inválida.");
             }
-            if (linea.cantidad() <= 0) {
+            if (!Double.isFinite(linea.cantidad()) || linea.cantidad() <= 0) {
                 throw new ValidationException("La cantidad de cada producto debe ser mayor a cero.");
             }
             if (linea.producto().unidadMedida() == UnidadMedida.UN
                     && Math.abs(linea.cantidad() - Math.rint(linea.cantidad())) > 0.000001) {
                 throw new ValidationException(linea.producto().nombre() + " se compra por unidad y no acepta decimales.");
             }
-            if (linea.costoUnitario() < 0) {
-                throw new ValidationException("El costo no puede ser negativo.");
+            if (!Double.isFinite(linea.costoUnitario()) || linea.costoUnitario() < 0) {
+                throw new ValidationException("El costo no puede ser negativo ni inválido.");
             }
+        }
+        if (!proveedor.activo()) {
+            throw new ValidationException("El proveedor seleccionado está inactivo.");
         }
         return repository.registrar(
                 usuario,

@@ -25,6 +25,7 @@ public final class SqliteBackupRepository implements BackupRepository {
 
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS");
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final int AUTO_RETENTION = 30;
 
     private final SqliteConnectionFactory connectionFactory;
     private final Path backupDirectory;
@@ -47,10 +48,9 @@ public final class SqliteBackupRepository implements BackupRepository {
     public BackupInfo crearAutomatico() {
         String filename = "auto-" + DAY.format(LocalDateTime.now()) + ".db";
         Path target = backupDirectory.resolve(filename);
-        if (Files.exists(target)) {
-            return info(target);
-        }
-        return crearSnapshot(filename);
+        BackupInfo result = Files.exists(target) ? info(target) : crearSnapshot(filename);
+        podarAutomaticos();
+        return result;
     }
 
     @Override
@@ -110,6 +110,25 @@ public final class SqliteBackupRepository implements BackupRepository {
     @Override
     public Path backupDirectory() {
         return backupDirectory;
+    }
+
+    private void podarAutomaticos() {
+        try {
+            Files.createDirectories(backupDirectory);
+            try (Stream<Path> files = Files.list(backupDirectory)) {
+                List<Path> automaticos = files
+                        .filter(Files::isRegularFile)
+                        .filter(path -> path.getFileName().toString().startsWith("auto-"))
+                        .filter(path -> path.getFileName().toString().endsWith(".db"))
+                        .sorted(Comparator.comparing((Path path) -> path.getFileName().toString()).reversed())
+                        .toList();
+                for (Path antiguo : automaticos.stream().skip(AUTO_RETENTION).toList()) {
+                    Files.deleteIfExists(antiguo);
+                }
+            }
+        } catch (IOException ignored) {
+            // La retención es best-effort: nunca debe impedir crear o usar el backup del día.
+        }
     }
 
     private BackupInfo crearSnapshot(String filename) {

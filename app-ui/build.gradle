@@ -32,3 +32,11 @@ tasks.register('pilotDistribution') {
     description = 'Genera la distribución portable usada como entrada del instalador de SisTienda.'
     dependsOn tasks.named('installDist')
 }
+
+
+tasks.named('processResources') {
+    inputs.property('appVersion', project.version.toString())
+    filesMatching('app-version.properties') {
+        expand(appVersion: project.version.toString())
+    }
+}

@@ -1,5 +1,7 @@
 package py.sistienda.ui.etiqueta;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import com.google.zxing.BarcodeFormat;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -55,7 +57,7 @@ public final class EtiquetaDialog {
                 double peso = parsePeso(value);
                 mostrar(owner, producto, configuracion, codigoBarrasService, peso);
             } catch (RuntimeException e) {
-                showError(owner, rootMessage(e));
+                showError(owner, UserErrorMessages.message(e));
             }
         });
     }
@@ -174,7 +176,7 @@ public final class EtiquetaDialog {
     }
 
     private static String formatQty(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
     private static String rootMessage(Throwable error) {

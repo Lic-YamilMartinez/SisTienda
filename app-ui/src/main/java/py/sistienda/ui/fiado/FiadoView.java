@@ -1,5 +1,9 @@
 package py.sistienda.ui.fiado;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -275,7 +279,7 @@ public final class FiadoView extends BorderPane {
                     error.setVisible(false);
                     error.setManaged(false);
                 } catch (RuntimeException e) {
-                    error.setText(rootMessage(e));
+                    error.setText(UserErrorMessages.message(e));
                     error.setVisible(true);
                     error.setManaged(true);
                     event.consume();
@@ -296,7 +300,6 @@ public final class FiadoView extends BorderPane {
             dialog.setTitle("Cuenta de " + cliente.nombre());
             dialog.setHeaderText(cliente.nombre());
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-            dialog.getDialogPane().setPrefSize(800, 620);
 
             Label saldo = new Label();
             saldo.getStyleClass().add("credit-account-balance");
@@ -325,7 +328,7 @@ public final class FiadoView extends BorderPane {
             top.setAlignment(Pos.CENTER_LEFT);
             VBox content = new VBox(12, top, movimientos);
             VBox.setVgrow(movimientos, Priority.ALWAYS);
-            dialog.getDialogPane().setContent(content);
+            ResponsiveDialogSupport.scrollContent(dialog, content, 800, 620);
             applyStyles(dialog);
             dialog.showAndWait();
             recargar();
@@ -416,7 +419,7 @@ public final class FiadoView extends BorderPane {
             feedback.setManaged(false);
             action.run();
         } catch (RuntimeException e) {
-            feedback.setText(rootMessage(e));
+            feedback.setText(UserErrorMessages.message(e));
             feedback.setVisible(true);
             feedback.setManaged(true);
         }

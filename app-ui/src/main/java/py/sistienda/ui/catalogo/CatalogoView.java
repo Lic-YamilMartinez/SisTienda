@@ -1,5 +1,7 @@
 package py.sistienda.ui.catalogo;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -10,6 +12,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -111,9 +114,8 @@ public final class CatalogoView extends BorderPane {
         nuevoProducto.getStyleClass().add("primary-button");
         nuevoProducto.setOnAction(event -> editarProducto(null));
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox titleRow = new HBox(10, new VBox(2, eyebrow, title, subtitle), spacer, importar, nuevaCategoria, nuevoProducto);
+        VBox heading = new VBox(2, eyebrow, title, subtitle);
+        FlowPane titleRow = new FlowPane(10, 8, heading, importar, nuevaCategoria, nuevoProducto);
         titleRow.setAlignment(Pos.CENTER_LEFT);
 
         feedback.getStyleClass().add("feedback-label");
@@ -256,18 +258,16 @@ public final class CatalogoView extends BorderPane {
 
         TableColumn<Producto, Producto> actionsColumn = new TableColumn<>("Acciones");
         actionsColumn.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
-        actionsColumn.setPrefWidth(280);
+        actionsColumn.setPrefWidth(125);
         actionsColumn.setCellFactory(column -> new TableCell<>() {
-            private final Button edit = smallButton("Editar");
-            private final Button stock = smallButton("Stock +/-");
-            private final Button label = smallButton("Etiqueta");
-            private final Button disable = smallButton("Desactivar");
-            private final HBox box = new HBox(5, edit, stock, label, disable);
+            private final MenuButton menu = new MenuButton("Acciones");
+            private final MenuItem edit = new MenuItem("Editar");
+            private final MenuItem stock = new MenuItem("Stock +/-");
+            private final MenuItem label = new MenuItem("Etiqueta");
+            private final MenuItem disable = new MenuItem("Desactivar");
             {
-                stock.getStyleClass().add("stock-action-button");
-                label.getStyleClass().add("stock-action-button");
-                disable.getStyleClass().add("danger-link-button");
-                box.setAlignment(Pos.CENTER);
+                menu.getItems().addAll(edit, stock, label, new SeparatorMenuItem(), disable);
+                menu.getStyleClass().add("table-action-button");
             }
             @Override protected void updateItem(Producto value, boolean empty) {
                 super.updateItem(value, empty);
@@ -276,7 +276,8 @@ public final class CatalogoView extends BorderPane {
                 stock.setOnAction(event -> moverStock(value));
                 label.setOnAction(event -> imprimirEtiqueta(value));
                 disable.setOnAction(event -> desactivarProducto(value));
-                setGraphic(box);
+                setAlignment(Pos.CENTER);
+                setGraphic(menu);
             }
         });
 
@@ -360,7 +361,11 @@ public final class CatalogoView extends BorderPane {
     private void moverStock(Producto producto) {
         StockDialog dialog = new StockDialog(getScene().getWindow(), producto);
         dialog.showAndWait().ifPresent(form -> ejecutar(() -> {
-            stockService.registrar(producto, form.tipo(), form.motivo(), form.cantidad(), form.referencia(), form.observacion());
+            if (usuario != null) {
+                stockService.registrar(usuario, producto, form.tipo(), form.motivo(), form.cantidad(), form.referencia(), form.observacion());
+            } else {
+                stockService.registrar(producto, form.tipo(), form.motivo(), form.cantidad(), form.referencia(), form.observacion());
+            }
             recargar();
             mostrarFeedback("Stock actualizado correctamente.");
         }));
@@ -413,7 +418,7 @@ public final class CatalogoView extends BorderPane {
     }
 
     private String formatStock(Producto producto) {
-        String number = BigDecimal.valueOf(producto.stockActual()).stripTrailingZeros().toPlainString();
+        String number = BigDecimal.valueOf(producto.stockActual()).stripTrailingZeros().toPlainString().replace('.', ',');
         return number + (producto.unidadMedida() == UnidadMedida.KG ? " kg" : " un.");
     }
 
@@ -425,7 +430,7 @@ public final class CatalogoView extends BorderPane {
 
     private String formatCantidad(double value, UnidadMedida unidad) {
         if (unidad == UnidadMedida.UN) return Long.toString(Math.round(value));
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
     private void mostrarFeedback(String message) {

@@ -1,5 +1,7 @@
 package py.sistienda.core.model;
 
+import py.sistienda.core.util.MoneyMath;
+
 import java.util.Objects;
 
 public record LineaVenta(
@@ -11,10 +13,10 @@ public record LineaVenta(
     }
 
     public double subtotal() {
-        return producto.precioVenta() * cantidad;
+        return MoneyMath.subtotal(producto.precioVenta(), cantidad);
     }
 
     public double ganancia() {
-        return (producto.precioVenta() - producto.costo()) * cantidad;
+        return subtotal() - MoneyMath.subtotal(producto.costo(), cantidad);
     }
 }

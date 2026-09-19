@@ -1,4 +1,4 @@
-# SisTienda 0.9.0 — Piloto Windows
+# SisTienda — Piloto Windows
 
 ## Objetivo
 
@@ -59,7 +59,7 @@ El script primero ejecuta todas las pruebas. Si alguna falla, no genera instalad
 Salida esperada:
 
 ```text
-app-ui\build\installer\SisTienda-0.9.0.exe
+app-ui\build\installer\SisTienda-<version>.exe
 ```
 
 El nombre exacto puede variar ligeramente según `jpackage`.
@@ -83,7 +83,7 @@ Antes de entregar a un comercio:
 
 ## GitHub Actions
 
-La rama de Sprint 14 también genera automáticamente un artefacto Windows mediante el workflow `Windows Installer`. El EXE resultante queda como artefacto de GitHub Actions durante 14 días.
+El workflow `Windows Installer` construye la versión declarada en `build.gradle` desde `develop`, la rama de hardening vigente o un tag `v*`. El nombre del artefacto incluye esa misma versión y queda disponible durante 14 días.
 
 ## Regla de actualización
 
@@ -95,3 +95,5 @@ Una nueva versión del programa puede reemplazar la instalación, pero no debe b
 ```
 
 Antes de cualquier actualización importante debe existir al menos un backup válido.
+
+La versión visible en SisTienda y la versión usada por el instalador se derivan de la versión del proyecto para evitar entregar un EXE con numeración distinta a la aplicación.

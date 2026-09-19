@@ -402,3 +402,29 @@
 .dialog-pane .header-panel {
     -fx-background-color: #fff7ed;
 }
+
+
+.sidebar-scroll {
+    -fx-background-color: #111827;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-border-color: transparent;
+}
+
+.sidebar-scroll > .viewport {
+    -fx-background-color: #111827;
+}
+
+.sidebar-scroll .scroll-bar:vertical {
+    -fx-pref-width: 7;
+}
+
+.dialog-content-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+}
+
+.dialog-content-scroll > .viewport {
+    -fx-background-color: transparent;
+}

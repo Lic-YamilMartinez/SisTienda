@@ -1,5 +1,9 @@
 package py.sistienda.ui.caja;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -173,10 +177,10 @@ public final class CajaView extends BorderPane {
                 ventaService,
                 usuario,
                 sesion,
-                () -> {
+                result -> {
                     actualizarResumenVentas(sesion);
                     actualizarControlEfectivo(sesion);
-                    mostrarUltimoTicket();
+                    mostrarTicket(result.ventaId());
                 },
                 codigoBarrasService,
                 prefijoPeso
@@ -291,7 +295,6 @@ public final class CajaView extends BorderPane {
         dialog.setTitle("Movimientos de caja");
         dialog.setHeaderText("Ingresos y egresos del turno actual");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(820, 560);
 
         ObservableList<MovimientoCaja> items = FXCollections.observableArrayList(movimientoCajaService.listar(sesion));
         TableView<MovimientoCaja> table = new TableView<>(items);
@@ -343,7 +346,7 @@ public final class CajaView extends BorderPane {
         toolbar.setAlignment(Pos.CENTER_LEFT);
         VBox content = new VBox(10, toolbar, table);
         VBox.setVgrow(table, Priority.ALWAYS);
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 820, 560);
         applyDialogStyles(dialog);
         dialog.showAndWait();
     }
@@ -382,7 +385,7 @@ public final class CajaView extends BorderPane {
                         parseMonto(monto.getText(), "monto"), referencia.getText());
                 saved[0] = true;
             } catch (RuntimeException e) {
-                dialog.setHeaderText(rootMessage(e));
+                dialog.setHeaderText(UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -396,12 +399,11 @@ public final class CajaView extends BorderPane {
         return List.of("Alquiler", "Luz", "Agua", "Internet", "Flete", "Compra menor", "Retiro", "Otro");
     }
 
-    private void mostrarUltimoTicket() {
-        var ventas = reporteService.listarVentas(LocalDate.now());
-        if (ventas.isEmpty()) return;
-        var ultima = ventas.getFirst();
-        var config = configuracionPosService == null ? py.sistienda.core.model.ConfiguracionPos.porDefecto() : configuracionPosService.obtener();
-        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ultima.id()), config);
+    private void mostrarTicket(long ventaId) {
+        var config = configuracionPosService == null
+                ? py.sistienda.core.model.ConfiguracionPos.porDefecto()
+                : configuracionPosService.obtener();
+        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ventaId), config);
     }
 
     private Region separator() {
@@ -526,7 +528,7 @@ public final class CajaView extends BorderPane {
         } catch (ValidationException e) {
             mostrarFeedback(e.getMessage());
         } catch (RuntimeException e) {
-            mostrarFeedback(rootMessage(e));
+            mostrarFeedback(UserErrorMessages.message(e));
         }
     }
 

@@ -1,5 +1,7 @@
 package py.sistienda.ui.caja;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -152,9 +154,9 @@ public final class CajaOperativaView extends BorderPane {
                 ventaService,
                 usuario,
                 sesion,
-                () -> {
+                result -> {
                     actualizarResumen(sesion);
-                    mostrarUltimoTicket();
+                    mostrarTicket(result.ventaId());
                 },
                 codigoBarrasService,
                 configuracionPosService.obtener().prefijoPeso()
@@ -276,7 +278,7 @@ public final class CajaOperativaView extends BorderPane {
                 movimientoCajaService.registrar(sesion, usuario, tipo.getValue(), categoria.getValue(),
                         concepto.getText(), parseMonto(monto.getText(), "monto"), referencia.getText());
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -315,7 +317,7 @@ public final class CajaOperativaView extends BorderPane {
                 autorizacionService.exigir(usuario, Permiso.CAJA_OPERAR);
                 cajaService.cerrar(sesion, parseMonto(contado.getText(), "monto contado"), notas.getText());
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -325,12 +327,9 @@ public final class CajaOperativaView extends BorderPane {
         });
     }
 
-    private void mostrarUltimoTicket() {
-        var ventas = reporteService.listarVentas(LocalDate.now());
-        if (ventas.isEmpty()) return;
-        var ultima = ventas.getFirst();
+    private void mostrarTicket(long ventaId) {
         ConfiguracionPos config = configuracionPosService.obtener();
-        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ultima.id()), config);
+        TicketDialog.show(empresaService.obtener(), reporteService.detalleVenta(ventaId), config);
     }
 
     private VBox field(String text, Control control) {
@@ -381,7 +380,7 @@ public final class CajaOperativaView extends BorderPane {
         try {
             action.run();
         } catch (RuntimeException e) {
-            mostrarFeedback(rootMessage(e));
+            mostrarFeedback(UserErrorMessages.message(e));
         }
     }
 

@@ -1,7 +1,9 @@
 package py.sistienda.ui;
 
 import javafx.application.Application;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.security.AutorizacionService;
@@ -30,6 +32,7 @@ import py.sistienda.core.service.StockService;
 import py.sistienda.core.service.UsuarioService;
 import py.sistienda.core.service.VentaService;
 import py.sistienda.data.database.DatabaseInitializer;
+import py.sistienda.data.database.DbPaths;
 import py.sistienda.data.database.SqliteConnectionFactory;
 import py.sistienda.data.repository.SqliteArqueoCajaRepository;
 import py.sistienda.data.repository.SqliteBackupRepository;
@@ -51,6 +54,9 @@ import py.sistienda.data.repository.SqliteReporteRepository;
 import py.sistienda.data.repository.SqliteUsuarioRepository;
 import py.sistienda.data.repository.SqliteVentaRepository;
 import py.sistienda.ui.auth.LoginView;
+import py.sistienda.ui.common.AppLog;
+import py.sistienda.ui.common.AppVersion;
+import py.sistienda.ui.common.ViewportPolicy;
 import py.sistienda.ui.caja.CajaOperativaView;
 import py.sistienda.ui.caja.CajaView;
 import py.sistienda.ui.catalogo.CatalogoConsultaView;
@@ -75,6 +81,10 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) {
+        AppLog.init(DbPaths.dataDir());
+        Thread.setDefaultUncaughtExceptionHandler((thread, error) ->
+                AppLog.error("Error no controlado en " + thread.getName(), error));
+        AppLog.info("Iniciando SisTienda " + AppVersion.current() + " · datos: " + DbPaths.dataDir());
         connectionFactory = new SqliteConnectionFactory();
         new DatabaseInitializer(connectionFactory).initialize();
 
@@ -99,13 +109,14 @@ public class MainApp extends Application {
         var empresa = empresaService.obtener();
         var logo = logoNegocioService.obtener().orElse(null);
         var login = new LoginView(authService, usuario -> showMain(stage, usuario), empresa, logo);
-        var scene = new Scene(login, 1180, 760);
+        Rectangle2D visual = Screen.getPrimary().getVisualBounds();
+        var scene = new Scene(login,
+                Math.min(1180, Math.max(860, visual.getWidth() - 32)),
+                Math.min(760, Math.max(560, visual.getHeight() - 32)));
         applyStyles(scene);
         stage.setTitle(empresa.nombre() + " · SisTienda · Acceso");
-        stage.setMinWidth(980);
-        stage.setMinHeight(680);
         stage.setScene(scene);
-        stage.centerOnScreen();
+        fitStage(stage, 1180, 760, 900, 560);
         stage.show();
     }
 
@@ -169,13 +180,31 @@ public class MainApp extends Application {
         );
         shellHolder[0] = root;
 
-        var scene = new Scene(root, 1360, 820);
+        Rectangle2D visual = Screen.getPrimary().getVisualBounds();
+        var scene = new Scene(root,
+                Math.min(1360, Math.max(960, visual.getWidth() - 24)),
+                Math.min(820, Math.max(580, visual.getHeight() - 24)));
         applyStyles(scene);
         updateStageTitle(stage, usuario);
-        stage.setMinWidth(1080);
-        stage.setMinHeight(700);
         stage.setScene(scene);
-        stage.centerOnScreen();
+        fitStage(stage, 1360, 820, 960, 580);
+    }
+
+    private void fitStage(Stage stage, double preferredWidth, double preferredHeight,
+                          double minimumWidth, double minimumHeight) {
+        Rectangle2D visual = Screen.getPrimary().getVisualBounds();
+        var size = ViewportPolicy.window(
+                visual.getWidth(), visual.getHeight(),
+                preferredWidth, preferredHeight,
+                minimumWidth, minimumHeight,
+                16
+        );
+        stage.setMinWidth(size.minimumWidth());
+        stage.setMinHeight(size.minimumHeight());
+        stage.setWidth(size.width());
+        stage.setHeight(size.height());
+        stage.setX(visual.getMinX() + Math.max(0, (visual.getWidth() - stage.getWidth()) / 2));
+        stage.setY(visual.getMinY() + Math.max(0, (visual.getHeight() - stage.getHeight()) / 2));
     }
 
     private void updateStageTitle(Stage stage, Usuario usuario) {

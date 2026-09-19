@@ -1,5 +1,7 @@
 package py.sistienda.ui.caja;
 
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -34,7 +36,6 @@ public final class HistorialCajasDialog {
         dialog.setTitle("Historial de cajas");
         dialog.setHeaderText("Cierres y arqueos de caja");
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(1120, 680);
 
         var source = FXCollections.observableArrayList(service.listarRecientes());
         var filtered = new FilteredList<>(source, item -> true);
@@ -172,7 +173,7 @@ public final class HistorialCajasDialog {
 
         VBox content = new VBox(10, toolbar, table);
         VBox.setVgrow(table, Priority.ALWAYS);
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 1120, 680);
         applyStyles(dialog);
         dialog.showAndWait();
     }
@@ -182,7 +183,6 @@ public final class HistorialCajasDialog {
         dialog.setTitle("Arqueo caja #" + item.cajaId());
         dialog.setHeaderText("Caja #" + item.cajaId() + " · " + item.usuario());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        dialog.getDialogPane().setPrefSize(900, 680);
 
         Label period = new Label(DATE_TIME.format(item.fechaApertura()) + "  →  "
                 + (item.fechaCierre() == null ? "En curso" : DATE_TIME.format(item.fechaCierre())));
@@ -246,7 +246,7 @@ public final class HistorialCajasDialog {
         VBox content = new VBox(10, period, row1, row2, sales, new Separator(), movements, notesBox);
         VBox.setVgrow(movements, Priority.ALWAYS);
         content.setPadding(new Insets(4));
-        dialog.getDialogPane().setContent(content);
+        ResponsiveDialogSupport.scrollContent(dialog, content, 900, 680);
         applyStyles(dialog);
         dialog.showAndWait();
     }
