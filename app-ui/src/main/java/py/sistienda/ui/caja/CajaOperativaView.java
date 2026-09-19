@@ -1,5 +1,7 @@
 package py.sistienda.ui.caja;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -276,7 +278,7 @@ public final class CajaOperativaView extends BorderPane {
                 movimientoCajaService.registrar(sesion, usuario, tipo.getValue(), categoria.getValue(),
                         concepto.getText(), parseMonto(monto.getText(), "monto"), referencia.getText());
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -315,7 +317,7 @@ public final class CajaOperativaView extends BorderPane {
                 autorizacionService.exigir(usuario, Permiso.CAJA_OPERAR);
                 cajaService.cerrar(sesion, parseMonto(contado.getText(), "monto contado"), notas.getText());
             } catch (RuntimeException e) {
-                error.setText(rootMessage(e));
+                error.setText(UserErrorMessages.message(e));
                 event.consume();
             }
         });
@@ -378,7 +380,7 @@ public final class CajaOperativaView extends BorderPane {
         try {
             action.run();
         } catch (RuntimeException e) {
-            mostrarFeedback(rootMessage(e));
+            mostrarFeedback(UserErrorMessages.message(e));
         }
     }
 
