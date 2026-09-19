@@ -1,5 +1,7 @@
 package py.sistienda.ui.configuracion;
 
+import py.sistienda.ui.common.UserErrorMessages;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
