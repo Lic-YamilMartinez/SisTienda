@@ -100,9 +100,9 @@ public final class VentaView extends HBox {
         productPanel.setMaxWidth(Double.MAX_VALUE);
         productPanel.setMaxHeight(Double.MAX_VALUE);
         productPanel.setMinHeight(0);
-        cartPanel.setPrefWidth(510);
-        cartPanel.setMinWidth(460);
-        cartPanel.setMaxWidth(560);
+        cartPanel.setPrefWidth(460);
+        cartPanel.setMinWidth(390);
+        cartPanel.setMaxWidth(530);
         cartPanel.setMaxHeight(Double.MAX_VALUE);
         cartPanel.setMinHeight(0);
         getChildren().addAll(productPanel, cartPanel);
@@ -130,7 +130,7 @@ public final class VentaView extends HBox {
         buscar.setPromptText("Escanear código o buscar producto...");
         buscar.getStyleClass().add("pos-search");
         buscar.setPrefWidth(360);
-        buscar.setMinWidth(260);
+        buscar.setMinWidth(210);
         buscar.setOnAction(event -> procesarEntradaRapida());
 
         Region spacer = new Region();
