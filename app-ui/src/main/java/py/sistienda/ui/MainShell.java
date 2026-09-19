@@ -26,6 +26,7 @@ import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.LogoNegocioService;
 import py.sistienda.core.service.UsuarioService;
 import py.sistienda.ui.branding.BrandingImageFactory;
+import py.sistienda.ui.common.AppVersion;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -196,7 +197,7 @@ public final class MainShell extends BorderPane {
         logout.setMaxWidth(Double.MAX_VALUE);
         logout.setOnAction(event -> onLogout.run());
 
-        Label version = new Label("PILOTO · 0.9.3");
+        Label version = new Label("PILOTO · " + AppVersion.current());
         version.getStyleClass().add("sidebar-version");
 
         VBox sidebar = new VBox(10,
