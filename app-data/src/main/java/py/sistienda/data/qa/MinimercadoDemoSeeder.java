@@ -69,6 +69,16 @@ public final class MinimercadoDemoSeeder {
 
     public static void main(String[] args) {
         SqliteConnectionFactory factory = new SqliteConnectionFactory();
+        SeedResult result = seed(factory);
+        System.out.println("SisTienda QA · minimercado demo listo.");
+        System.out.println("Base: " + factory.databaseFile());
+        System.out.println("Productos creados: " + result.created());
+        System.out.println("Productos ya existentes: " + result.existing());
+        System.out.println("Stocks iniciales cargados: " + result.stockSeeded());
+        System.out.println("Total catálogo demo esperado: " + PRODUCTS.size());
+    }
+
+    public static SeedResult seed(SqliteConnectionFactory factory) {
         new DatabaseInitializer(factory).initialize();
 
         try (Connection connection = factory.open()) {
@@ -91,12 +101,7 @@ public final class MinimercadoDemoSeeder {
                 }
 
                 connection.commit();
-                System.out.println("SisTienda QA · minimercado demo listo.");
-                System.out.println("Base: " + factory.databaseFile());
-                System.out.println("Productos creados: " + created);
-                System.out.println("Productos ya existentes: " + existing);
-                System.out.println("Stocks iniciales cargados: " + stockSeeded);
-                System.out.println("Total catálogo demo esperado: " + PRODUCTS.size());
+                return new SeedResult(created, existing, stockSeeded, PRODUCTS.size());
             } catch (Exception e) {
                 connection.rollback();
                 throw e;
@@ -189,6 +194,9 @@ public final class MinimercadoDemoSeeder {
             movement.executeUpdate();
         }
         return true;
+    }
+
+    public record SeedResult(int created, int existing, int stockSeeded, int totalProducts) {
     }
 
     private record DemoProduct(
