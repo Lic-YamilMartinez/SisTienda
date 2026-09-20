@@ -425,6 +425,7 @@ public final class ComprasView extends BorderPane {
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().setPrefWidth(480);
         applyDialogStyles(dialog);
+        ResponsiveDialogSupport.fit(dialog, 620, 560);
 
         Node ok = dialog.getDialogPane().lookupButton(ButtonType.OK);
         ok.addEventFilter(ActionEvent.ACTION, event -> {
