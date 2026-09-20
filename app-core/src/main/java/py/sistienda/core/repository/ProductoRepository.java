@@ -8,6 +8,10 @@ import java.util.Optional;
 public interface ProductoRepository {
     List<Producto> findAllActive();
 
+    default Optional<Producto> findById(long productoId) {
+        return Optional.empty();
+    }
+
     default Optional<Producto> findByBarcode(String codigoBarras) {
         return Optional.empty();
     }

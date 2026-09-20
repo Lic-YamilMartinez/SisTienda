@@ -30,6 +30,8 @@ import py.sistienda.core.service.MovimientoCajaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.VentaService;
+import py.sistienda.ui.common.ResponsiveDialogSupport;
+import py.sistienda.ui.common.TooltipSupport;
 import py.sistienda.ui.ticket.TicketDialog;
 import py.sistienda.ui.venta.VentaView;
 
@@ -59,6 +61,7 @@ public final class CajaOperativaView extends BorderPane {
     private final Label ventasEfectivo = new Label("Gs. 0");
     private final Label ventasTransferencia = new Label("Gs. 0");
     private final Label ventasTarjeta = new Label("Gs. 0");
+    private final Label ventasFiado = new Label("Gs. 0");
     private final Label ventasTotal = new Label("Gs. 0");
 
     public CajaOperativaView(
@@ -179,6 +182,7 @@ public final class CajaOperativaView extends BorderPane {
 
         Button movimientos = new Button("Movimientos");
         movimientos.getStyleClass().add("cash-movement-button");
+        TooltipSupport.install(movimientos, "Registrar un ingreso o egreso manual de esta caja.");
         boolean puedeMovimientos = autorizacionService.puede(usuario, Permiso.CAJA_MOVIMIENTOS);
         movimientos.setVisible(puedeMovimientos);
         movimientos.setManaged(puedeMovimientos);
@@ -186,6 +190,7 @@ public final class CajaOperativaView extends BorderPane {
 
         Button close = new Button("Cerrar caja");
         close.getStyleClass().addAll("secondary-button", "cash-close-button");
+        TooltipSupport.install(close, "Cerrar tu turno y registrar el efectivo contado.");
         close.setOnAction(event -> mostrarCierre(sesion));
 
         HBox bar = new HBox(12, status, opened, separator(), fund, spacer, movimientos, close);
@@ -200,6 +205,7 @@ public final class CajaOperativaView extends BorderPane {
                 metric("EFECTIVO", ventasEfectivo, false),
                 metric("TRANSFERENCIA", ventasTransferencia, false),
                 metric("TARJETA", ventasTarjeta, false),
+                metric("FIADO", ventasFiado, false),
                 metric("TOTAL VENDIDO", ventasTotal, true)
         );
         bar.getStyleClass().add("cash-sales-summary");
@@ -215,6 +221,14 @@ public final class CajaOperativaView extends BorderPane {
         value.getStyleClass().add("cash-sales-value");
         if (total) value.getStyleClass().add("cash-sales-value-total");
         VBox card = new VBox(1, title, value);
+        TooltipSupport.install(card, switch (titleText) {
+            case "EFECTIVO" -> "Ventas netas cobradas en efectivo durante esta caja.";
+            case "TRANSFERENCIA" -> "Ventas netas cobradas por transferencia durante esta caja.";
+            case "TARJETA" -> "Ventas netas cobradas con tarjeta durante esta caja.";
+            case "FIADO" -> "Ventas a crédito registradas durante esta caja.";
+            case "TOTAL VENDIDO" -> "Total neto vendido por todos los medios de pago, incluyendo fiado.";
+            default -> titleText;
+        });
         card.getStyleClass().add("cash-sales-metric");
         if (total) card.getStyleClass().add("cash-sales-metric-total");
         card.setMaxWidth(Double.MAX_VALUE);
@@ -226,6 +240,7 @@ public final class CajaOperativaView extends BorderPane {
         ventasEfectivo.setText(formatCurrency(resumen.efectivo()));
         ventasTransferencia.setText(formatCurrency(resumen.transferencia()));
         ventasTarjeta.setText(formatCurrency(resumen.tarjeta()));
+        ventasFiado.setText(formatCurrency(resumen.fiado()));
         ventasTotal.setText(formatCurrency(resumen.total()));
     }
 
@@ -270,6 +285,7 @@ public final class CajaOperativaView extends BorderPane {
         content.setPrefWidth(460);
         dialog.getDialogPane().setContent(content);
         applyStyle(dialog);
+        ResponsiveDialogSupport.fit(dialog, 640, 600);
 
         Node save = dialog.getDialogPane().lookupButton(guardar);
         save.addEventFilter(ActionEvent.ACTION, event -> {
@@ -310,6 +326,7 @@ public final class CajaOperativaView extends BorderPane {
         content.setPrefWidth(450);
         dialog.getDialogPane().setContent(content);
         applyStyle(dialog);
+        ResponsiveDialogSupport.fit(dialog, 600, 540);
 
         Node close = dialog.getDialogPane().lookupButton(cerrar);
         close.addEventFilter(ActionEvent.ACTION, event -> {

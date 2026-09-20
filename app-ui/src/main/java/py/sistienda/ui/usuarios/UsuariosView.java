@@ -1,6 +1,7 @@
 package py.sistienda.ui.usuarios;
 
 import py.sistienda.ui.common.UserErrorMessages;
+import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -218,6 +219,7 @@ public final class UsuariosView extends BorderPane {
         content.setPrefWidth(470);
         dialog.getDialogPane().setContent(content);
         applyStyle(dialog);
+        ResponsiveDialogSupport.fit(dialog, 620, 600);
 
         Node saveButton = dialog.getDialogPane().lookupButton(guardar);
         saveButton.addEventFilter(ActionEvent.ACTION, event -> {
@@ -250,6 +252,7 @@ public final class UsuariosView extends BorderPane {
         dialog.setHeaderText(usuario.username());
         dialog.setContentText("Nuevo rol:");
         applyStyle(dialog);
+        ResponsiveDialogSupport.fitCompact(dialog);
         dialog.showAndWait().ifPresent(rol -> ejecutar(() -> {
             usuarioService.cambiarRol(actor, usuario.id(), rol);
             mostrarFeedback("Rol actualizado para " + usuario.username() + ".");
@@ -279,6 +282,7 @@ public final class UsuariosView extends BorderPane {
         content.setPrefWidth(440);
         dialog.getDialogPane().setContent(content);
         applyStyle(dialog);
+        ResponsiveDialogSupport.fit(dialog, 600, 520);
 
         Node save = dialog.getDialogPane().lookupButton(guardar);
         save.addEventFilter(ActionEvent.ACTION, event -> {

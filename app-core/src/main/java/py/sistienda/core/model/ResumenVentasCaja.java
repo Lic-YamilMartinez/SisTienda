@@ -5,13 +5,18 @@ public record ResumenVentasCaja(
         double transferencia,
         double tarjeta,
         double fiado,
-        double total
+        double total,
+        double ganancia
 ) {
     public ResumenVentasCaja(double efectivo, double transferencia, double tarjeta, double total) {
-        this(efectivo, transferencia, tarjeta, 0d, total);
+        this(efectivo, transferencia, tarjeta, 0d, total, 0d);
+    }
+
+    public ResumenVentasCaja(double efectivo, double transferencia, double tarjeta, double fiado, double total) {
+        this(efectivo, transferencia, tarjeta, fiado, total, 0d);
     }
 
     public static ResumenVentasCaja vacio() {
-        return new ResumenVentasCaja(0, 0, 0, 0, 0);
+        return new ResumenVentasCaja(0, 0, 0, 0, 0, 0);
     }
 }

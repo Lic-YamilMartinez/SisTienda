@@ -2,3 +2,11 @@ dependencies {
     implementation project(':app-core')
     implementation 'org.xerial:sqlite-jdbc:3.46.0.0'
 }
+
+
+tasks.register('seedMinimercadoDemo', JavaExec) {
+    group = 'verification'
+    description = 'Carga un catálogo demo de minimercado en la base actual de SisTienda para pruebas QA.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'py.sistienda.data.qa.MinimercadoDemoSeeder'
+}

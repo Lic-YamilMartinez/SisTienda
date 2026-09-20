@@ -425,6 +425,7 @@ public final class ComprasView extends BorderPane {
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().setPrefWidth(480);
         applyDialogStyles(dialog);
+        ResponsiveDialogSupport.fit(dialog, 620, 560);
 
         Node ok = dialog.getDialogPane().lookupButton(ButtonType.OK);
         ok.addEventFilter(ActionEvent.ACTION, event -> {
@@ -489,7 +490,9 @@ public final class ComprasView extends BorderPane {
 
     private StringConverter<Producto> productoConverter() {
         return new StringConverter<>() {
-            @Override public String toString(Producto value) { return value == null ? "" : value.nombre(); }
+            @Override public String toString(Producto value) {
+                return value == null ? "" : value.identificacionSistema() + " · " + value.nombre();
+            }
             @Override public Producto fromString(String value) { return null; }
         };
     }

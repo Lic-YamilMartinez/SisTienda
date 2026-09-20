@@ -1,6 +1,7 @@
 package py.sistienda.ui.reposicion;
 
 import py.sistienda.ui.common.UserErrorMessages;
+import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -90,7 +91,7 @@ public final class ReposicionView extends BorderPane {
     }
 
     private VBox buildTable() {
-        buscar.setPromptText("Buscar producto o categoría...");
+        buscar.setPromptText("Buscar por ID, producto o categoría...");
         buscar.getStyleClass().add("search-field");
         buscar.setPrefWidth(360);
         Label hint = new Label("Los productos sin stock aparecen primero. La sugerencia completa hasta el stock ideal.");
@@ -111,6 +112,10 @@ public final class ReposicionView extends BorderPane {
 
     private void configurarTabla() {
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        TableColumn<ReposicionItem, String> id = new TableColumn<>("ID");
+        id.setCellValueFactory(cell -> new ReadOnlyStringWrapper(Long.toString(cell.getValue().producto().id())));
+        id.setPrefWidth(65);
 
         TableColumn<ReposicionItem, String> producto = new TableColumn<>("Producto");
         producto.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().producto().nombre()));
@@ -164,7 +169,7 @@ public final class ReposicionView extends BorderPane {
             }
         });
 
-        tabla.getColumns().setAll(producto, categoria, actual, minimo, ideal, sugerido, costo, acciones);
+        tabla.getColumns().setAll(id, producto, categoria, actual, minimo, ideal, sugerido, costo, acciones);
         tabla.setRowFactory(view -> new TableRow<>() {
             @Override protected void updateItem(ReposicionItem item, boolean empty) {
                 super.updateItem(item, empty);
@@ -204,6 +209,7 @@ public final class ReposicionView extends BorderPane {
         content.setPrefWidth(420);
         dialog.getDialogPane().setContent(content);
         applyStyles(dialog.getDialogPane());
+        ResponsiveDialogSupport.fit(dialog, 580, 540);
 
         double[][] parsed = {null};
         Node save = dialog.getDialogPane().lookupButton(guardar);
@@ -248,6 +254,7 @@ public final class ReposicionView extends BorderPane {
     private void aplicarFiltro() {
         String query = buscar.getText() == null ? "" : buscar.getText().trim().toLowerCase(Locale.ROOT);
         filtrados.setPredicate(item -> query.isBlank()
+                || String.valueOf(item.producto().id()).contains(query)
                 || item.producto().nombre().toLowerCase(Locale.ROOT).contains(query)
                 || (item.producto().categoriaNombre() != null
                     && item.producto().categoriaNombre().toLowerCase(Locale.ROOT).contains(query)));
@@ -260,7 +267,7 @@ public final class ReposicionView extends BorderPane {
         }
         StringBuilder text = new StringBuilder("LISTA DE REPOSICIÓN · SisTienda\n\n");
         for (ReposicionItem item : items) {
-            text.append("• ").append(item.producto().nombre())
+            text.append("• ").append(item.producto().identificacionSistema()).append(" · ").append(item.producto().nombre())
                     .append(" — comprar ").append(formatCantidad(item.cantidadSugerida(), item.producto()))
                     .append(" (actual ").append(formatCantidad(item.producto().stockActual(), item.producto()))
                     .append(")\n");

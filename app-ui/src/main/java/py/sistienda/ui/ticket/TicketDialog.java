@@ -45,7 +45,7 @@ public final class TicketDialog {
         dialog.getDialogPane().getButtonTypes().addAll(printType, ButtonType.CLOSE);
 
         VBox ticket = buildTicket(empresa, detalle, config);
-        ResponsiveDialogSupport.scrollContent(dialog, ticket, config.anchoTicketMm() == 58 ? 390 : 470, 700);
+        ResponsiveDialogSupport.scrollContent(dialog, ticket, config.anchoTicketMm() == 58 ? 600 : 640, 760);
         addStyle(dialog, "/styles/app.css");
         addStyle(dialog, "/styles/ticket.css");
 

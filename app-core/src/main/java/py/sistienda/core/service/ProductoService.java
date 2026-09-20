@@ -28,6 +28,11 @@ public final class ProductoService {
         return productoRepository.findAllActive();
     }
 
+    public Optional<Producto> buscarPorId(long productoId) {
+        if (productoId <= 0) return Optional.empty();
+        return productoRepository.findById(productoId);
+    }
+
     public Optional<Producto> buscarPorCodigo(String codigo) {
         if (codigo == null || codigo.isBlank()) return Optional.empty();
         return productoRepository.findByBarcode(codigo.trim());

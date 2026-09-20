@@ -57,7 +57,7 @@ public final class CatalogoConsultaView extends BorderPane {
     }
 
     private VBox buildContent() {
-        buscar.setPromptText("Buscar por producto, categoría, código o PLU...");
+        buscar.setPromptText("Buscar por ID, producto, categoría, código o PLU...");
         buscar.getStyleClass().add("search-field");
         buscar.setPrefWidth(430);
 
@@ -84,6 +84,7 @@ public final class CatalogoConsultaView extends BorderPane {
         buscar.textProperty().addListener((obs, oldValue, newValue) -> {
             String query = newValue == null ? "" : newValue.trim().toLowerCase(Locale.ROOT);
             filtrados.setPredicate(producto -> query.isBlank()
+                    || String.valueOf(producto.id()).contains(query)
                     || contiene(producto.nombre(), query)
                     || contiene(producto.categoriaNombre(), query)
                     || contiene(producto.codigoBarras(), query)
@@ -116,10 +117,15 @@ public final class CatalogoConsultaView extends BorderPane {
                     return;
                 }
                 name.setText(item.nombre());
-                category.setText(item.categoriaNombre() == null ? "Sin categoría" : item.categoriaNombre());
+                String categoryName = item.categoriaNombre() == null ? "Sin categoría" : item.categoriaNombre();
+                category.setText(item.identificacionSistema() + " · " + categoryName);
                 setGraphic(box);
             }
         });
+
+        TableColumn<Producto, String> idCol = new TableColumn<>("ID");
+        idCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(Long.toString(cell.getValue().id())));
+        idCol.setPrefWidth(70);
 
         TableColumn<Producto, String> ventaCol = new TableColumn<>("Venta");
         ventaCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(
@@ -138,7 +144,7 @@ public final class CatalogoConsultaView extends BorderPane {
         codigoCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(identificacion(cell.getValue())));
         codigoCol.setPrefWidth(190);
 
-        tabla.getColumns().setAll(productoCol, ventaCol, precioCol, stockCol, codigoCol);
+        tabla.getColumns().setAll(idCol, productoCol, ventaCol, precioCol, stockCol, codigoCol);
     }
 
     private void recargar() {

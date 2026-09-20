@@ -41,7 +41,7 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
 
     public ProductoDialog(Window owner, List<CategoriaProducto> categorias, Producto producto) {
         initOwner(owner);
-        setTitle(producto == null ? "Nuevo producto" : "Editar producto");
+        setTitle(producto == null ? "Nuevo producto" : "Editar producto · " + producto.identificacionSistema());
         setHeaderText(null);
 
         categoria.getItems().add(SIN_CATEGORIA);
@@ -107,7 +107,7 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
 
         DialogPane pane = getDialogPane();
         pane.getButtonTypes().addAll(GUARDAR, ButtonType.CANCEL);
-        VBox form = buildContent(producto == null);
+        VBox form = buildContent(producto);
         ScrollPane scroll = new ScrollPane(form);
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -116,8 +116,9 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         scroll.setMaxHeight(520);
         scroll.getStyleClass().add("product-dialog-scroll");
         pane.setContent(scroll);
-        pane.setPrefWidth(580);
+        pane.setPrefWidth(620);
         pane.getStyleClass().add("product-dialog");
+        ResponsiveDialogSupport.fit(this, 680, 720);
         applyStyles(pane);
 
         Node saveButton = pane.lookupButton(GUARDAR);
@@ -149,12 +150,14 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         });
     }
 
-    private VBox buildContent(boolean nuevo) {
+    private VBox buildContent(Producto producto) {
+        boolean nuevo = producto == null;
         Label title = new Label(nuevo ? "Agregar producto" : "Actualizar producto");
         title.getStyleClass().add("dialog-title");
         Label subtitle = new Label(nuevo
                 ? "Cargá los datos comerciales y, si querés, definí cuándo SisTienda debe avisarte que repongas."
-                : "Actualizá datos comerciales, identificación y niveles de reposición. El stock actual no se modifica acá.");
+                : "Actualizá datos comerciales, identificación y niveles de reposición. " + producto.identificacionSistema()
+                        + " es permanente y no se puede editar. El stock actual no se modifica acá.");
         subtitle.setWrapText(true);
         subtitle.getStyleClass().add("dialog-subtitle");
 

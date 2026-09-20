@@ -44,6 +44,9 @@ class CatalogoRepositoryIntegrationTest {
                 true
         ));
         assertTrue(producto.id() > 0);
+        Producto porId = productoRepository.findById(producto.id()).orElseThrow();
+        assertEquals(producto.id(), porId.id());
+        assertEquals("Detergente", porId.nombre());
 
         movimientoRepository.register(producto.id(), TipoMovimientoStock.ENTRADA,
                 "Compra", 12, "FAC-1", null);

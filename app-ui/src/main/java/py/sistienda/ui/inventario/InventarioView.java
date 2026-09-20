@@ -115,7 +115,7 @@ public final class InventarioView extends BorderPane {
         );
         metrics.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
 
-        buscar.setPromptText("Buscar o escanear producto...");
+        buscar.setPromptText("Buscar por ID, nombre, código o escanear...");
         buscar.getStyleClass().add("pos-search");
         HBox.setHgrow(buscar, Priority.ALWAYS);
 
@@ -147,6 +147,7 @@ public final class InventarioView extends BorderPane {
         buscar.textProperty().addListener((obs, oldValue, newValue) -> {
             String q = newValue == null ? "" : newValue.trim().toLowerCase(Locale.ROOT);
             filtered.setPredicate(row -> q.isBlank()
+                    || String.valueOf(row.producto().id()).contains(q)
                     || row.producto().nombre().toLowerCase(Locale.ROOT).contains(q)
                     || (row.producto().categoriaNombre() != null
                     && row.producto().categoriaNombre().toLowerCase(Locale.ROOT).contains(q))
@@ -179,7 +180,7 @@ public final class InventarioView extends BorderPane {
                 if (empty || item == null) { setGraphic(null); return; }
                 name.setText(item.producto().nombre());
                 String category = item.producto().categoriaNombre() == null ? "Sin categoría" : item.producto().categoriaNombre();
-                detail.setText(category + " · " + item.producto().identificacionComercial());
+                detail.setText(item.producto().identificacionSistema() + " · " + category + " · " + item.producto().identificacionComercial());
                 setGraphic(box);
             }
         });
@@ -315,6 +316,7 @@ public final class InventarioView extends BorderPane {
             );
             dialog.getDialogPane().setContent(content);
             applyStyles(dialog);
+            ResponsiveDialogSupport.fit(dialog, 640, 560);
 
             final long[] inventoryId = {0};
             Node save = dialog.getDialogPane().lookupButton(confirmar);

@@ -1,6 +1,7 @@
 package py.sistienda.ui.etiqueta;
 
 import py.sistienda.ui.common.UserErrorMessages;
+import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import com.google.zxing.BarcodeFormat;
 import javafx.event.ActionEvent;
@@ -52,6 +53,7 @@ public final class EtiquetaDialog {
         input.setHeaderText(producto.nombre() + " · PLU " + String.format("%05d", producto.pluBalanza()));
         input.setContentText("Peso en kg:");
         applyStyle(input);
+        ResponsiveDialogSupport.fitCompact(input);
         input.showAndWait().ifPresent(value -> {
             try {
                 double peso = parsePeso(value);
@@ -85,8 +87,8 @@ public final class EtiquetaDialog {
         dialog.getDialogPane().getButtonTypes().addAll(imprimir, ButtonType.CLOSE);
         VBox label = buildLabel(producto, codigo, format, pesoKg, configuracion);
         dialog.getDialogPane().setContent(label);
-        dialog.getDialogPane().setPrefWidth(430);
         applyStyle(dialog);
+        ResponsiveDialogSupport.fit(dialog, 620, 650);
 
         Node printButton = dialog.getDialogPane().lookupButton(imprimir);
         printButton.addEventFilter(ActionEvent.ACTION, event -> {

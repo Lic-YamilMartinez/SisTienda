@@ -36,6 +36,21 @@ public final class SqliteProductoRepository implements ProductoRepository {
     }
 
     @Override
+    public Optional<Producto> findById(long productoId) {
+        if (productoId <= 0) return Optional.empty();
+        String sql = baseSelect() + " WHERE p.activo = 1 AND p.id = ? LIMIT 1";
+        try (var connection = connectionFactory.open();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, productoId);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? Optional.of(map(result)) : Optional.empty();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudo buscar el producto por ID.", e);
+        }
+    }
+
+    @Override
     public Optional<Producto> findByBarcode(String codigoBarras) {
         String sql = baseSelect() + " WHERE p.activo = 1 AND p.codigo_barras = ? LIMIT 1";
         try (var connection = connectionFactory.open();

@@ -9,6 +9,22 @@ public record ClienteCuentaMovimiento(
         double cargo,
         double abono,
         String detalle,
-        String medioPago
+        String medioPago,
+        Long ventaId
 ) {
+    public ClienteCuentaMovimiento(
+            LocalDateTime fecha,
+            String tipo,
+            String referencia,
+            double cargo,
+            double abono,
+            String detalle,
+            String medioPago
+    ) {
+        this(fecha, tipo, referencia, cargo, abono, detalle, medioPago, null);
+    }
+
+    public boolean tieneVenta() {
+        return ventaId != null && ventaId > 0;
+    }
 }

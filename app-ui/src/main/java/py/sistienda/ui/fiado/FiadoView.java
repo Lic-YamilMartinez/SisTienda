@@ -3,6 +3,7 @@ package py.sistienda.ui.fiado;
 import py.sistienda.ui.common.UserErrorMessages;
 
 import py.sistienda.ui.common.ResponsiveDialogSupport;
+import py.sistienda.ui.common.TooltipSupport;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -38,8 +39,12 @@ import py.sistienda.core.model.Usuario;
 import py.sistienda.core.security.AutorizacionService;
 import py.sistienda.core.security.Permiso;
 import py.sistienda.core.service.CajaService;
+import py.sistienda.core.service.ConfiguracionPosService;
+import py.sistienda.core.service.EmpresaService;
+import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.VentaService;
 import py.sistienda.ui.common.MoneyFieldSupport;
+import py.sistienda.ui.ticket.TicketDialog;
 import py.sistienda.ui.venta.ClientesFiadoDialog;
 
 import java.text.NumberFormat;
@@ -53,6 +58,9 @@ public final class FiadoView extends BorderPane {
 
     private final VentaService ventaService;
     private final CajaService cajaService;
+    private final ReporteService reporteService;
+    private final EmpresaService empresaService;
+    private final ConfiguracionPosService configuracionPosService;
     private final Usuario usuario;
     private final AutorizacionService autorizacionService;
 
@@ -65,8 +73,18 @@ public final class FiadoView extends BorderPane {
 
     public FiadoView(VentaService ventaService, CajaService cajaService, Usuario usuario,
                      AutorizacionService autorizacionService) {
+        this(ventaService, cajaService, null, null, null, usuario, autorizacionService);
+    }
+
+    public FiadoView(VentaService ventaService, CajaService cajaService,
+                     ReporteService reporteService, EmpresaService empresaService,
+                     ConfiguracionPosService configuracionPosService, Usuario usuario,
+                     AutorizacionService autorizacionService) {
         this.ventaService = ventaService;
         this.cajaService = cajaService;
+        this.reporteService = reporteService;
+        this.empresaService = empresaService;
+        this.configuracionPosService = configuracionPosService;
         this.usuario = usuario;
         this.autorizacionService = autorizacionService;
         autorizacionService.exigir(usuario, Permiso.FIADO_GESTIONAR);
@@ -93,6 +111,7 @@ public final class FiadoView extends BorderPane {
 
         Button nuevo = new Button("+ Nuevo cliente");
         nuevo.getStyleClass().add("primary-button");
+        TooltipSupport.install(nuevo, "Crear un cliente nuevo para ventas al contado futuro o para gestionar fiado.");
         nuevo.setOnAction(event -> {
             ClientesFiadoDialog.nuevoCliente(
                     getScene() == null ? null : getScene().getWindow(),
@@ -122,6 +141,7 @@ public final class FiadoView extends BorderPane {
 
         buscar.setPromptText("Buscar por nombre, teléfono o CI/RUC...");
         buscar.getStyleClass().add("pos-search");
+        TooltipSupport.install(buscar, "Buscá por nombre, teléfono, cédula o RUC del cliente.");
         buscar.textProperty().addListener((obs, oldValue, newValue) -> recargarTabla());
 
         Label hint = new Label("Tip: escribí el nombre del cliente y tocá Cobrar. El monto aparece completo, pero podés registrar un abono parcial.");
@@ -147,10 +167,12 @@ public final class FiadoView extends BorderPane {
         TableColumn<ClienteCuentaResumen, String> cliente = new TableColumn<>("Cliente");
         cliente.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().cliente().nombre()));
         cliente.setPrefWidth(250);
+        TooltipSupport.fullText(cliente);
 
         TableColumn<ClienteCuentaResumen, String> contacto = new TableColumn<>("Contacto");
         contacto.setCellValueFactory(cell -> new ReadOnlyStringWrapper(contacto(cell.getValue().cliente())));
         contacto.setPrefWidth(180);
+        TooltipSupport.fullText(contacto);
 
         TableColumn<ClienteCuentaResumen, String> saldo = new TableColumn<>("Saldo");
         saldo.setCellValueFactory(cell -> new ReadOnlyStringWrapper(saldoTexto(cell.getValue().saldo())));
@@ -175,6 +197,7 @@ public final class FiadoView extends BorderPane {
                 cell.getValue().ultimoMovimiento() == null ? "—" : DATE_TIME.format(cell.getValue().ultimoMovimiento())
         ));
         ultimo.setPrefWidth(155);
+        TooltipSupport.fullText(ultimo);
 
         TableColumn<ClienteCuentaResumen, ClienteCuentaResumen> acciones = new TableColumn<>("");
         acciones.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
@@ -186,6 +209,8 @@ public final class FiadoView extends BorderPane {
             {
                 cobrar.getStyleClass().add("primary-button");
                 detalle.getStyleClass().add("secondary-button");
+                TooltipSupport.install(cobrar, "Registrar un cobro total o un abono parcial de la deuda.");
+                TooltipSupport.install(detalle, "Abrir el historial completo de la cuenta del cliente.");
                 box.setAlignment(Pos.CENTER);
             }
             @Override protected void updateItem(ClienteCuentaResumen item, boolean empty) {
@@ -269,6 +294,7 @@ public final class FiadoView extends BorderPane {
             );
             dialog.getDialogPane().setContent(content);
             applyStyles(dialog);
+            ResponsiveDialogSupport.fit(dialog, 620, 540);
 
             Node save = dialog.getDialogPane().lookupButton(confirmar);
             save.addEventFilter(ActionEvent.ACTION, event -> {
@@ -305,6 +331,7 @@ public final class FiadoView extends BorderPane {
             saldo.getStyleClass().add("credit-account-balance");
             Button cobrar = new Button("Cobrar ahora");
             cobrar.getStyleClass().add("primary-button");
+            TooltipSupport.install(cobrar, "Registrar un cobro total o parcial sobre el saldo pendiente.");
             TableView<ClienteCuentaMovimiento> movimientos = buildMovimientosTable();
 
             Runnable refresh = () -> {
@@ -328,7 +355,7 @@ public final class FiadoView extends BorderPane {
             top.setAlignment(Pos.CENTER_LEFT);
             VBox content = new VBox(12, top, movimientos);
             VBox.setVgrow(movimientos, Priority.ALWAYS);
-            ResponsiveDialogSupport.scrollContent(dialog, content, 800, 620);
+            ResponsiveDialogSupport.scrollContent(dialog, content, 920, 620);
             applyStyles(dialog);
             dialog.showAndWait();
             recargar();
@@ -355,8 +382,63 @@ public final class FiadoView extends BorderPane {
         TableColumn<ClienteCuentaMovimiento, String> abono = new TableColumn<>("Abono");
         abono.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().abono() <= 0 ? "—" : formatCurrency(cell.getValue().abono())));
         abono.setPrefWidth(110);
-        table.getColumns().setAll(fecha, tipo, detalle, cargo, abono);
+
+        TooltipSupport.fullText(fecha);
+        TooltipSupport.fullText(tipo);
+        TooltipSupport.fullText(detalle);
+        TooltipSupport.fullText(cargo);
+        TooltipSupport.fullText(abono);
+
+        TableColumn<ClienteCuentaMovimiento, ClienteCuentaMovimiento> accion = new TableColumn<>("");
+        accion.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        accion.setPrefWidth(105);
+        accion.setCellFactory(column -> new TableCell<>() {
+            private final Button ticket = new Button("Ver ticket");
+            {
+                ticket.getStyleClass().add("secondary-button");
+                TooltipSupport.install(ticket, "Abrir el ticket original y ver qué productos llevó el cliente.");
+            }
+            @Override protected void updateItem(ClienteCuentaMovimiento item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null || !item.tieneVenta()) {
+                    setGraphic(null);
+                    return;
+                }
+                ticket.setOnAction(event -> mostrarTicket(item));
+                setAlignment(Pos.CENTER);
+                setGraphic(ticket);
+            }
+        });
+
+        table.getColumns().setAll(fecha, tipo, detalle, cargo, abono, accion);
+        table.setRowFactory(view -> {
+            TableRow<ClienteCuentaMovimiento> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty() && row.getItem().tieneVenta()) {
+                    mostrarTicket(row.getItem());
+                }
+            });
+            return row;
+        });
+        TooltipSupport.install(table, "Doble clic sobre una venta, devolución o anulación para abrir el ticket relacionado.");
         return table;
+    }
+
+    private void mostrarTicket(ClienteCuentaMovimiento movimiento) {
+        ejecutar(() -> {
+            if (movimiento == null || !movimiento.tieneVenta()) return;
+            if (reporteService == null || empresaService == null) {
+                throw new ValidationException("La vista del ticket no está disponible en esta pantalla.");
+            }
+            var config = configuracionPosService == null
+                    ? py.sistienda.core.model.ConfiguracionPos.porDefecto()
+                    : configuracionPosService.obtener();
+            TicketDialog.show(
+                    empresaService.obtener(),
+                    reporteService.detalleVenta(movimiento.ventaId()),
+                    config
+            );
+        });
     }
 
     private static VBox metricCard(String title, Label value, String hint) {
@@ -366,6 +448,7 @@ public final class FiadoView extends BorderPane {
         hintLabel.getStyleClass().add("credit-hint");
         hintLabel.setWrapText(true);
         VBox card = new VBox(3, titleLabel, value, hintLabel);
+        TooltipSupport.install(card, title + ": " + hint);
         card.getStyleClass().add("credit-metric-card");
         card.setPadding(new Insets(12));
         card.setMaxWidth(Double.MAX_VALUE);
