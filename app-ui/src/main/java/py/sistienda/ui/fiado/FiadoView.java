@@ -294,6 +294,7 @@ public final class FiadoView extends BorderPane {
             );
             dialog.getDialogPane().setContent(content);
             applyStyles(dialog);
+            ResponsiveDialogSupport.fit(dialog, 620, 540);
 
             Node save = dialog.getDialogPane().lookupButton(confirmar);
             save.addEventFilter(ActionEvent.ACTION, event -> {
