@@ -1,6 +1,7 @@
 package py.sistienda.ui.reposicion;
 
 import py.sistienda.ui.common.UserErrorMessages;
+import py.sistienda.ui.common.ResponsiveDialogSupport;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -208,6 +209,7 @@ public final class ReposicionView extends BorderPane {
         content.setPrefWidth(420);
         dialog.getDialogPane().setContent(content);
         applyStyles(dialog.getDialogPane());
+        ResponsiveDialogSupport.fit(dialog, 580, 540);
 
         double[][] parsed = {null};
         Node save = dialog.getDialogPane().lookupButton(guardar);
