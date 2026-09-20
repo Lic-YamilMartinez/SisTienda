@@ -269,6 +269,7 @@ public final class ClientesFiadoDialog {
         );
         dialog.getDialogPane().setContent(content);
         applyStyles(dialog);
+        ResponsiveDialogSupport.fit(dialog, 660, 590);
 
         Cliente[] saved = {null};
         Node save = dialog.getDialogPane().lookupButton(guardar);
@@ -387,6 +388,7 @@ public final class ClientesFiadoDialog {
         );
         dialog.getDialogPane().setContent(content);
         applyStyles(dialog);
+        ResponsiveDialogSupport.fit(dialog, 620, 540);
 
         long[] id = {0};
         Node save = dialog.getDialogPane().lookupButton(registrar);
