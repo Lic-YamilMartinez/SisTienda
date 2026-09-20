@@ -404,6 +404,7 @@ public final class CajaView extends BorderPane {
         );
         dialog.getDialogPane().setContent(content);
         applyDialogStyles(dialog);
+        ResponsiveDialogSupport.fit(dialog, 620, 560);
 
         boolean[] saved = {false};
         Node ok = dialog.getDialogPane().lookupButton(ButtonType.OK);
@@ -486,6 +487,7 @@ public final class CajaView extends BorderPane {
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().setPrefWidth(460);
         applyDialogStyles(dialog);
+        ResponsiveDialogSupport.fit(dialog, 620, 560);
 
         dialog.showAndWait().filter(ButtonType.OK::equals).ifPresent(result -> ejecutar(() -> {
             cajaService.cerrar(sesion, parseMonto(cierre.getText(), "monto de cierre"), notas.getText());
