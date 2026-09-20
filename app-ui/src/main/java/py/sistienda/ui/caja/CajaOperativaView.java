@@ -30,6 +30,7 @@ import py.sistienda.core.service.MovimientoCajaService;
 import py.sistienda.core.service.ProductoService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.VentaService;
+import py.sistienda.ui.common.ResponsiveDialogSupport;
 import py.sistienda.ui.common.TooltipSupport;
 import py.sistienda.ui.ticket.TicketDialog;
 import py.sistienda.ui.venta.VentaView;
@@ -284,6 +285,7 @@ public final class CajaOperativaView extends BorderPane {
         content.setPrefWidth(460);
         dialog.getDialogPane().setContent(content);
         applyStyle(dialog);
+        ResponsiveDialogSupport.fit(dialog, 640, 600);
 
         Node save = dialog.getDialogPane().lookupButton(guardar);
         save.addEventFilter(ActionEvent.ACTION, event -> {
@@ -324,6 +326,7 @@ public final class CajaOperativaView extends BorderPane {
         content.setPrefWidth(450);
         dialog.getDialogPane().setContent(content);
         applyStyle(dialog);
+        ResponsiveDialogSupport.fit(dialog, 600, 540);
 
         Node close = dialog.getDialogPane().lookupButton(cerrar);
         close.addEventFilter(ActionEvent.ACTION, event -> {
