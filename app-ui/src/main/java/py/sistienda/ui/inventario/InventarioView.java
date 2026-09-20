@@ -316,6 +316,7 @@ public final class InventarioView extends BorderPane {
             );
             dialog.getDialogPane().setContent(content);
             applyStyles(dialog);
+            ResponsiveDialogSupport.fit(dialog, 640, 560);
 
             final long[] inventoryId = {0};
             Node save = dialog.getDialogPane().lookupButton(confirmar);
