@@ -29,6 +29,7 @@ import py.sistienda.core.service.LogoNegocioService;
 import py.sistienda.core.service.UsuarioService;
 import py.sistienda.ui.branding.BrandingImageFactory;
 import py.sistienda.ui.common.AppVersion;
+import py.sistienda.ui.common.ResponsiveDialogSupport;
 import py.sistienda.ui.common.TooltipSupport;
 
 import java.util.Arrays;
@@ -364,6 +365,7 @@ public final class MainShell extends BorderPane {
         content.setPrefWidth(450);
         dialog.getDialogPane().setContent(content);
         addStyle(dialog);
+        ResponsiveDialogSupport.fit(dialog, 620, 560);
 
         Node save = dialog.getDialogPane().lookupButton(guardar);
         save.addEventFilter(ActionEvent.ACTION, event -> {
@@ -392,6 +394,7 @@ public final class MainShell extends BorderPane {
             ok.setHeaderText("Tu contraseña se actualizó correctamente.");
             ok.getDialogPane().getButtonTypes().add(ButtonType.OK);
             addStyle(ok);
+            ResponsiveDialogSupport.fitCompact(ok);
             ok.showAndWait();
         });
     }
