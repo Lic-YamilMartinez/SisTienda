@@ -116,8 +116,9 @@ public final class ProductoDialog extends Dialog<ProductoDialog.ProductoForm> {
         scroll.setMaxHeight(520);
         scroll.getStyleClass().add("product-dialog-scroll");
         pane.setContent(scroll);
-        pane.setPrefWidth(580);
+        pane.setPrefWidth(620);
         pane.getStyleClass().add("product-dialog");
+        ResponsiveDialogSupport.fit(this, 680, 720);
         applyStyles(pane);
 
         Node saveButton = pane.lookupButton(GUARDAR);
