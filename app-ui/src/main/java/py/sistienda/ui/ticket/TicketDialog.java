@@ -83,13 +83,24 @@ public final class TicketDialog {
         Label payment = new Label("Pago: " + detalle.metodoPago().descripcion());
         payment.getStyleClass().add("ticket-info");
         VBox paymentInfo = new VBox(3, payment);
-        if (detalle.metodoPago() == MetodoPago.FIADO && detalle.cliente() != null && !detalle.cliente().isBlank()) {
+
+        if (!detalle.pagos().isEmpty()) {
+            for (var pago : detalle.pagos()) {
+                String label = pago.metodoPago() == MetodoPago.FIADO ? "Saldo pendiente" : pago.metodoPago().descripcion();
+                paymentInfo.getChildren().add(infoRow(label, formatCurrency(pago.monto())));
+            }
+        }
+
+        boolean tieneFiado = detalle.pagos().stream()
+                .anyMatch(pago -> pago.metodoPago() == MetodoPago.FIADO);
+        if ((detalle.metodoPago() == MetodoPago.FIADO || tieneFiado)
+                && detalle.cliente() != null && !detalle.cliente().isBlank()) {
             Label customer = new Label("Cliente: " + detalle.cliente());
             customer.getStyleClass().add("ticket-info");
             customer.setWrapText(true);
             paymentInfo.getChildren().add(customer);
         }
-        if (detalle.metodoPago() == MetodoPago.EFECTIVO) {
+        if (detalle.metodoPago() == MetodoPago.EFECTIVO && detalle.vuelto() > 0) {
             paymentInfo.getChildren().addAll(
                     infoRow("Recibido", formatCurrency(detalle.recibido())),
                     infoRow("Vuelto", formatCurrency(detalle.vuelto()))
