@@ -60,6 +60,7 @@ public final class SqliteArqueoCajaRepository implements ArqueoCajaRepository {
                         result.getDouble("ventas_efectivo"),
                         result.getDouble("ventas_transferencia"),
                         result.getDouble("ventas_tarjeta"),
+                        result.getDouble("ventas_fiado"),
                         result.getDouble("ventas_total")
                 );
                 ResumenMovimientosCaja movimientos = new ResumenMovimientosCaja(
@@ -95,22 +96,30 @@ public final class SqliteArqueoCajaRepository implements ArqueoCajaRepository {
 
     private String baseSummarySql() {
         return """
-                WITH movimientos_venta AS (
-                    SELECT caja_sesion_id, metodo_pago, total AS importe, 1 AS ticket
-                    FROM venta
-                    WHERE anulada = 0
+                WITH movimientos_pago AS (
+                    SELECT v.caja_sesion_id, vp.metodo_pago, vp.monto AS importe
+                    FROM venta v
+                    JOIN venta_pago vp ON vp.venta_id = v.id
+                    WHERE v.anulada = 0
                     UNION ALL
-                    SELECT caja_sesion_id, metodo_pago, -total AS importe, 0 AS ticket
-                    FROM devolucion
+                    SELECT d.caja_sesion_id, dp.metodo_pago, -dp.monto AS importe
+                    FROM devolucion d
+                    JOIN devolucion_pago dp ON dp.devolucion_id = d.id
                 ),
                 ventas AS (
                     SELECT caja_sesion_id,
                            COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN importe ELSE 0 END), 0) AS efectivo,
                            COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN importe ELSE 0 END), 0) AS transferencia,
                            COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN importe ELSE 0 END), 0) AS tarjeta,
-                           COALESCE(SUM(importe), 0) AS total,
-                           COALESCE(SUM(ticket), 0) AS tickets
-                    FROM movimientos_venta
+                           COALESCE(SUM(CASE WHEN metodo_pago = 'FIADO' THEN importe ELSE 0 END), 0) AS fiado,
+                           COALESCE(SUM(importe), 0) AS total
+                    FROM movimientos_pago
+                    GROUP BY caja_sesion_id
+                ),
+                tickets AS (
+                    SELECT caja_sesion_id, COUNT(*) AS tickets
+                    FROM venta
+                    WHERE anulada = 0
                     GROUP BY caja_sesion_id
                 ),
                 movimientos AS (
@@ -132,13 +141,15 @@ public final class SqliteArqueoCajaRepository implements ArqueoCajaRepository {
                        COALESCE(v.efectivo, 0) AS ventas_efectivo,
                        COALESCE(v.transferencia, 0) AS ventas_transferencia,
                        COALESCE(v.tarjeta, 0) AS ventas_tarjeta,
+                       COALESCE(v.fiado, 0) AS ventas_fiado,
                        COALESCE(v.total, 0) AS ventas_total,
-                       COALESCE(v.tickets, 0) AS tickets,
+                       COALESCE(t.tickets, 0) AS tickets,
                        COALESCE(m.ingresos, 0) AS ingresos,
                        COALESCE(m.egresos, 0) AS egresos
                 FROM caja_sesion c
                 JOIN usuario u ON u.id = c.usuario_id
                 LEFT JOIN ventas v ON v.caja_sesion_id = c.id
+                LEFT JOIN tickets t ON t.caja_sesion_id = c.id
                 LEFT JOIN movimientos m ON m.caja_sesion_id = c.id
                 """;
     }
