@@ -34,6 +34,7 @@ public final class DatabaseInitializer {
                     ensureReplenishmentColumns(connection);
                     ensureBrandingTable(connection);
                     ensureCreditSchema(connection);
+                    ensurePaymentSchema(connection);
                     ensureInventorySchema(connection);
                     connection.commit();
                 } catch (Exception e) {
@@ -142,6 +143,54 @@ public final class DatabaseInitializer {
                     """);
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_abono_cliente_fecha ON cliente_abono(cliente_id, fecha DESC)");
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_abono_caja_fecha ON cliente_abono(caja_sesion_id, fecha DESC)");
+        }
+    }
+
+    private void ensurePaymentSchema(Connection connection) throws Exception {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS venta_pago (
+                      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                      venta_id     INTEGER NOT NULL,
+                      metodo_pago  TEXT NOT NULL CHECK (metodo_pago IN ('EFECTIVO','TRANSFERENCIA','TARJETA','FIADO')),
+                      monto        REAL NOT NULL CHECK (monto > 0),
+                      FOREIGN KEY (venta_id) REFERENCES venta(id) ON DELETE CASCADE,
+                      UNIQUE (venta_id, metodo_pago)
+                    )
+                    """);
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_venta_pago_venta ON venta_pago(venta_id)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_venta_pago_metodo ON venta_pago(metodo_pago)");
+
+            statement.execute("""
+                    INSERT OR IGNORE INTO venta_pago (venta_id, metodo_pago, monto)
+                    SELECT v.id, v.metodo_pago, v.total
+                    FROM venta v
+                    WHERE v.total > 0
+                      AND v.metodo_pago IN ('EFECTIVO','TRANSFERENCIA','TARJETA','FIADO')
+                      AND NOT EXISTS (SELECT 1 FROM venta_pago vp WHERE vp.venta_id = v.id)
+                    """);
+
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS devolucion_pago (
+                      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                      devolucion_id  INTEGER NOT NULL,
+                      metodo_pago    TEXT NOT NULL CHECK (metodo_pago IN ('EFECTIVO','TRANSFERENCIA','TARJETA','FIADO')),
+                      monto          REAL NOT NULL CHECK (monto > 0),
+                      FOREIGN KEY (devolucion_id) REFERENCES devolucion(id) ON DELETE CASCADE,
+                      UNIQUE (devolucion_id, metodo_pago)
+                    )
+                    """);
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_devolucion_pago_devolucion ON devolucion_pago(devolucion_id)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_devolucion_pago_metodo ON devolucion_pago(metodo_pago)");
+
+            statement.execute("""
+                    INSERT OR IGNORE INTO devolucion_pago (devolucion_id, metodo_pago, monto)
+                    SELECT d.id, d.metodo_pago, d.total
+                    FROM devolucion d
+                    WHERE d.total > 0
+                      AND d.metodo_pago IN ('EFECTIVO','TRANSFERENCIA','TARJETA','FIADO')
+                      AND NOT EXISTS (SELECT 1 FROM devolucion_pago dp WHERE dp.devolucion_id = d.id)
+                    """);
         }
     }
 
