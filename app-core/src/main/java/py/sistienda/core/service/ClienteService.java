@@ -99,7 +99,7 @@ public final class ClienteService {
         if (!cliente.activo()) {
             throw new ValidationException("El cliente está inactivo.");
         }
-        if (metodoPago == null || metodoPago == MetodoPago.FIADO) {
+        if (metodoPago == null || metodoPago == MetodoPago.FIADO || metodoPago == MetodoPago.MIXTO) {
             throw new ValidationException("Elegí cómo pagó el cliente: efectivo, transferencia o tarjeta.");
         }
         if (!Double.isFinite(monto) || monto <= 0) {
