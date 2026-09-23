@@ -172,7 +172,7 @@ public final class PostventaDialog {
         Label note = new Label(
                 "Anular corrige una venta cargada por error y sólo está disponible mientras la caja original siga abierta. "
                         + "Para una venta de una caja ya cerrada, utilizá devolución. "
-                        + "Toda devolución se registra y debe reintegrarse por el mismo medio de pago de la venta original."
+                        + "En pagos mixtos, SisTienda reduce primero el saldo fiado y distribuye el resto entre los medios cobrados de la venta original."
         );
         note.setWrapText(true);
         note.getStyleClass().add("post-sale-note");
