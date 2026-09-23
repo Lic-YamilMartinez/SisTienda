@@ -177,6 +177,10 @@ public final class SqliteVentaRepository implements VentaRepository {
     }
 
     private void insertPayments(Connection connection, long ventaId, List<PagoVenta> pagos) throws SQLException {
+        try (var delete = connection.prepareStatement("DELETE FROM venta_pago WHERE venta_id = ?")) {
+            delete.setLong(1, ventaId);
+            delete.executeUpdate();
+        }
         String sql = "INSERT INTO venta_pago (venta_id, metodo_pago, monto) VALUES (?, ?, ?)";
         try (var statement = connection.prepareStatement(sql)) {
             for (PagoVenta pago : pagos) {
