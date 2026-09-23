@@ -273,7 +273,8 @@ public final class ReportesView extends BorderPane {
                 new OpcionPago("Efectivo", MetodoPago.EFECTIVO),
                 new OpcionPago("Transferencia", MetodoPago.TRANSFERENCIA),
                 new OpcionPago("Tarjeta", MetodoPago.TARJETA),
-                new OpcionPago("Fiado / Crédito", MetodoPago.FIADO)
+                new OpcionPago("Fiado / Crédito", MetodoPago.FIADO),
+                new OpcionPago("Mixto / Parcial", MetodoPago.MIXTO)
         ));
         pago.setValue(pago.getItems().getFirst());
         pago.valueProperty().addListener((obs, oldValue, newValue) -> {

@@ -8,6 +8,7 @@ import py.sistienda.core.model.ClienteCuentaMovimiento;
 import py.sistienda.core.model.ClienteCuentaResumen;
 import py.sistienda.core.model.LineaVenta;
 import py.sistienda.core.model.MetodoPago;
+import py.sistienda.core.model.PagoVenta;
 import py.sistienda.core.model.Producto;
 import py.sistienda.core.model.UnidadMedida;
 import py.sistienda.core.model.Usuario;
@@ -15,6 +16,8 @@ import py.sistienda.core.model.VentaResultado;
 import py.sistienda.core.repository.VentaRepository;
 import py.sistienda.core.util.MoneyMath;
 
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +72,9 @@ public final class VentaService {
         if (metodoPago == null) {
             throw new ValidationException("Seleccioná un método de pago.");
         }
+        if (metodoPago == MetodoPago.MIXTO) {
+            throw new ValidationException("Usá la distribución de pago para registrar una venta mixta.");
+        }
 
         for (LineaVenta linea : lineas) {
             validarLinea(linea);
@@ -113,15 +119,118 @@ public final class VentaService {
             vuelto = 0;
         }
 
+        List<PagoVenta> pagos = List.of(new PagoVenta(metodoPago, total));
         return ventaRepository.register(
                 caja.id(),
                 usuario.id(),
-                metodoPago,
+                pagos,
                 recibidoNormalizado,
                 vuelto,
                 clienteId,
                 List.copyOf(lineas)
         );
+    }
+
+    public VentaResultado venderMixto(
+            Usuario usuario,
+            CajaSesion caja,
+            List<LineaVenta> lineas,
+            List<PagoVenta> pagos,
+            Cliente cliente
+    ) {
+        Objects.requireNonNull(usuario);
+        Objects.requireNonNull(caja);
+        Objects.requireNonNull(lineas);
+
+        if (!caja.abierta()) {
+            throw new ValidationException("Abrí la caja antes de registrar una venta.");
+        }
+        if (caja.usuarioId() != usuario.id()) {
+            throw new ValidationException("La caja abierta pertenece a otro usuario.");
+        }
+        if (lineas.isEmpty()) {
+            throw new ValidationException("Agregá al menos un producto a la venta.");
+        }
+        for (LineaVenta linea : lineas) validarLinea(linea);
+        validarStockAcumulado(lineas);
+
+        double total = MoneyMath.guaranies(lineas.stream().mapToDouble(LineaVenta::subtotal).sum());
+        if (!Double.isFinite(total) || total <= 0) {
+            throw new ValidationException("El total de la venta debe ser mayor a cero.");
+        }
+
+        List<PagoVenta> normalizados = normalizarPagos(pagos);
+        double totalPagos = MoneyMath.guaranies(normalizados.stream().mapToDouble(PagoVenta::monto).sum());
+        if (Math.abs(totalPagos - total) > EPSILON) {
+            throw new ValidationException("La distribución del pago debe completar exactamente " + (long) total + " Gs.");
+        }
+
+        double fiado = normalizados.stream()
+                .filter(pago -> pago.metodoPago() == MetodoPago.FIADO)
+                .mapToDouble(PagoVenta::monto)
+                .sum();
+        Long clienteId = null;
+        if (fiado > EPSILON) {
+            if (!puedeFiado(usuario)) {
+                throw new ValidationException("Tu usuario no tiene permiso para dejar saldo fiado.");
+            }
+            if (cliente == null) {
+                throw new ValidationException("Seleccioná el cliente que quedará debiendo.");
+            }
+            Cliente vigente = clienteService.obtener(usuario, cliente.id());
+            if (!vigente.activo()) {
+                throw new ValidationException("El cliente seleccionado está inactivo.");
+            }
+            clienteId = vigente.id();
+        } else if (cliente != null) {
+            throw new ValidationException("No hace falta asociar un cliente cuando no queda saldo fiado.");
+        }
+
+        double efectivo = normalizados.stream()
+                .filter(pago -> pago.metodoPago() == MetodoPago.EFECTIVO)
+                .mapToDouble(PagoVenta::monto)
+                .sum();
+
+        return ventaRepository.register(
+                caja.id(),
+                usuario.id(),
+                normalizados,
+                MoneyMath.guaranies(efectivo),
+                0d,
+                clienteId,
+                List.copyOf(lineas)
+        );
+    }
+
+    private List<PagoVenta> normalizarPagos(List<PagoVenta> pagos) {
+        if (pagos == null || pagos.isEmpty()) {
+            throw new ValidationException("Distribuí el total entre al menos una forma de pago.");
+        }
+        Map<MetodoPago, Double> acumulados = new EnumMap<>(MetodoPago.class);
+        for (PagoVenta pago : pagos) {
+            if (pago == null || pago.metodoPago() == MetodoPago.MIXTO) {
+                throw new ValidationException("La distribución contiene una forma de pago inválida.");
+            }
+            acumulados.merge(
+                    pago.metodoPago(),
+                    MoneyMath.guaranies(pago.monto()),
+                    (a, b) -> MoneyMath.guaranies(a + b)
+            );
+        }
+        List<PagoVenta> result = new ArrayList<>();
+        for (MetodoPago metodo : List.of(
+                MetodoPago.EFECTIVO,
+                MetodoPago.TRANSFERENCIA,
+                MetodoPago.TARJETA,
+                MetodoPago.FIADO
+        )) {
+            double monto = acumulados.getOrDefault(metodo, 0d);
+            if (monto > EPSILON) result.add(new PagoVenta(metodo, monto));
+        }
+        if (result.isEmpty()) {
+            throw new ValidationException("La distribución del pago está vacía.");
+        }
+        return List.copyOf(result);
     }
 
     public boolean puedeFiado(Usuario usuario) {

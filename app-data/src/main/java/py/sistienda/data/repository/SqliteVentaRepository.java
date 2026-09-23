@@ -3,6 +3,7 @@ package py.sistienda.data.repository;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.LineaVenta;
 import py.sistienda.core.model.MetodoPago;
+import py.sistienda.core.model.PagoVenta;
 import py.sistienda.core.model.VentaResultado;
 import py.sistienda.core.repository.VentaRepository;
 import py.sistienda.data.database.SqliteConnectionFactory;
@@ -43,15 +44,44 @@ public final class SqliteVentaRepository implements VentaRepository {
             Long clienteId,
             List<LineaVenta> lineas
     ) {
+        double total = lineas.stream().mapToDouble(LineaVenta::subtotal).sum();
+        return register(
+                cajaSesionId,
+                usuarioId,
+                List.of(new PagoVenta(metodoPago, total)),
+                recibido,
+                vuelto,
+                clienteId,
+                lineas
+        );
+    }
+
+    @Override
+    public VentaResultado register(
+            long cajaSesionId,
+            long usuarioId,
+            List<PagoVenta> pagos,
+            double recibido,
+            double vuelto,
+            Long clienteId,
+            List<LineaVenta> lineas
+    ) {
         try (Connection connection = connectionFactory.open()) {
             connection.setAutoCommit(false);
             try {
                 ensureCashOpen(connection, cajaSesionId, usuarioId);
-                validarClienteCredito(connection, metodoPago, clienteId);
+                validarPagos(pagos);
+                boolean tieneFiado = pagos.stream().anyMatch(pago -> pago.metodoPago() == MetodoPago.FIADO);
+                validarClienteCredito(connection, tieneFiado, clienteId);
 
                 int nroTicket = nextTicket(connection);
                 double total = lineas.stream().mapToDouble(LineaVenta::subtotal).sum();
+                double totalPagos = pagos.stream().mapToDouble(PagoVenta::monto).sum();
+                if (Math.abs(totalPagos - total) > 0.000001d) {
+                    throw new ValidationException("La distribución del pago no coincide con el total de la venta.");
+                }
                 double ganancia = lineas.stream().mapToDouble(LineaVenta::ganancia).sum();
+                MetodoPago metodoPago = pagos.size() == 1 ? pagos.getFirst().metodoPago() : MetodoPago.MIXTO;
 
                 long ventaId = insertVenta(
                         connection,
@@ -65,6 +95,7 @@ public final class SqliteVentaRepository implements VentaRepository {
                         nroTicket,
                         clienteId
                 );
+                insertPayments(connection, ventaId, pagos);
 
                 for (LineaVenta linea : lineas) {
                     insertDetail(connection, ventaId, linea);
@@ -79,7 +110,8 @@ public final class SqliteVentaRepository implements VentaRepository {
                         recibido,
                         vuelto,
                         ganancia,
-                        metodoPago
+                        metodoPago,
+                        pagos
                 );
             } catch (Exception e) {
                 try {
@@ -113,10 +145,25 @@ public final class SqliteVentaRepository implements VentaRepository {
         }
     }
 
-    private void validarClienteCredito(Connection connection, MetodoPago metodoPago, Long clienteId) throws SQLException {
-        if (metodoPago == MetodoPago.FIADO) {
+    private void validarPagos(List<PagoVenta> pagos) {
+        if (pagos == null || pagos.isEmpty()) {
+            throw new ValidationException("La venta debe tener al menos una forma de pago.");
+        }
+        java.util.Set<MetodoPago> metodos = new java.util.HashSet<>();
+        for (PagoVenta pago : pagos) {
+            if (pago == null || pago.metodoPago() == MetodoPago.MIXTO) {
+                throw new ValidationException("La distribución del pago contiene un método inválido.");
+            }
+            if (!metodos.add(pago.metodoPago())) {
+                throw new ValidationException("La distribución del pago repite un método de pago.");
+            }
+        }
+    }
+
+    private void validarClienteCredito(Connection connection, boolean tieneFiado, Long clienteId) throws SQLException {
+        if (tieneFiado) {
             if (clienteId == null || clienteId <= 0) {
-                throw new ValidationException("La venta a crédito requiere un cliente.");
+                throw new ValidationException("La parte fiada de la venta requiere un cliente.");
             }
             try (var statement = connection.prepareStatement("SELECT 1 FROM cliente WHERE id = ? AND activo = 1")) {
                 statement.setLong(1, clienteId);
@@ -125,7 +172,24 @@ public final class SqliteVentaRepository implements VentaRepository {
                 }
             }
         } else if (clienteId != null) {
-            throw new ValidationException("Sólo las ventas a crédito pueden asociarse a un cliente.");
+            throw new ValidationException("Sólo las ventas con saldo fiado pueden asociarse a un cliente.");
+        }
+    }
+
+    private void insertPayments(Connection connection, long ventaId, List<PagoVenta> pagos) throws SQLException {
+        try (var delete = connection.prepareStatement("DELETE FROM venta_pago WHERE venta_id = ?")) {
+            delete.setLong(1, ventaId);
+            delete.executeUpdate();
+        }
+        String sql = "INSERT INTO venta_pago (venta_id, metodo_pago, monto) VALUES (?, ?, ?)";
+        try (var statement = connection.prepareStatement(sql)) {
+            for (PagoVenta pago : pagos) {
+                statement.setLong(1, ventaId);
+                statement.setString(2, pago.metodoPago().name());
+                statement.setDouble(3, pago.monto());
+                statement.addBatch();
+            }
+            statement.executeBatch();
         }
     }
 

@@ -207,6 +207,7 @@ public final class HistorialCajasDialog {
         Label sales = new Label("Ventas: Efectivo " + money(item.ventas().efectivo())
                 + "   ·   Transferencia " + money(item.ventas().transferencia())
                 + "   ·   Tarjeta " + money(item.ventas().tarjeta())
+                + "   ·   Fiado " + money(item.ventas().fiado())
                 + "   ·   Tickets " + item.tickets());
         sales.getStyleClass().add("cash-reconciliation-sales");
 
