@@ -4,7 +4,8 @@ public enum MetodoPago {
     EFECTIVO("Efectivo"),
     TARJETA("Tarjeta"),
     TRANSFERENCIA("Transferencia"),
-    FIADO("Fiado / Crédito");
+    FIADO("Fiado / Crédito"),
+    MIXTO("Mixto / Parcial");
 
     private final String descripcion;
 
