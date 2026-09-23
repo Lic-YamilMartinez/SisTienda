@@ -181,7 +181,7 @@ class PagoMixtoIntegrationTest {
                 "Carga inicial",
                 5,
                 "QA-MIXTO",
-                owner.id()
+                "Carga QA"
         );
         Producto producto = productoRepository.findAllActive().stream()
                 .filter(item -> item.id() == creado.id())
