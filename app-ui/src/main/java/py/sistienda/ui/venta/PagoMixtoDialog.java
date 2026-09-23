@@ -33,10 +33,11 @@ public final class PagoMixtoDialog {
     }
 
     public static Optional<Distribucion> show(Window owner, double total, boolean permitirFiado) {
+        double totalNormalizado = MoneyMath.guaranies(total);
         Dialog<Distribucion> dialog = new Dialog<>();
         if (owner != null) dialog.initOwner(owner);
         dialog.setTitle("Pago mixto / parcial");
-        dialog.setHeaderText("Distribuí " + formatCurrency(total) + " entre las formas de pago");
+        dialog.setHeaderText("Distribuí " + formatCurrency(totalNormalizado) + " entre las formas de pago");
 
         ButtonType confirmar = new ButtonType("Confirmar distribución", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(confirmar, ButtonType.CANCEL);
@@ -61,7 +62,7 @@ public final class PagoMixtoDialog {
         hint.setWrapText(true);
         hint.getStyleClass().add("dialog-subtitle");
 
-        VBox totalBox = metric("TOTAL", formatCurrency(total));
+        VBox totalBox = metric("TOTAL", formatCurrency(totalNormalizado));
         VBox pagadoBox = new VBox(3, label("PAGADO AHORA"), pagado);
         VBox saldoBox = new VBox(3, saldoTitle, saldo);
         HBox resumen = new HBox(12, totalBox, pagadoBox, saldoBox);
@@ -82,11 +83,11 @@ public final class PagoMixtoDialog {
             double transfer = parseSilently(transferencia.getText());
             double card = parseSilently(tarjeta.getText());
             double paid = MoneyMath.guaranies(cash + transfer + card);
-            double pending = MoneyMath.guaranies(Math.max(0d, total - paid));
+            double pending = MoneyMath.guaranies(Math.max(0d, totalNormalizado - paid));
             pagado.setText(formatCurrency(paid));
             saldo.setText(formatCurrency(pending));
-            if (paid - total > EPSILON) {
-                saldo.setText("EXCEDE " + formatCurrency(paid - total));
+            if (paid - totalNormalizado > EPSILON) {
+                saldo.setText("EXCEDE " + formatCurrency(paid - totalNormalizado));
             }
         };
         efectivo.textProperty().addListener((obs, oldValue, newValue) -> recalc.run());
@@ -114,10 +115,10 @@ public final class PagoMixtoDialog {
                 double card = parse(tarjeta.getText(), "tarjeta");
                 double paid = MoneyMath.guaranies(cash + transfer + card);
 
-                if (paid - total > EPSILON) {
+                if (paid - totalNormalizado > EPSILON) {
                     throw new ValidationException("Lo distribuido supera el total de la venta.");
                 }
-                double pending = MoneyMath.guaranies(total - paid);
+                double pending = MoneyMath.guaranies(totalNormalizado - paid);
                 if (pending > EPSILON && !permitirFiado) {
                     throw new ValidationException("Tu usuario no puede dejar saldo fiado. Completá el total entre los medios de cobro.");
                 }
