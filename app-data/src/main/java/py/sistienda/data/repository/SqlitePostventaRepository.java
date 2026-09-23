@@ -395,6 +395,10 @@ public final class SqlitePostventaRepository implements PostventaRepository {
 
     private void insertDevolucionPagos(Connection connection, long devolucionId, List<PagoVenta> pagos)
             throws SQLException {
+        try (var delete = connection.prepareStatement("DELETE FROM devolucion_pago WHERE devolucion_id = ?")) {
+            delete.setLong(1, devolucionId);
+            delete.executeUpdate();
+        }
         String sql = "INSERT INTO devolucion_pago (devolucion_id, metodo_pago, monto) VALUES (?, ?, ?)";
         try (var statement = connection.prepareStatement(sql)) {
             for (PagoVenta pago : pagos) {
