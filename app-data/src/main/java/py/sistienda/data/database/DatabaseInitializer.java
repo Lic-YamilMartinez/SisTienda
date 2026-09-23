@@ -160,6 +160,16 @@ public final class DatabaseInitializer {
                     """);
             statement.execute("CREATE INDEX IF NOT EXISTS idx_venta_pago_venta ON venta_pago(venta_id)");
             statement.execute("CREATE INDEX IF NOT EXISTS idx_venta_pago_metodo ON venta_pago(metodo_pago)");
+            statement.execute("""
+                    CREATE TRIGGER IF NOT EXISTS trg_venta_pago_compat
+                    AFTER INSERT ON venta
+                    WHEN NEW.total > 0
+                     AND NEW.metodo_pago IN ('EFECTIVO','TRANSFERENCIA','TARJETA','FIADO')
+                    BEGIN
+                      INSERT OR IGNORE INTO venta_pago (venta_id, metodo_pago, monto)
+                      VALUES (NEW.id, NEW.metodo_pago, NEW.total);
+                    END;
+                    """);
 
             statement.execute("""
                     INSERT OR IGNORE INTO venta_pago (venta_id, metodo_pago, monto)
@@ -182,6 +192,16 @@ public final class DatabaseInitializer {
                     """);
             statement.execute("CREATE INDEX IF NOT EXISTS idx_devolucion_pago_devolucion ON devolucion_pago(devolucion_id)");
             statement.execute("CREATE INDEX IF NOT EXISTS idx_devolucion_pago_metodo ON devolucion_pago(metodo_pago)");
+            statement.execute("""
+                    CREATE TRIGGER IF NOT EXISTS trg_devolucion_pago_compat
+                    AFTER INSERT ON devolucion
+                    WHEN NEW.total > 0
+                     AND NEW.metodo_pago IN ('EFECTIVO','TRANSFERENCIA','TARJETA','FIADO')
+                    BEGIN
+                      INSERT OR IGNORE INTO devolucion_pago (devolucion_id, metodo_pago, monto)
+                      VALUES (NEW.id, NEW.metodo_pago, NEW.total);
+                    END;
+                    """);
 
             statement.execute("""
                     INSERT OR IGNORE INTO devolucion_pago (devolucion_id, metodo_pago, monto)
