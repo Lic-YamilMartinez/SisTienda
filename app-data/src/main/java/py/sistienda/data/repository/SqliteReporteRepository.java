@@ -308,28 +308,64 @@ public final class SqliteReporteRepository implements ReporteRepository {
         String bucket = mensual
                 ? "strftime('%Y-%m-01', fecha, 'localtime')"
                 : "date(fecha, 'localtime')";
-        String filtroPago = metodoPago == null ? "" : " AND metodo_pago = ? ";
+
+        String movimientos;
+        boolean bindMetodo = false;
+        if (metodoPago == null) {
+            movimientos = """
+                    SELECT v.fecha, v.total AS ventas, v.ganancia_total AS ganancia, 1 AS ticket
+                    FROM venta v WHERE v.anulada = 0
+                    UNION ALL
+                    SELECT d.fecha, -d.total AS ventas, -d.ganancia_revertida AS ganancia, 0 AS ticket
+                    FROM devolucion d
+                    """;
+        } else if (metodoPago == MetodoPago.MIXTO) {
+            movimientos = """
+                    SELECT v.fecha, v.total AS ventas, v.ganancia_total AS ganancia, 1 AS ticket
+                    FROM venta v WHERE v.anulada = 0 AND v.metodo_pago = 'MIXTO'
+                    UNION ALL
+                    SELECT d.fecha, -d.total AS ventas, -d.ganancia_revertida AS ganancia, 0 AS ticket
+                    FROM devolucion d WHERE d.metodo_pago = 'MIXTO'
+                    """;
+        } else {
+            bindMetodo = true;
+            movimientos = """
+                    SELECT v.fecha, vp.monto AS ventas,
+                           CASE WHEN v.total <= 0 THEN 0
+                                ELSE v.ganancia_total * vp.monto / v.total END AS ganancia,
+                           1 AS ticket
+                    FROM venta v
+                    JOIN venta_pago vp ON vp.venta_id = v.id
+                    WHERE v.anulada = 0 AND vp.metodo_pago = ?
+                    UNION ALL
+                    SELECT d.fecha, -dp.monto AS ventas,
+                           CASE WHEN d.total <= 0 THEN 0
+                                ELSE -d.ganancia_revertida * dp.monto / d.total END AS ganancia,
+                           0 AS ticket
+                    FROM devolucion d
+                    JOIN devolucion_pago dp ON dp.devolucion_id = d.id
+                    WHERE dp.metodo_pago = ?
+                    """;
+        }
+
         String sql = "SELECT " + bucket + " AS periodo, "
                 + "COALESCE(SUM(ventas), 0) AS ventas, "
                 + "COALESCE(SUM(ganancia), 0) AS ganancia, "
                 + "COALESCE(SUM(ticket), 0) AS tickets "
-                + "FROM ("
-                + " SELECT fecha, metodo_pago, total AS ventas, ganancia_total AS ganancia, 1 AS ticket"
-                + " FROM venta WHERE anulada = 0"
-                + " UNION ALL"
-                + " SELECT fecha, metodo_pago, -total AS ventas, -ganancia_revertida AS ganancia, 0 AS ticket"
-                + " FROM devolucion"
-                + ") m "
+                + "FROM (" + movimientos + ") m "
                 + "WHERE date(fecha, 'localtime') BETWEEN ? AND ? "
-                + filtroPago
                 + "GROUP BY periodo ORDER BY periodo";
 
         Map<LocalDate, ReporteLineaTiempo> encontrados = new LinkedHashMap<>();
         try (var connection = connectionFactory.open();
              var statement = connection.prepareStatement(sql)) {
-            statement.setString(1, desde.toString());
-            statement.setString(2, hasta.toString());
-            if (metodoPago != null) statement.setString(3, metodoPago.name());
+            int index = 1;
+            if (bindMetodo) {
+                statement.setString(index++, metodoPago.name());
+                statement.setString(index++, metodoPago.name());
+            }
+            statement.setString(index++, desde.toString());
+            statement.setString(index, hasta.toString());
             try (var result = statement.executeQuery()) {
                 while (result.next()) {
                     LocalDate periodo = LocalDate.parse(result.getString("periodo"));
