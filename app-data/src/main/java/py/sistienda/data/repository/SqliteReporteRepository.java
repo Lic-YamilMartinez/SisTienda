@@ -406,10 +406,30 @@ public final class SqliteReporteRepository implements ReporteRepository {
             MetodoPago metodoPago,
             int limite
     ) {
-        String filtroPago = metodoPago == null ? "" : " AND m.metodo_pago = ? ";
+        String filtroPago;
+        if (metodoPago == null) {
+            filtroPago = "";
+        } else if (metodoPago == MetodoPago.MIXTO) {
+            filtroPago = " AND m.metodo_pago = 'MIXTO' ";
+        } else {
+            filtroPago = """
+                     AND (
+                         (m.devolucion_id IS NULL AND EXISTS (
+                             SELECT 1 FROM venta_pago vp
+                             WHERE vp.venta_id = m.venta_id AND vp.metodo_pago = ?
+                         ))
+                         OR
+                         (m.devolucion_id IS NOT NULL AND EXISTS (
+                             SELECT 1 FROM devolucion_pago dp
+                             WHERE dp.devolucion_id = m.devolucion_id AND dp.metodo_pago = ?
+                         ))
+                     )
+                    """;
+        }
+
         String sql = """
                 WITH movimientos_producto AS (
-                    SELECT v.fecha, v.metodo_pago, d.producto_id,
+                    SELECT v.id AS venta_id, NULL AS devolucion_id, v.fecha, v.metodo_pago, d.producto_id,
                            d.cantidad AS cantidad,
                            d.subtotal AS ventas,
                            d.subtotal - d.ganancia_linea AS costo,
@@ -418,7 +438,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     JOIN venta v ON v.id = d.venta_id
                     WHERE v.anulada = 0
                     UNION ALL
-                    SELECT dv.fecha, dv.metodo_pago, dd.producto_id,
+                    SELECT dv.venta_id, dv.id AS devolucion_id, dv.fecha, dv.metodo_pago, dd.producto_id,
                            -dd.cantidad AS cantidad,
                            -dd.subtotal AS ventas,
                            -(dd.subtotal - dd.ganancia_revertida) AS costo,
@@ -447,7 +467,10 @@ public final class SqliteReporteRepository implements ReporteRepository {
             int index = 1;
             statement.setString(index++, desde.toString());
             statement.setString(index++, hasta.toString());
-            if (metodoPago != null) statement.setString(index++, metodoPago.name());
+            if (metodoPago != null && metodoPago != MetodoPago.MIXTO) {
+                statement.setString(index++, metodoPago.name());
+                statement.setString(index++, metodoPago.name());
+            }
             statement.setInt(index, Math.max(1, limite));
             try (var result = statement.executeQuery()) {
                 while (result.next()) {
