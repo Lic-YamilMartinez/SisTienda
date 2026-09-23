@@ -90,28 +90,40 @@ public final class SqliteCajaRepository implements CajaRepository {
     @Override
     public ResumenVentasCaja salesSummary(long cajaSesionId) {
         String sql = """
-                WITH movimientos_venta AS (
-                    SELECT metodo_pago, total AS importe, ganancia_total AS ganancia
+                WITH pagos AS (
+                    SELECT vp.metodo_pago, vp.monto AS importe
+                    FROM venta v
+                    JOIN venta_pago vp ON vp.venta_id = v.id
+                    WHERE v.caja_sesion_id = ? AND v.anulada = 0
+                    UNION ALL
+                    SELECT dp.metodo_pago, -dp.monto AS importe
+                    FROM devolucion d
+                    JOIN devolucion_pago dp ON dp.devolucion_id = d.id
+                    WHERE d.caja_sesion_id = ?
+                ),
+                ganancias AS (
+                    SELECT ganancia_total AS importe
                     FROM venta
                     WHERE caja_sesion_id = ? AND anulada = 0
                     UNION ALL
-                    SELECT metodo_pago, -total AS importe, -ganancia_revertida AS ganancia
+                    SELECT -ganancia_revertida AS importe
                     FROM devolucion
                     WHERE caja_sesion_id = ?
                 )
                 SELECT
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN importe ELSE 0 END), 0) AS efectivo,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN importe ELSE 0 END), 0) AS transferencia,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN importe ELSE 0 END), 0) AS tarjeta,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'FIADO' THEN importe ELSE 0 END), 0) AS fiado,
-                    COALESCE(SUM(importe), 0) AS total,
-                    COALESCE(SUM(ganancia), 0) AS ganancia
-                FROM movimientos_venta
+                    COALESCE((SELECT SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN importe ELSE 0 END) FROM pagos), 0) AS efectivo,
+                    COALESCE((SELECT SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN importe ELSE 0 END) FROM pagos), 0) AS transferencia,
+                    COALESCE((SELECT SUM(CASE WHEN metodo_pago = 'TARJETA' THEN importe ELSE 0 END) FROM pagos), 0) AS tarjeta,
+                    COALESCE((SELECT SUM(CASE WHEN metodo_pago = 'FIADO' THEN importe ELSE 0 END) FROM pagos), 0) AS fiado,
+                    COALESCE((SELECT SUM(importe) FROM pagos), 0) AS total,
+                    COALESCE((SELECT SUM(importe) FROM ganancias), 0) AS ganancia
                 """;
         try (var connection = connectionFactory.open();
              var statement = connection.prepareStatement(sql)) {
             statement.setLong(1, cajaSesionId);
             statement.setLong(2, cajaSesionId);
+            statement.setLong(3, cajaSesionId);
+            statement.setLong(4, cajaSesionId);
             try (var result = statement.executeQuery()) {
                 if (!result.next()) {
                     return ResumenVentasCaja.vacio();
