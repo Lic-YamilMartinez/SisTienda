@@ -159,7 +159,12 @@ public final class VentaView extends HBox {
         VBox cartHeader = new VBox(4, title, feedback);
         cartHeader.setPadding(new Insets(9, 14, 6, 14));
 
-        metodoPago.getItems().setAll(MetodoPago.EFECTIVO, MetodoPago.TARJETA, MetodoPago.TRANSFERENCIA);
+        metodoPago.getItems().setAll(
+                MetodoPago.EFECTIVO,
+                MetodoPago.TARJETA,
+                MetodoPago.TRANSFERENCIA,
+                MetodoPago.MIXTO
+        );
         if (ventaService.puedeFiado(usuario)) metodoPago.getItems().add(MetodoPago.FIADO);
         metodoPago.setValue(MetodoPago.EFECTIVO);
         metodoPago.getStyleClass().add("pos-control");
@@ -197,7 +202,10 @@ public final class VentaView extends HBox {
         HBox creditActions = new HBox(8, cuentas, actionSpacer);
         creditActions.setAlignment(Pos.CENTER_LEFT);
         if (puedeFiado) {
-            creditActions.visibleProperty().bind(metodoPago.valueProperty().isEqualTo(MetodoPago.FIADO));
+            creditActions.visibleProperty().bind(
+                    metodoPago.valueProperty().isEqualTo(MetodoPago.FIADO)
+                            .or(metodoPago.valueProperty().isEqualTo(MetodoPago.MIXTO))
+            );
             creditActions.managedProperty().bind(creditActions.visibleProperty());
         } else {
             creditActions.setVisible(false);
@@ -427,15 +435,32 @@ public final class VentaView extends HBox {
         MetodoPago selected = metodoPago.getValue();
         boolean cash = selected == MetodoPago.EFECTIVO;
         boolean credit = selected == MetodoPago.FIADO;
+        boolean mixed = selected == MetodoPago.MIXTO;
         recibido.setDisable(!cash);
-        creditHint.setVisible(credit);
-        creditHint.setManaged(credit);
+
+        if (mixed) {
+            creditHint.setText(ventaService.puedeFiado(usuario)
+                    ? "Podés combinar efectivo, transferencia y tarjeta. Si falta una parte, quedará fiada al cliente."
+                    : "Podés combinar efectivo, transferencia y tarjeta. El total debe quedar completamente distribuido.");
+        } else {
+            creditHint.setText("Seleccionaremos el cliente al registrar la venta. El importe quedará pendiente en su cuenta.");
+        }
+        creditHint.setVisible(credit || mixed);
+        creditHint.setManaged(credit || mixed);
+
         if (!cash) {
             recibido.clear();
-            recibido.setPromptText(credit ? "Pendiente del cliente" : "No aplica");
-        } else recibido.setPromptText("Efectivo recibido");
+            recibido.setPromptText(credit ? "Pendiente del cliente" : mixed ? "Se distribuye al cobrar" : "No aplica");
+        } else {
+            recibido.setPromptText("Efectivo recibido");
+        }
+
         Node pay = lookup("#pos-pay-action");
-        if (pay instanceof Button button) button.setText(credit ? "Registrar venta a crédito" : "Cobrar venta");
+        if (pay instanceof Button button) {
+            button.setText(credit
+                    ? "Registrar venta a crédito"
+                    : mixed ? "Distribuir y cobrar" : "Cobrar venta");
+        }
         recalcular();
     }
 
@@ -495,9 +520,11 @@ public final class VentaView extends HBox {
             return;
         }
 
+        double totalVenta = carrito.stream().mapToDouble(CartItem::subtotal).sum();
         Cliente cliente = null;
+        PagoMixtoDialog.Distribucion distribucion = null;
+
         if (selectedMethod == MetodoPago.FIADO) {
-            double totalVenta = carrito.stream().mapToDouble(CartItem::subtotal).sum();
             Optional<Cliente> selected = ClientesFiadoDialog.seleccionarCliente(
                     getScene() == null ? null : getScene().getWindow(), ventaService, usuario, totalVenta
             );
@@ -506,15 +533,62 @@ public final class VentaView extends HBox {
                 return;
             }
             cliente = selected.get();
+        } else if (selectedMethod == MetodoPago.MIXTO) {
+            Optional<PagoMixtoDialog.Distribucion> selected = PagoMixtoDialog.show(
+                    getScene() == null ? null : getScene().getWindow(),
+                    totalVenta,
+                    ventaService.puedeFiado(usuario)
+            );
+            if (selected.isEmpty()) {
+                buscar.requestFocus();
+                return;
+            }
+            distribucion = selected.get();
+
+            if (distribucion.saldoFiado() > 0.000001d) {
+                Optional<Cliente> selectedClient = ClientesFiadoDialog.seleccionarCliente(
+                        getScene() == null ? null : getScene().getWindow(),
+                        ventaService,
+                        usuario,
+                        distribucion.saldoFiado()
+                );
+                if (selectedClient.isEmpty()) {
+                    buscar.requestFocus();
+                    return;
+                }
+                cliente = selectedClient.get();
+            }
         }
 
         Cliente clienteSeleccionado = cliente;
+        PagoMixtoDialog.Distribucion distribucionSeleccionada = distribucion;
         ejecutar(() -> {
-            List<LineaVenta> lineas = carrito.stream().map(item -> new LineaVenta(item.producto, item.cantidad)).toList();
-            double recibidoValue = selectedMethod == MetodoPago.EFECTIVO ? parseMoneyOrZero(recibido.getText()) : 0;
-            VentaResultado result = ventaService.vender(
-                    usuario, caja, lineas, selectedMethod, recibidoValue, clienteSeleccionado
-            );
+            List<LineaVenta> lineas = carrito.stream()
+                    .map(item -> new LineaVenta(item.producto, item.cantidad))
+                    .toList();
+
+            VentaResultado result;
+            if (selectedMethod == MetodoPago.MIXTO) {
+                result = ventaService.venderMixto(
+                        usuario,
+                        caja,
+                        lineas,
+                        distribucionSeleccionada.pagos(),
+                        clienteSeleccionado
+                );
+            } else {
+                double recibidoValue = selectedMethod == MetodoPago.EFECTIVO
+                        ? parseMoneyOrZero(recibido.getText())
+                        : 0;
+                result = ventaService.vender(
+                        usuario,
+                        caja,
+                        lineas,
+                        selectedMethod,
+                        recibidoValue,
+                        clienteSeleccionado
+                );
+            }
 
             carrito.clear();
             recibido.clear();
@@ -524,9 +598,17 @@ public final class VentaView extends HBox {
             } catch (RuntimeException ignored) {
                 // La venta ya fue confirmada. El resumen se refrescará al volver a entrar a Caja.
             }
+
             if (selectedMethod == MetodoPago.FIADO) {
                 showFeedback("Fiado registrado · " + clienteSeleccionado.nombre()
                         + " · Ticket #" + result.nroTicket() + " · " + formatCurrency(result.total()));
+            } else if (selectedMethod == MetodoPago.MIXTO) {
+                double fiado = result.monto(MetodoPago.FIADO);
+                String extra = fiado > 0.000001d && clienteSeleccionado != null
+                        ? " · Saldo de " + clienteSeleccionado.nombre() + ": " + formatCurrency(fiado)
+                        : "";
+                showFeedback("Venta mixta registrada · Ticket #" + result.nroTicket()
+                        + " · " + formatCurrency(result.total()) + extra);
             } else {
                 showFeedback("Venta registrada · Ticket #" + result.nroTicket() + " · " + formatCurrency(result.total()));
             }
