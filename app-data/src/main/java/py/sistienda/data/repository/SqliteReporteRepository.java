@@ -1,6 +1,7 @@
 package py.sistienda.data.repository;
 
 import py.sistienda.core.model.MetodoPago;
+import py.sistienda.core.model.PagoVenta;
 import py.sistienda.core.model.ProductoVendidoResumen;
 import py.sistienda.core.model.ReporteDiario;
 import py.sistienda.core.model.ReporteLineaTiempo;
@@ -40,24 +41,37 @@ public final class SqliteReporteRepository implements ReporteRepository {
     @Override
     public ReporteDiario resumenDiario(LocalDate fecha) {
         String sql = """
-                WITH movimientos AS (
-                    SELECT fecha, metodo_pago, total AS ventas, ganancia_total AS ganancia, 1 AS ticket
-                    FROM venta
-                    WHERE anulada = 0
+                WITH filtro AS (SELECT ? AS fecha),
+                comerciales AS (
+                    SELECT v.fecha, v.total AS ventas, v.ganancia_total AS ganancia, 1 AS ticket
+                    FROM venta v
+                    WHERE v.anulada = 0
+                      AND date(v.fecha, 'localtime') = (SELECT fecha FROM filtro)
                     UNION ALL
-                    SELECT fecha, metodo_pago, -total AS ventas, -ganancia_revertida AS ganancia, 0 AS ticket
-                    FROM devolucion
+                    SELECT d.fecha, -d.total AS ventas, -d.ganancia_revertida AS ganancia, 0 AS ticket
+                    FROM devolucion d
+                    WHERE date(d.fecha, 'localtime') = (SELECT fecha FROM filtro)
+                ),
+                pagos AS (
+                    SELECT v.fecha, vp.metodo_pago, vp.monto AS importe
+                    FROM venta v
+                    JOIN venta_pago vp ON vp.venta_id = v.id
+                    WHERE v.anulada = 0
+                      AND date(v.fecha, 'localtime') = (SELECT fecha FROM filtro)
+                    UNION ALL
+                    SELECT d.fecha, dp.metodo_pago, -dp.monto AS importe
+                    FROM devolucion d
+                    JOIN devolucion_pago dp ON dp.devolucion_id = d.id
+                    WHERE date(d.fecha, 'localtime') = (SELECT fecha FROM filtro)
                 )
                 SELECT
-                    COALESCE(SUM(ventas), 0) AS ventas,
-                    COALESCE(SUM(ganancia), 0) AS ganancia,
-                    COALESCE(SUM(ticket), 0) AS tickets,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN ventas ELSE 0 END), 0) AS efectivo,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN ventas ELSE 0 END), 0) AS transferencia,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'TARJETA' THEN ventas ELSE 0 END), 0) AS tarjeta,
-                    COALESCE(SUM(CASE WHEN metodo_pago = 'FIADO' THEN ventas ELSE 0 END), 0) AS fiado
-                FROM movimientos
-                WHERE date(fecha, 'localtime') = ?
+                    COALESCE((SELECT SUM(ventas) FROM comerciales), 0) AS ventas,
+                    COALESCE((SELECT SUM(ganancia) FROM comerciales), 0) AS ganancia,
+                    COALESCE((SELECT SUM(ticket) FROM comerciales), 0) AS tickets,
+                    COALESCE((SELECT SUM(CASE WHEN metodo_pago = 'EFECTIVO' THEN importe ELSE 0 END) FROM pagos), 0) AS efectivo,
+                    COALESCE((SELECT SUM(CASE WHEN metodo_pago = 'TRANSFERENCIA' THEN importe ELSE 0 END) FROM pagos), 0) AS transferencia,
+                    COALESCE((SELECT SUM(CASE WHEN metodo_pago = 'TARJETA' THEN importe ELSE 0 END) FROM pagos), 0) AS tarjeta,
+                    COALESCE((SELECT SUM(CASE WHEN metodo_pago = 'FIADO' THEN importe ELSE 0 END) FROM pagos), 0) AS fiado
                 """;
         try (var connection = connectionFactory.open();
              var statement = connection.prepareStatement(sql)) {
@@ -352,7 +366,11 @@ public final class SqliteReporteRepository implements ReporteRepository {
             MetodoPago metodoPago,
             int limite
     ) {
-        String filtroPago = metodoPago == null ? "" : " AND v.metodo_pago = ? ";
+        String filtroPago = metodoPago == null
+                ? ""
+                : metodoPago == MetodoPago.MIXTO
+                    ? " AND v.metodo_pago = ? "
+                    : " AND EXISTS (SELECT 1 FROM venta_pago vp WHERE vp.venta_id = v.id AND vp.metodo_pago = ?) ";
         String sql = """
                 SELECT v.id, v.nro_ticket, v.fecha, u.username, v.metodo_pago,
                        v.total, v.ganancia_total, v.anulada,
@@ -412,6 +430,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                     return Optional.empty();
                 }
                 List<VentaDetalleItem> items = cargarItems(connection, ventaId);
+                List<PagoVenta> pagos = cargarPagos(connection, ventaId);
                 return Optional.of(new VentaDetalle(
                         result.getLong("id"),
                         result.getLong("nro_ticket"),
@@ -424,12 +443,40 @@ public final class SqliteReporteRepository implements ReporteRepository {
                         result.getDouble("ganancia_total"),
                         result.getInt("anulada") != 0,
                         result.getString("cliente"),
-                        items
+                        items,
+                        pagos
                 ));
             }
         } catch (SQLException e) {
             throw new RuntimeException("No se pudo consultar el detalle de la venta.", e);
         }
+    }
+
+    private List<PagoVenta> cargarPagos(Connection connection, long ventaId) throws SQLException {
+        String sql = """
+                SELECT metodo_pago, monto
+                FROM venta_pago
+                WHERE venta_id = ?
+                ORDER BY CASE metodo_pago
+                    WHEN 'EFECTIVO' THEN 1
+                    WHEN 'TRANSFERENCIA' THEN 2
+                    WHEN 'TARJETA' THEN 3
+                    WHEN 'FIADO' THEN 4
+                    ELSE 9 END
+                """;
+        List<PagoVenta> pagos = new ArrayList<>();
+        try (var statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, ventaId);
+            try (var result = statement.executeQuery()) {
+                while (result.next()) {
+                    pagos.add(new PagoVenta(
+                            MetodoPago.valueOf(result.getString("metodo_pago")),
+                            result.getDouble("monto")
+                    ));
+                }
+            }
+        }
+        return List.copyOf(pagos);
     }
 
     private List<VentaDetalleItem> cargarItems(Connection connection, long ventaId) throws SQLException {
