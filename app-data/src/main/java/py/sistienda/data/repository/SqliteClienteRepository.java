@@ -40,19 +40,22 @@ public final class SqliteClienteRepository implements ClienteRepository {
         String like = "%" + normalized + "%";
         String sql = """
                 WITH movimientos AS (
-                    SELECT v.cliente_id, v.fecha, v.total AS importe
+                    SELECT v.cliente_id, v.fecha, vp.monto AS importe
                     FROM venta v
-                    WHERE v.metodo_pago = 'FIADO' AND v.cliente_id IS NOT NULL
+                    JOIN venta_pago vp ON vp.venta_id = v.id AND vp.metodo_pago = 'FIADO'
+                    WHERE v.cliente_id IS NOT NULL
                     UNION ALL
-                    SELECT v.cliente_id, a.fecha, -v.total AS importe
+                    SELECT v.cliente_id, a.fecha, -vp.monto AS importe
                     FROM venta_anulacion a
                     JOIN venta v ON v.id = a.venta_id
-                    WHERE v.metodo_pago = 'FIADO' AND v.cliente_id IS NOT NULL
+                    JOIN venta_pago vp ON vp.venta_id = v.id AND vp.metodo_pago = 'FIADO'
+                    WHERE v.cliente_id IS NOT NULL
                     UNION ALL
-                    SELECT v.cliente_id, d.fecha, -d.total AS importe
+                    SELECT v.cliente_id, d.fecha, -dp.monto AS importe
                     FROM devolucion d
                     JOIN venta v ON v.id = d.venta_id
-                    WHERE v.metodo_pago = 'FIADO' AND v.cliente_id IS NOT NULL
+                    JOIN devolucion_pago dp ON dp.devolucion_id = d.id AND dp.metodo_pago = 'FIADO'
+                    WHERE v.cliente_id IS NOT NULL
                     UNION ALL
                     SELECT ca.cliente_id, ca.fecha, -ca.monto AS importe
                     FROM cliente_abono ca
@@ -177,42 +180,47 @@ public final class SqliteClienteRepository implements ClienteRepository {
                 SELECT fecha, tipo, referencia, cargo, abono, detalle, medio_pago, venta_id
                 FROM (
                     SELECT v.fecha AS fecha,
-                           'VENTA FIADA' AS tipo,
+                           CASE WHEN v.metodo_pago = 'MIXTO' THEN 'FIADO PARCIAL' ELSE 'VENTA FIADA' END AS tipo,
                            'Ticket #' || v.nro_ticket AS referencia,
-                           v.total AS cargo,
+                           vp.monto AS cargo,
                            0 AS abono,
-                           'Compra a crédito' AS detalle,
+                           CASE WHEN v.metodo_pago = 'MIXTO'
+                                THEN 'Saldo pendiente de venta con pago parcial'
+                                ELSE 'Compra a crédito' END AS detalle,
                            'FIADO' AS medio_pago,
                            v.id AS venta_id,
                            v.id * 10 + 1 AS orden
                     FROM venta v
-                    WHERE v.cliente_id = ? AND v.metodo_pago = 'FIADO'
+                    JOIN venta_pago vp ON vp.venta_id = v.id AND vp.metodo_pago = 'FIADO'
+                    WHERE v.cliente_id = ?
                     UNION ALL
                     SELECT a.fecha,
                            'ANULACIÓN' AS tipo,
                            'Ticket #' || v.nro_ticket AS referencia,
                            0 AS cargo,
-                           v.total AS abono,
+                           vp.monto AS abono,
                            'Venta anulada: ' || a.motivo AS detalle,
                            'FIADO' AS medio_pago,
                            v.id AS venta_id,
                            v.id * 10 + 2 AS orden
                     FROM venta_anulacion a
                     JOIN venta v ON v.id = a.venta_id
-                    WHERE v.cliente_id = ? AND v.metodo_pago = 'FIADO'
+                    JOIN venta_pago vp ON vp.venta_id = v.id AND vp.metodo_pago = 'FIADO'
+                    WHERE v.cliente_id = ?
                     UNION ALL
                     SELECT d.fecha,
                            'DEVOLUCIÓN' AS tipo,
                            'Ticket #' || v.nro_ticket AS referencia,
                            0 AS cargo,
-                           d.total AS abono,
+                           dp.monto AS abono,
                            'Devolución: ' || d.motivo AS detalle,
                            'FIADO' AS medio_pago,
                            v.id AS venta_id,
                            d.id * 10 + 3 AS orden
                     FROM devolucion d
                     JOIN venta v ON v.id = d.venta_id
-                    WHERE v.cliente_id = ? AND v.metodo_pago = 'FIADO'
+                    JOIN devolucion_pago dp ON dp.devolucion_id = d.id AND dp.metodo_pago = 'FIADO'
+                    WHERE v.cliente_id = ?
                     UNION ALL
                     SELECT ca.fecha,
                            'ABONO' AS tipo,
@@ -334,19 +342,22 @@ public final class SqliteClienteRepository implements ClienteRepository {
         String sql = """
                 SELECT COALESCE(SUM(importe), 0) AS saldo
                 FROM (
-                    SELECT v.total AS importe
+                    SELECT vp.monto AS importe
                     FROM venta v
-                    WHERE v.cliente_id = ? AND v.metodo_pago = 'FIADO'
+                    JOIN venta_pago vp ON vp.venta_id = v.id AND vp.metodo_pago = 'FIADO'
+                    WHERE v.cliente_id = ?
                     UNION ALL
-                    SELECT -v.total
+                    SELECT -vp.monto
                     FROM venta_anulacion a
                     JOIN venta v ON v.id = a.venta_id
-                    WHERE v.cliente_id = ? AND v.metodo_pago = 'FIADO'
+                    JOIN venta_pago vp ON vp.venta_id = v.id AND vp.metodo_pago = 'FIADO'
+                    WHERE v.cliente_id = ?
                     UNION ALL
-                    SELECT -d.total
+                    SELECT -dp.monto
                     FROM devolucion d
                     JOIN venta v ON v.id = d.venta_id
-                    WHERE v.cliente_id = ? AND v.metodo_pago = 'FIADO'
+                    JOIN devolucion_pago dp ON dp.devolucion_id = d.id AND dp.metodo_pago = 'FIADO'
+                    WHERE v.cliente_id = ?
                     UNION ALL
                     SELECT -ca.monto
                     FROM cliente_abono ca
