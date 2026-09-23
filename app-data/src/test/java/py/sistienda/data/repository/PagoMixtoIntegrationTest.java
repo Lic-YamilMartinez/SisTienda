@@ -72,6 +72,26 @@ class PagoMixtoIntegrationTest {
         assertEquals(20_000d, detalle.monto(MetodoPago.EFECTIVO), 0.001);
         assertEquals(5_000d, detalle.monto(MetodoPago.FIADO), 0.001);
 
+        var reporteEfectivo = new SqliteReporteRepository(fixture.factory)
+                .resumenPeriodo(LocalDate.now(), LocalDate.now(), MetodoPago.EFECTIVO);
+        assertEquals(20_000d, reporteEfectivo.ventas(), 0.001);
+        assertEquals(5_600d, reporteEfectivo.gananciaComercial(), 0.001);
+
+        var reporteFiado = new SqliteReporteRepository(fixture.factory)
+                .resumenPeriodo(LocalDate.now(), LocalDate.now(), MetodoPago.FIADO);
+        assertEquals(5_000d, reporteFiado.ventas(), 0.001);
+        assertEquals(1_400d, reporteFiado.gananciaComercial(), 0.001);
+
+        var reporteMixto = new SqliteReporteRepository(fixture.factory)
+                .resumenPeriodo(LocalDate.now(), LocalDate.now(), MetodoPago.MIXTO);
+        assertEquals(25_000d, reporteMixto.ventas(), 0.001);
+        assertEquals(7_000d, reporteMixto.gananciaComercial(), 0.001);
+
+        var arqueo = new SqliteArqueoCajaRepository(fixture.factory).findDetail(fixture.caja.id());
+        assertEquals(20_000d, arqueo.ventas().efectivo(), 0.001);
+        assertEquals(5_000d, arqueo.ventas().fiado(), 0.001);
+        assertEquals(25_000d, arqueo.ventas().total(), 0.001);
+
         fixture.clienteService.registrarAbono(
                 fixture.owner,
                 fixture.caja,
