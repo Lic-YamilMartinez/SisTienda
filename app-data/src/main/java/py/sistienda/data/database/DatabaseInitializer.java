@@ -143,6 +143,24 @@ public final class DatabaseInitializer {
                     """);
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_abono_cliente_fecha ON cliente_abono(cliente_id, fecha DESC)");
             statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_abono_caja_fecha ON cliente_abono(caja_sesion_id, fecha DESC)");
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS cliente_saldo_inicial (
+                      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                      cliente_id        INTEGER NOT NULL UNIQUE,
+                      usuario_id        INTEGER NOT NULL,
+                      monto             REAL NOT NULL CHECK (monto > 0),
+                      fecha_referencia  TEXT NOT NULL,
+                      referencia        TEXT,
+                      observacion       TEXT,
+                      origen            TEXT NOT NULL DEFAULT 'MANUAL'
+                                         CHECK (origen IN ('MANUAL','IMPORTACION')),
+                      creado_en         TEXT NOT NULL DEFAULT (datetime('now')),
+                      FOREIGN KEY (cliente_id) REFERENCES cliente(id),
+                      FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+                    )
+                    """);
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_saldo_inicial_fecha ON cliente_saldo_inicial(fecha_referencia DESC)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_cliente_saldo_inicial_usuario ON cliente_saldo_inicial(usuario_id)");
         }
     }
 

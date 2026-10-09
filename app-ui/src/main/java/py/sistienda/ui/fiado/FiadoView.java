@@ -41,6 +41,7 @@ import py.sistienda.core.security.Permiso;
 import py.sistienda.core.service.CajaService;
 import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
+import py.sistienda.core.service.MigracionClienteService;
 import py.sistienda.core.service.ReporteService;
 import py.sistienda.core.service.VentaService;
 import py.sistienda.ui.common.MoneyFieldSupport;
@@ -61,30 +62,42 @@ public final class FiadoView extends BorderPane {
     private final ReporteService reporteService;
     private final EmpresaService empresaService;
     private final ConfiguracionPosService configuracionPosService;
+    private final MigracionClienteService migracionClienteService;
     private final Usuario usuario;
     private final AutorizacionService autorizacionService;
 
     private final Label porCobrar = metricValue();
+    private final Label carteraMigrada = metricValue();
+    private final Label carteraSystienda = metricValue();
     private final Label deudores = metricValue();
-    private final Label alDia = metricValue();
     private final Label feedback = new Label();
     private final TextField buscar = new TextField();
     private final TableView<ClienteCuentaResumen> tabla = new TableView<>();
 
     public FiadoView(VentaService ventaService, CajaService cajaService, Usuario usuario,
                      AutorizacionService autorizacionService) {
-        this(ventaService, cajaService, null, null, null, usuario, autorizacionService);
+        this(ventaService, cajaService, null, null, null, null, usuario, autorizacionService);
     }
 
     public FiadoView(VentaService ventaService, CajaService cajaService,
                      ReporteService reporteService, EmpresaService empresaService,
                      ConfiguracionPosService configuracionPosService, Usuario usuario,
                      AutorizacionService autorizacionService) {
+        this(ventaService, cajaService, reporteService, empresaService,
+                configuracionPosService, null, usuario, autorizacionService);
+    }
+
+    public FiadoView(VentaService ventaService, CajaService cajaService,
+                     ReporteService reporteService, EmpresaService empresaService,
+                     ConfiguracionPosService configuracionPosService,
+                     MigracionClienteService migracionClienteService,
+                     Usuario usuario, AutorizacionService autorizacionService) {
         this.ventaService = ventaService;
         this.cajaService = cajaService;
         this.reporteService = reporteService;
         this.empresaService = empresaService;
         this.configuracionPosService = configuracionPosService;
+        this.migracionClienteService = migracionClienteService;
         this.usuario = usuario;
         this.autorizacionService = autorizacionService;
         autorizacionService.exigir(usuario, Permiso.FIADO_GESTIONAR);
@@ -109,6 +122,41 @@ public final class FiadoView extends BorderPane {
         feedback.setVisible(false);
         feedback.setManaged(false);
 
+        Button saldoInicial = new Button("+ Saldo inicial");
+        saldoInicial.getStyleClass().add("secondary-button");
+        saldoInicial.setDisable(migracionClienteService == null);
+        TooltipSupport.install(saldoInicial,
+                "Cargar manualmente una deuda que el cliente ya tenía antes de comenzar a usar SisTienda.");
+        saldoInicial.setOnAction(event -> {
+            if (migracionClienteService == null) return;
+            SaldoInicialDialog.show(
+                    getScene() == null ? null : getScene().getWindow(),
+                    migracionClienteService,
+                    ventaService,
+                    usuario,
+                    null
+            ).ifPresent(cliente -> {
+                buscar.setText(cliente.nombre());
+                mostrarFeedback("Saldo inicial cargado para " + cliente.nombre() + ".");
+                recargar();
+            });
+        });
+
+        Button importar = new Button("Migrar Excel / CSV");
+        importar.getStyleClass().add("secondary-button");
+        importar.setDisable(migracionClienteService == null);
+        TooltipSupport.install(importar,
+                "Migrar varios clientes y sus deudas históricas desde Excel o CSV sin generar ventas ficticias.");
+        importar.setOnAction(event -> {
+            if (migracionClienteService == null) return;
+            MigracionSaldosDialog.show(
+                    getScene() == null ? null : getScene().getWindow(),
+                    migracionClienteService,
+                    usuario,
+                    this::recargar
+            );
+        });
+
         Button nuevo = new Button("+ Nuevo cliente");
         nuevo.getStyleClass().add("primary-button");
         TooltipSupport.install(nuevo, "Crear un cliente nuevo para ventas al contado futuro o para gestionar fiado.");
@@ -126,7 +174,7 @@ public final class FiadoView extends BorderPane {
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox row = new HBox(12, new VBox(2, title, subtitle), spacer, nuevo);
+        HBox row = new HBox(8, new VBox(2, title, subtitle), spacer, saldoInicial, importar, nuevo);
         row.setAlignment(Pos.CENTER_LEFT);
         return new VBox(3, eyebrow, row, feedback);
     }
@@ -134,8 +182,9 @@ public final class FiadoView extends BorderPane {
     private VBox buildContent() {
         HBox metrics = new HBox(10,
                 metricCard("POR COBRAR", porCobrar, "Total pendiente de todos los clientes"),
-                metricCard("CLIENTES CON DEUDA", deudores, "Aparecen primero para cobrar más rápido"),
-                metricCard("CUENTAS AL DÍA", alDia, "Clientes sin saldo pendiente")
+                metricCard("DEUDA ANTERIOR", carteraMigrada, "Parte pendiente de la cartera migrada al iniciar SisTienda"),
+                metricCard("FIADO SYSTIENDA", carteraSystienda, "Deuda generada por ventas registradas en SisTienda"),
+                metricCard("CLIENTES CON DEUDA", deudores, "Clientes que hoy tienen saldo pendiente")
         );
         metrics.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
 
@@ -192,6 +241,23 @@ public final class FiadoView extends BorderPane {
             }
         });
 
+        TableColumn<ClienteCuentaResumen, String> origen = new TableColumn<>("Origen pendiente");
+        origen.setCellValueFactory(cell -> {
+            var item = cell.getValue();
+            double migrado = Math.max(0d, item.saldoInicialPendiente());
+            double sistienda = Math.max(0d, item.saldoSystiendaPendiente());
+            String text = migrado > EPSILON && sistienda > EPSILON
+                    ? "Anterior + SisTienda"
+                    : migrado > EPSILON
+                    ? "Deuda anterior"
+                    : sistienda > EPSILON
+                    ? "SisTienda"
+                    : "—";
+            return new ReadOnlyStringWrapper(text);
+        });
+        origen.setPrefWidth(155);
+        TooltipSupport.fullText(origen);
+
         TableColumn<ClienteCuentaResumen, String> ultimo = new TableColumn<>("Último movimiento");
         ultimo.setCellValueFactory(cell -> new ReadOnlyStringWrapper(
                 cell.getValue().ultimoMovimiento() == null ? "—" : DATE_TIME.format(cell.getValue().ultimoMovimiento())
@@ -226,7 +292,7 @@ public final class FiadoView extends BorderPane {
             }
         });
 
-        tabla.getColumns().setAll(cliente, contacto, saldo, ultimo, acciones);
+        tabla.getColumns().setAll(cliente, contacto, saldo, origen, ultimo, acciones);
         tabla.setRowFactory(view -> {
             TableRow<ClienteCuentaResumen> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -240,11 +306,13 @@ public final class FiadoView extends BorderPane {
         ejecutar(() -> {
             List<ClienteCuentaResumen> todos = ventaService.buscarClientes(usuario, "");
             double total = todos.stream().mapToDouble(item -> Math.max(0d, item.saldo())).sum();
+            double migrada = todos.stream().mapToDouble(item -> Math.max(0d, item.saldoInicialPendiente())).sum();
+            double sistienda = todos.stream().mapToDouble(ClienteCuentaResumen::saldoSystiendaPendiente).sum();
             long conDeuda = todos.stream().filter(ClienteCuentaResumen::tieneDeuda).count();
-            long cuentasAlDia = todos.stream().filter(item -> Math.abs(item.saldo()) <= EPSILON).count();
             porCobrar.setText(formatCurrency(total));
+            carteraMigrada.setText(formatCurrency(migrada));
+            carteraSystienda.setText(formatCurrency(sistienda));
             deudores.setText(Long.toString(conDeuda));
-            alDia.setText(Long.toString(cuentasAlDia));
             recargarTabla();
         });
     }
@@ -329,6 +397,8 @@ public final class FiadoView extends BorderPane {
 
             Label saldo = new Label();
             saldo.getStyleClass().add("credit-account-balance");
+            Label composicion = new Label();
+            composicion.getStyleClass().add("credit-hint");
             Button cobrar = new Button("Cobrar ahora");
             cobrar.getStyleClass().add("primary-button");
             TooltipSupport.install(cobrar, "Registrar un cobro total o parcial sobre el saldo pendiente.");
@@ -339,6 +409,16 @@ public final class FiadoView extends BorderPane {
                 saldo.setText(actual > EPSILON ? "Debe " + formatCurrency(actual)
                         : actual < -EPSILON ? "Saldo a favor " + formatCurrency(-actual) : "Cuenta al día");
                 cobrar.setDisable(actual <= EPSILON);
+                var resumen = ventaService.buscarClientes(usuario, cliente.nombre()).stream()
+                        .filter(item -> item.cliente().id() == cliente.id())
+                        .findFirst()
+                        .orElse(null);
+                if (resumen == null || actual <= EPSILON) {
+                    composicion.setText("");
+                } else {
+                    composicion.setText("Deuda anterior: " + formatCurrency(resumen.saldoInicialPendiente())
+                            + " · Fiado SisTienda: " + formatCurrency(resumen.saldoSystiendaPendiente()));
+                }
                 movimientos.setItems(FXCollections.observableArrayList(
                         ventaService.movimientosCliente(usuario, cliente.id())
                 ));
@@ -351,7 +431,7 @@ public final class FiadoView extends BorderPane {
 
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
-            HBox top = new HBox(10, saldo, spacer, cobrar);
+            HBox top = new HBox(10, new VBox(3, saldo, composicion), spacer, cobrar);
             top.setAlignment(Pos.CENTER_LEFT);
             VBox content = new VBox(12, top, movimientos);
             VBox.setVgrow(movimientos, Priority.ALWAYS);
