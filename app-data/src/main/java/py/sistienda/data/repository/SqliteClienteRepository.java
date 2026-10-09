@@ -71,13 +71,15 @@ public final class SqliteClienteRepository implements ClienteRepository {
                     GROUP BY cliente_id
                 ),
                 inicial AS (
-                    SELECT cliente_id, monto
+                    SELECT cliente_id, monto, creado_en
                     FROM cliente_saldo_inicial
                 ),
                 abonos AS (
-                    SELECT cliente_id, COALESCE(SUM(monto), 0) AS total
-                    FROM cliente_abono
-                    GROUP BY cliente_id
+                    SELECT ca.cliente_id, COALESCE(SUM(ca.monto), 0) AS total
+                    FROM cliente_abono ca
+                    JOIN cliente_saldo_inicial si ON si.cliente_id = ca.cliente_id
+                    WHERE ca.fecha >= si.creado_en
+                    GROUP BY ca.cliente_id
                 )
                 SELECT c.id, c.nombre, c.documento, c.telefono, c.direccion, c.nota, c.activo,
                        COALESCE(s.saldo, 0) AS saldo,
