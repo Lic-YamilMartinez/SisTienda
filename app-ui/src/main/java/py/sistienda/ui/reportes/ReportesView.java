@@ -161,28 +161,33 @@ public final class ReportesView extends BorderPane {
         HBox titleRow = new HBox(12, heading, spacer, filterSummary);
         titleRow.setAlignment(Pos.CENTER_LEFT);
 
-        periodo.setPrefWidth(145);
-        desde.setPrefWidth(135);
-        hasta.setPrefWidth(135);
-        pago.setPrefWidth(160);
-        Button aplicar = new Button("Aplicar");
+        periodo.setPrefWidth(135);
+        granularidad.setPrefWidth(125);
+        desde.setPrefWidth(130);
+        hasta.setPrefWidth(130);
+        cliente.setPrefWidth(205);
+        producto.setPrefWidth(235);
+        pago.setPrefWidth(145);
+        tipoVenta.setPrefWidth(165);
+
+        Button aplicar = new Button("Aplicar filtros");
         aplicar.getStyleClass().add("primary-button");
         aplicar.setOnAction(event -> recargar());
 
-        Button hoy = new Button("Hoy");
-        hoy.getStyleClass().add("secondary-button");
-        hoy.setOnAction(event -> {
-            periodo.setValue("Hoy");
-            aplicarPeriodo("Hoy");
-            recargar();
-        });
+        Button limpiar = new Button("Restablecer");
+        limpiar.getStyleClass().add("secondary-button");
+        limpiar.setOnAction(event -> restablecerFiltros());
 
         FlowPane filters = new FlowPane(8, 8,
                 filterField("Período", periodo),
+                filterField("Vista", granularidad),
                 filterField("Desde", desde),
                 filterField("Hasta", hasta),
+                filterField("Cliente", cliente),
+                filterField("Producto", producto),
                 filterField("Medio de pago", pago),
-                aplicar, hoy
+                filterField("Tipo de venta", tipoVenta),
+                aplicar, limpiar
         );
         filters.setAlignment(Pos.BOTTOM_LEFT);
         filters.getStyleClass().add("report-filter-bar");
