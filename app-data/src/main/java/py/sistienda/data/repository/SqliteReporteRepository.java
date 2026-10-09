@@ -1,11 +1,15 @@
 package py.sistienda.data.repository;
 
+import py.sistienda.core.model.FiltroReporte;
+import py.sistienda.core.model.GranularidadReporte;
 import py.sistienda.core.model.MetodoPago;
 import py.sistienda.core.model.PagoVenta;
 import py.sistienda.core.model.ProductoVendidoResumen;
 import py.sistienda.core.model.ReporteDiario;
+import py.sistienda.core.model.ReporteFiltroOpcion;
 import py.sistienda.core.model.ReporteLineaTiempo;
 import py.sistienda.core.model.ReportePeriodoResumen;
+import py.sistienda.core.model.TipoVentaReporte;
 import py.sistienda.core.model.UnidadMedida;
 import py.sistienda.core.model.VentaDetalle;
 import py.sistienda.core.model.VentaDetalleItem;
