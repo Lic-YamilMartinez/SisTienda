@@ -59,16 +59,38 @@ public final class SqliteClienteRepository implements ClienteRepository {
                     UNION ALL
                     SELECT ca.cliente_id, ca.fecha, -ca.monto AS importe
                     FROM cliente_abono ca
+                    UNION ALL
+                    SELECT si.cliente_id,
+                           si.fecha_referencia || ' 12:00:00' AS fecha,
+                           si.monto AS importe
+                    FROM cliente_saldo_inicial si
                 ),
                 saldo AS (
                     SELECT cliente_id, COALESCE(SUM(importe), 0) AS saldo, MAX(fecha) AS ultimo_movimiento
                     FROM movimientos
                     GROUP BY cliente_id
+                ),
+                inicial AS (
+                    SELECT cliente_id, monto
+                    FROM cliente_saldo_inicial
+                ),
+                abonos AS (
+                    SELECT cliente_id, COALESCE(SUM(monto), 0) AS total
+                    FROM cliente_abono
+                    GROUP BY cliente_id
                 )
                 SELECT c.id, c.nombre, c.documento, c.telefono, c.direccion, c.nota, c.activo,
-                       COALESCE(s.saldo, 0) AS saldo, s.ultimo_movimiento
+                       COALESCE(s.saldo, 0) AS saldo,
+                       s.ultimo_movimiento,
+                       COALESCE(i.monto, 0) AS saldo_inicial,
+                       MIN(
+                           MAX(0, COALESCE(i.monto, 0) - COALESCE(a.total, 0)),
+                           MAX(0, COALESCE(s.saldo, 0))
+                       ) AS saldo_inicial_pendiente
                 FROM cliente c
                 LEFT JOIN saldo s ON s.cliente_id = c.id
+                LEFT JOIN inicial i ON i.cliente_id = c.id
+                LEFT JOIN abonos a ON a.cliente_id = c.id
                 WHERE c.activo = 1
                   AND (? = '' OR lower(c.nombre) LIKE ?
                        OR lower(COALESCE(c.documento, '')) LIKE ?
@@ -91,7 +113,9 @@ public final class SqliteClienteRepository implements ClienteRepository {
                     items.add(new ClienteCuentaResumen(
                             mapCliente(result),
                             result.getDouble("saldo"),
-                            last == null ? null : parseDate(last)
+                            last == null ? null : parseDate(last),
+                            result.getDouble("saldo_inicial"),
+                            result.getDouble("saldo_inicial_pendiente")
                     ));
                 }
                 return List.copyOf(items);
@@ -222,6 +246,22 @@ public final class SqliteClienteRepository implements ClienteRepository {
                     JOIN devolucion_pago dp ON dp.devolucion_id = d.id AND dp.metodo_pago = 'FIADO'
                     WHERE v.cliente_id = ?
                     UNION ALL
+                    SELECT si.fecha_referencia || ' 12:00:00' AS fecha,
+                           'SALDO INICIAL' AS tipo,
+                           COALESCE(si.referencia, 'Migración inicial') AS referencia,
+                           si.monto AS cargo,
+                           0 AS abono,
+                           CASE
+                               WHEN si.observacion IS NULL OR trim(si.observacion) = ''
+                               THEN 'Deuda anterior a la implementación de SisTienda'
+                               ELSE 'Deuda anterior a SisTienda · ' || si.observacion
+                           END AS detalle,
+                           'MIGRADO' AS medio_pago,
+                           NULL AS venta_id,
+                           si.id * 10 + 4 AS orden
+                    FROM cliente_saldo_inicial si
+                    WHERE si.cliente_id = ?
+                    UNION ALL
                     SELECT ca.fecha,
                            'ABONO' AS tipo,
                            'Abono #' || ca.id AS referencia,
@@ -230,7 +270,7 @@ public final class SqliteClienteRepository implements ClienteRepository {
                            COALESCE(ca.observacion, 'Cobro de cuenta') AS detalle,
                            ca.metodo_pago AS medio_pago,
                            NULL AS venta_id,
-                           ca.id * 10 + 4 AS orden
+                           ca.id * 10 + 5 AS orden
                     FROM cliente_abono ca
                     WHERE ca.cliente_id = ?
                 ) m
@@ -240,7 +280,7 @@ public final class SqliteClienteRepository implements ClienteRepository {
         try (var connection = connectionFactory.open();
              var statement = connection.prepareStatement(sql)) {
             ensureCliente(connection, clienteId);
-            for (int i = 1; i <= 4; i++) statement.setLong(i, clienteId);
+            for (int i = 1; i <= 5; i++) statement.setLong(i, clienteId);
             try (var result = statement.executeQuery()) {
                 List<ClienteCuentaMovimiento> items = new ArrayList<>();
                 while (result.next()) {
@@ -362,10 +402,14 @@ public final class SqliteClienteRepository implements ClienteRepository {
                     SELECT -ca.monto
                     FROM cliente_abono ca
                     WHERE ca.cliente_id = ?
+                    UNION ALL
+                    SELECT si.monto
+                    FROM cliente_saldo_inicial si
+                    WHERE si.cliente_id = ?
                 )
                 """;
         try (var statement = connection.prepareStatement(sql)) {
-            for (int i = 1; i <= 4; i++) statement.setLong(i, clienteId);
+            for (int i = 1; i <= 5; i++) statement.setLong(i, clienteId);
             try (var result = statement.executeQuery()) {
                 result.next();
                 return result.getDouble("saldo");
