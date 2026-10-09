@@ -145,6 +145,68 @@ class MigracionSaldoInicialIntegrationTest {
     }
 
     @Test
+    void cobrosSeAplicanPrimeroALaCarteraMigradaYLuegoAlFiadoNuevo() throws Exception {
+        SqliteConnectionFactory factory = new SqliteConnectionFactory(tempDir.resolve("cartera-separada.db"));
+        new DatabaseInitializer(factory).initialize();
+
+        var owner = new SqliteUsuarioRepository(factory).createOwner("owner", "hash");
+        var autorizacion = new AutorizacionService();
+        var clienteRepository = new SqliteClienteRepository(factory);
+        var clienteService = new ClienteService(clienteRepository, autorizacion);
+        var migracionService = new MigracionClienteService(
+                new SqliteMigracionClienteRepository(factory),
+                autorizacion
+        );
+
+        var cliente = clienteService.crear(
+                owner, "Cliente Mixto", "3333333", "0981000003", null, null
+        );
+        migracionService.registrarSaldoInicial(
+                owner,
+                cliente,
+                100_000,
+                LocalDate.of(2026, 10, 8),
+                "Cuaderno",
+                null
+        );
+
+        var cajaRepository = new SqliteCajaRepository(factory);
+        var caja = cajaRepository.open(owner.id(), 50_000, null);
+
+        try (var connection = factory.open();
+             var statement = connection.prepareStatement("""
+                     INSERT INTO venta (
+                         caja_sesion_id, usuario_id, total, total_lista, ganancia_total,
+                         metodo_pago, recibido, vuelto, nro_ticket, anulada, cliente_id
+                     ) VALUES (?, ?, 50000, 50000, 15000, 'FIADO', 0, 0, 99, 0, ?)
+                     """)) {
+            statement.setLong(1, caja.id());
+            statement.setLong(2, owner.id());
+            statement.setLong(3, cliente.id());
+            statement.executeUpdate();
+        }
+
+        var antes = clienteService.buscar(owner, "Cliente Mixto").getFirst();
+        assertEquals(150_000d, antes.saldo(), 0.001);
+        assertEquals(100_000d, antes.saldoInicialPendiente(), 0.001);
+        assertEquals(50_000d, antes.saldoSystiendaPendiente(), 0.001);
+
+        clienteService.registrarAbono(
+                owner,
+                caja,
+                cliente,
+                MetodoPago.TRANSFERENCIA,
+                120_000,
+                "Pago grande"
+        );
+
+        var despues = clienteService.buscar(owner, "Cliente Mixto").getFirst();
+        assertEquals(30_000d, despues.saldo(), 0.001);
+        assertEquals(0d, despues.saldoInicialPendiente(), 0.001);
+        assertEquals(30_000d, despues.saldoSystiendaPendiente(), 0.001);
+    }
+
+    @Test
     void importacionVinculaClienteExistenteCreaNuevosYNoDuplicaCartera() {
         SqliteConnectionFactory factory = new SqliteConnectionFactory(tempDir.resolve("importacion-saldos.db"));
         new DatabaseInitializer(factory).initialize();
