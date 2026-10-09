@@ -146,7 +146,7 @@ final class SaldoInicialDialog {
                 .replace("₲", "")
                 .replace(" ", "");
         if (normalized.contains(",")) normalized = normalized.replace(".", "").replace(",", ".");
-        else if (normalized.matches("\d{1,3}(\.\d{3})+")) normalized = normalized.replace(".", "");
+        else if (normalized.matches("\\d{1,3}(\\.\\d{3})+")) normalized = normalized.replace(".", "");
         try {
             double parsed = Double.parseDouble(normalized);
             if (!Double.isFinite(parsed) || parsed <= 0) throw new NumberFormatException();
