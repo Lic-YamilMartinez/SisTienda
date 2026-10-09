@@ -221,7 +221,7 @@ public final class MigracionClienteService {
                 .replace("₲", "")
                 .replace(" ", "");
         if (normalized.contains(",")) normalized = normalized.replace(".", "").replace(",", ".");
-        else if (normalized.matches("\d{1,3}(\.\d{3})+")) normalized = normalized.replace(".", "");
+        else if (normalized.matches("\\d{1,3}(\\.\\d{3})+")) normalized = normalized.replace(".", "");
         try {
             double amount = Double.parseDouble(normalized);
             if (!Double.isFinite(amount) || amount <= EPSILON) throw new NumberFormatException();
