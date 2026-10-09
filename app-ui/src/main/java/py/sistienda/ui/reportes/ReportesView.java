@@ -21,6 +21,7 @@ import javafx.scene.control.TabPane;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
@@ -32,10 +33,14 @@ import javafx.util.StringConverter;
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.ConfiguracionPos;
 import py.sistienda.core.model.DashboardReporte;
+import py.sistienda.core.model.FiltroReporte;
+import py.sistienda.core.model.GranularidadReporte;
 import py.sistienda.core.model.MetodoPago;
 import py.sistienda.core.model.ProductoVendidoResumen;
+import py.sistienda.core.model.ReporteFiltroOpcion;
 import py.sistienda.core.model.ReporteLineaTiempo;
 import py.sistienda.core.model.ReportePeriodoResumen;
+import py.sistienda.core.model.TipoVentaReporte;
 import py.sistienda.core.model.UnidadMedida;
 import py.sistienda.core.model.Usuario;
 import py.sistienda.core.model.VentaResumen;
@@ -46,6 +51,7 @@ import py.sistienda.core.service.ConfiguracionPosService;
 import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.PostventaService;
 import py.sistienda.core.service.ReporteService;
+import py.sistienda.ui.common.TooltipSupport;
 import py.sistienda.ui.ticket.TicketDialog;
 
 import java.text.NumberFormat;
@@ -73,11 +79,18 @@ public final class ReportesView extends BorderPane {
     private final DatePicker desde = new DatePicker();
     private final DatePicker hasta = new DatePicker();
     private final ComboBox<OpcionPago> pago = new ComboBox<>();
+    private final ComboBox<GranularidadReporte> granularidad = new ComboBox<>();
+    private final ComboBox<ReporteFiltroOpcion> cliente = new ComboBox<>();
+    private final ComboBox<ReporteFiltroOpcion> producto = new ComboBox<>();
+    private final ComboBox<TipoVentaReporte> tipoVenta = new ComboBox<>();
 
     private final Label ventasValue = metricValueLabel();
     private final Label costoValue = metricValueLabel();
     private final Label gananciaValue = metricValueLabel();
     private final Label resultadoValue = metricValueLabel();
+    private final Label margenValue = metricValueLabel();
+    private final Label promedioPeriodoValue = secondaryValueLabel();
+    private final Label mejorPeriodoValue = secondaryValueLabel();
     private final Label ticketsValue = secondaryValueLabel();
     private final Label promedioValue = secondaryValueLabel();
     private final Label ingresosValue = secondaryValueLabel();
@@ -143,33 +156,40 @@ public final class ReportesView extends BorderPane {
         VBox heading = new VBox(2, eyebrow, title, subtitle);
 
         filterSummary.getStyleClass().add("report-filter-summary");
+        filterSummary.setWrapText(true);
+        filterSummary.setMaxWidth(620);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox titleRow = new HBox(12, heading, spacer, filterSummary);
         titleRow.setAlignment(Pos.CENTER_LEFT);
 
-        periodo.setPrefWidth(145);
-        desde.setPrefWidth(135);
-        hasta.setPrefWidth(135);
-        pago.setPrefWidth(160);
-        Button aplicar = new Button("Aplicar");
+        periodo.setPrefWidth(135);
+        granularidad.setPrefWidth(125);
+        desde.setPrefWidth(130);
+        hasta.setPrefWidth(130);
+        cliente.setPrefWidth(205);
+        producto.setPrefWidth(235);
+        pago.setPrefWidth(145);
+        tipoVenta.setPrefWidth(165);
+
+        Button aplicar = new Button("Aplicar filtros");
         aplicar.getStyleClass().add("primary-button");
         aplicar.setOnAction(event -> recargar());
 
-        Button hoy = new Button("Hoy");
-        hoy.getStyleClass().add("secondary-button");
-        hoy.setOnAction(event -> {
-            periodo.setValue("Hoy");
-            aplicarPeriodo("Hoy");
-            recargar();
-        });
+        Button limpiar = new Button("Restablecer");
+        limpiar.getStyleClass().add("secondary-button");
+        limpiar.setOnAction(event -> restablecerFiltros());
 
         FlowPane filters = new FlowPane(8, 8,
                 filterField("Período", periodo),
+                filterField("Vista", granularidad),
                 filterField("Desde", desde),
                 filterField("Hasta", hasta),
+                filterField("Cliente", cliente),
+                filterField("Producto", producto),
                 filterField("Medio de pago", pago),
-                aplicar, hoy
+                filterField("Tipo de venta", tipoVenta),
+                aplicar, limpiar
         );
         filters.setAlignment(Pos.BOTTOM_LEFT);
         filters.getStyleClass().add("report-filter-bar");
@@ -197,20 +217,24 @@ public final class ReportesView extends BorderPane {
 
     private ScrollPane buildDashboard() {
         TilePane primaryMetrics = new TilePane(10, 10,
-                metricCard("FACTURACIÓN", ventasValue, "Ventas netas de devoluciones según el filtro"),
-                metricCard("COSTO MERCADERÍA", costoValue, "Costo histórico neto de mercadería"),
-                metricCard("GANANCIA COMERCIAL", gananciaValue, "Facturación - costo de mercadería"),
+                metricCard("VENTAS NETAS", ventasValue, "Facturación neta de devoluciones dentro del análisis seleccionado"),
+                metricCard("INVERSIÓN / COSTO", costoValue,
+                        "Costo histórico de la mercadería efectivamente vendida. Es la base invertida en lo vendido, no las compras del período."),
+                metricCard("GANANCIA COMERCIAL", gananciaValue, "Ventas netas - costo histórico de la mercadería vendida"),
+                metricCard("MARGEN BRUTO", margenValue, "Ganancia comercial como porcentaje de las ventas netas"),
                 metricCard("RESULTADO NETO", resultadoValue, resultadoHint)
         );
-        primaryMetrics.setPrefTileWidth(220);
+        primaryMetrics.setPrefTileWidth(205);
 
         TilePane secondaryMetrics = new TilePane(10, 10,
                 compactCard("TICKETS", ticketsValue),
                 compactCard("TICKET PROMEDIO", promedioValue),
+                compactCard("PROMEDIO POR PERÍODO", promedioPeriodoValue),
+                compactCard("MEJOR PERÍODO", mejorPeriodoValue),
                 compactCard("OTROS INGRESOS", ingresosValue),
                 compactCard("EGRESOS / GASTOS", egresosValue)
         );
-        secondaryMetrics.setPrefTileWidth(220);
+        secondaryMetrics.setPrefTileWidth(180);
 
         TilePane payments = new TilePane(10, 10,
                 paymentCard("EFECTIVO", efectivoValue),
@@ -220,15 +244,19 @@ public final class ReportesView extends BorderPane {
         );
         payments.setPrefTileWidth(220);
 
-        VBox chartCard = sectionCard("Evolución del período",
-                "Facturación y ganancia comercial netas. Las devoluciones descuentan en la fecha en que se procesan.", timeline);
-        VBox productCard = sectionCard("Productos que más facturaron",
-                "Top 10 neto del período, considerando las devoluciones registradas.", productos);
-        chartCard.setMinWidth(520);
-        productCard.setMinWidth(430);
+        VBox chartCard = sectionCard("Ventas, inversión y ganancia",
+                "Evolución neta por día o por mes. La línea de inversión representa el costo histórico de lo vendido; las devoluciones descuentan en la fecha procesada.",
+                timeline);
+        VBox productCard = sectionCard("Productos que explican la venta",
+                "Top 10 del análisis actual por facturación neta, con costo, ganancia y margen.", productos);
+        chartCard.setMinWidth(690);
+        chartCard.setPrefWidth(760);
+        productCard.setMinWidth(400);
+        productCard.setPrefWidth(430);
+
         FlowPane analysis = new FlowPane(10, 10, chartCard, productCard);
         analysis.setAlignment(Pos.TOP_LEFT);
-        analysis.setPrefWrapLength(980);
+        analysis.setPrefWrapLength(1180);
 
         VBox body = new VBox(10, primaryMetrics, secondaryMetrics, payments, analysis);
         body.setPadding(new Insets(10, 2, 14, 2));
@@ -268,18 +296,46 @@ public final class ReportesView extends BorderPane {
             }
         });
 
+        granularidad.setItems(FXCollections.observableArrayList(
+                GranularidadReporte.AUTO,
+                GranularidadReporte.DIARIO,
+                GranularidadReporte.MENSUAL
+        ));
+        granularidad.setValue(GranularidadReporte.AUTO);
+
         pago.setItems(FXCollections.observableArrayList(
                 new OpcionPago("Todos", null),
                 new OpcionPago("Efectivo", MetodoPago.EFECTIVO),
                 new OpcionPago("Transferencia", MetodoPago.TRANSFERENCIA),
                 new OpcionPago("Tarjeta", MetodoPago.TARJETA),
                 new OpcionPago("Fiado / Crédito", MetodoPago.FIADO),
-                new OpcionPago("Mixto / Parcial", MetodoPago.MIXTO)
+                new OpcionPago("Mixto / Combinado", MetodoPago.MIXTO)
         ));
         pago.setValue(pago.getItems().getFirst());
-        pago.valueProperty().addListener((obs, oldValue, newValue) -> {
-            if (newValue != null) recargar();
-        });
+
+        tipoVenta.setItems(FXCollections.observableArrayList(TipoVentaReporte.values()));
+        tipoVenta.setValue(TipoVentaReporte.TODOS);
+
+        cliente.getItems().add(new ReporteFiltroOpcion(0, "Todos los clientes"));
+        cliente.getItems().addAll(reporteService.clientesDisponibles());
+        cliente.setValue(cliente.getItems().getFirst());
+        cliente.setVisibleRowCount(12);
+
+        producto.getItems().add(new ReporteFiltroOpcion(0, "Todos los productos"));
+        producto.getItems().addAll(reporteService.productosDisponibles());
+        producto.setValue(producto.getItems().getFirst());
+        producto.setVisibleRowCount(14);
+
+        TooltipSupport.install(granularidad,
+                "Automático usa días en períodos cortos y meses en períodos largos. También podés forzar la vista diaria o mensual.");
+        TooltipSupport.install(cliente,
+                "Filtra las ventas asociadas a un cliente. Actualmente los clientes se vinculan a ventas fiadas o con saldo pendiente.");
+        TooltipSupport.install(producto,
+                "Analiza exclusivamente las ventas, costo y ganancia atribuibles al producto seleccionado.");
+        TooltipSupport.install(pago,
+                "Analiza la parte de las ventas correspondiente al medio de pago seleccionado, incluso dentro de pagos mixtos.");
+        TooltipSupport.install(tipoVenta,
+                "Contado: sin saldo fiado. Crédito total: todo queda a cuenta. Pago parcial + fiado: una parte se cobra y otra queda pendiente.");
 
         aplicarPeriodo("Este mes");
     }
@@ -311,10 +367,10 @@ public final class ReportesView extends BorderPane {
 
     private void configurarTimeline() {
         timeline.setAnimated(false);
-        timeline.setCreateSymbols(false);
+        timeline.setCreateSymbols(true);
         timeline.setLegendVisible(true);
-        timeline.setMinHeight(310);
-        timeline.setPrefHeight(330);
+        timeline.setMinHeight(330);
+        timeline.setPrefHeight(370);
         timeline.getStyleClass().add("report-line-chart");
         timelineX.setLabel("Período");
         timelineY.setLabel("Gs.");
@@ -340,6 +396,7 @@ public final class ReportesView extends BorderPane {
         TableColumn<ProductoVendidoResumen, String> product = new TableColumn<>("Producto");
         product.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().producto()));
         product.setPrefWidth(155);
+        TooltipSupport.fullText(product);
 
         TableColumn<ProductoVendidoResumen, String> qty = new TableColumn<>("Cant.");
         qty.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatQuantity(cell.getValue())));
@@ -348,6 +405,10 @@ public final class ReportesView extends BorderPane {
         TableColumn<ProductoVendidoResumen, String> sales = new TableColumn<>("Ventas");
         sales.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().ventas())));
         sales.setPrefWidth(100);
+
+        TableColumn<ProductoVendidoResumen, String> cost = new TableColumn<>("Costo");
+        cost.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().costo())));
+        cost.setPrefWidth(95);
 
         TableColumn<ProductoVendidoResumen, String> gain = new TableColumn<>("Ganancia");
         gain.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().ganancia())));
@@ -362,7 +423,7 @@ public final class ReportesView extends BorderPane {
         });
         margin.setPrefWidth(65);
 
-        productos.getColumns().setAll(product, qty, sales, gain, margin);
+        productos.getColumns().setAll(product, qty, sales, cost, gain, margin);
     }
 
     private void configurarVentas() {
@@ -378,10 +439,15 @@ public final class ReportesView extends BorderPane {
         ticketCol.setPrefWidth(70);
         TableColumn<VentaResumen, String> usuarioCol = new TableColumn<>("Usuario");
         usuarioCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().usuario()));
-        usuarioCol.setPrefWidth(100);
+        usuarioCol.setPrefWidth(95);
+        TableColumn<VentaResumen, String> clienteCol = new TableColumn<>("Cliente");
+        clienteCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().clienteDisplay()));
+        clienteCol.setPrefWidth(145);
+        TooltipSupport.fullText(clienteCol);
         TableColumn<VentaResumen, String> pagoCol = new TableColumn<>("Pago");
         pagoCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().metodoPago().descripcion()));
         pagoCol.setPrefWidth(110);
+        TooltipSupport.fullText(pagoCol);
         TableColumn<VentaResumen, String> totalCol = new TableColumn<>("Original");
         totalCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().total())));
         totalCol.setPrefWidth(105);
@@ -443,7 +509,7 @@ public final class ReportesView extends BorderPane {
             }
         });
 
-        ventas.getColumns().setAll(fechaCol, ticketCol, usuarioCol, pagoCol, totalCol, netoCol, estadoCol, actionCol);
+        ventas.getColumns().setAll(fechaCol, ticketCol, usuarioCol, clienteCol, pagoCol, totalCol, netoCol, estadoCol, actionCol);
         ventas.setRowFactory(view -> {
             var row = new javafx.scene.control.TableRow<VentaResumen>();
             row.setOnMouseClicked(event -> {
@@ -455,17 +521,19 @@ public final class ReportesView extends BorderPane {
 
     private void recargar() {
         ejecutar(() -> {
-            LocalDate from = desde.getValue() == null ? LocalDate.now() : desde.getValue();
-            LocalDate to = hasta.getValue() == null ? from : hasta.getValue();
-            OpcionPago selectedPayment = pago.getValue();
-            MetodoPago metodoPago = selectedPayment == null ? null : selectedPayment.metodoPago();
-            DashboardReporte dashboard = reporteService.dashboard(from, to, metodoPago);
+            FiltroReporte filtro = construirFiltro();
+            DashboardReporte dashboard = reporteService.dashboard(filtro);
             ReportePeriodoResumen resumen = dashboard.resumen();
 
             ventasValue.setText(formatCurrency(resumen.ventas()));
             costoValue.setText(formatCurrency(resumen.costoMercaderia()));
             gananciaValue.setText(formatCurrency(resumen.gananciaComercial()));
             resultadoValue.setText(formatCurrency(resumen.resultadoNetoOperativo()));
+            margenValue.setText(formatPercent(
+                    Math.abs(resumen.ventas()) <= 0.000001d
+                            ? 0d
+                            : (resumen.gananciaComercial() / resumen.ventas()) * 100d
+            ));
             ticketsValue.setText(Long.toString(resumen.tickets()));
             promedioValue.setText(formatCurrency(resumen.ticketPromedio()));
             ingresosValue.setText(formatCurrency(resumen.otrosIngresos()));
@@ -475,32 +543,132 @@ public final class ReportesView extends BorderPane {
             tarjetaValue.setText(formatCurrency(resumen.tarjeta()));
             fiadoValue.setText(formatCurrency(resumen.fiado()));
 
-            boolean filtered = metodoPago != null;
-            resultadoHint.setText(filtered
-                    ? "Global del período · no cambia con el filtro de pago"
+            resultadoHint.setText(filtro.tieneFiltroNegocio()
+                    ? "Global del período · no se altera por filtros de cliente, producto, pago o tipo"
                     : "Ganancia comercial + otros ingresos - egresos registrados");
-            filterSummary.setText(formatPeriod(from, to) + "  ·  " + (selectedPayment == null ? "Todos" : selectedPayment.label()));
+            filterSummary.setText(resumenFiltros(filtro));
 
-            cargarTimeline(dashboard, from, to);
+            cargarTimeline(dashboard, filtro);
+            cargarInsights(dashboard, filtro);
             productos.setItems(FXCollections.observableArrayList(dashboard.productosMasVendidos()));
             ventas.setItems(FXCollections.observableArrayList(dashboard.ventas()));
         });
     }
 
-    private void cargarTimeline(DashboardReporte dashboard, LocalDate from, LocalDate to) {
-        timeline.getData().clear();
-        XYChart.Series<String, Number> salesSeries = new XYChart.Series<>();
-        salesSeries.setName("Facturación");
-        XYChart.Series<String, Number> gainSeries = new XYChart.Series<>();
-        gainSeries.setName("Ganancia comercial");
+    private FiltroReporte construirFiltro() {
+        LocalDate from = desde.getValue() == null ? LocalDate.now() : desde.getValue();
+        LocalDate to = hasta.getValue() == null ? from : hasta.getValue();
+        OpcionPago selectedPayment = pago.getValue();
+        ReporteFiltroOpcion selectedClient = cliente.getValue();
+        ReporteFiltroOpcion selectedProduct = producto.getValue();
 
-        boolean monthly = ChronoUnit.DAYS.between(from, to) > 62;
+        return new FiltroReporte(
+                from,
+                to,
+                granularidad.getValue() == null ? GranularidadReporte.AUTO : granularidad.getValue(),
+                selectedPayment == null ? null : selectedPayment.metodoPago(),
+                selectedClient == null || selectedClient.id() <= 0 ? null : selectedClient.id(),
+                selectedProduct == null || selectedProduct.id() <= 0 ? null : selectedProduct.id(),
+                tipoVenta.getValue() == null ? TipoVentaReporte.TODOS : tipoVenta.getValue()
+        );
+    }
+
+    private void cargarTimeline(DashboardReporte dashboard, FiltroReporte filtro) {
+        timeline.getData().clear();
+        timeline.setCreateSymbols(dashboard.lineaTiempo().size() <= 40);
+
+        XYChart.Series<String, Number> salesSeries = new XYChart.Series<>();
+        salesSeries.setName("Ventas netas");
+        XYChart.Series<String, Number> costSeries = new XYChart.Series<>();
+        costSeries.setName("Inversión / costo");
+        XYChart.Series<String, Number> gainSeries = new XYChart.Series<>();
+        gainSeries.setName("Ganancia");
+
+        boolean monthly = esVistaMensual(filtro);
         for (ReporteLineaTiempo point : dashboard.lineaTiempo()) {
             String label = monthly ? MONTH_LABEL.format(point.periodo()) : DAY_LABEL.format(point.periodo());
-            salesSeries.getData().add(new XYChart.Data<>(label, point.ventas()));
-            gainSeries.getData().add(new XYChart.Data<>(label, point.gananciaComercial()));
+            var sales = new XYChart.Data<String, Number>(label, point.ventas());
+            var cost = new XYChart.Data<String, Number>(label, point.costoMercaderia());
+            var gain = new XYChart.Data<String, Number>(label, point.gananciaComercial());
+            instalarTooltipPunto(sales, label, "Ventas", point.ventas());
+            instalarTooltipPunto(cost, label, "Costo", point.costoMercaderia());
+            instalarTooltipPunto(gain, label, "Ganancia", point.gananciaComercial());
+            salesSeries.getData().add(sales);
+            costSeries.getData().add(cost);
+            gainSeries.getData().add(gain);
         }
-        timeline.getData().addAll(salesSeries, gainSeries);
+        timelineX.setTickLabelRotation(dashboard.lineaTiempo().size() > 12 ? -45d : 0d);
+        timeline.getData().addAll(salesSeries, costSeries, gainSeries);
+    }
+
+    private void cargarInsights(DashboardReporte dashboard, FiltroReporte filtro) {
+        int periods = dashboard.lineaTiempo().size();
+        double total = dashboard.resumen().ventas();
+        promedioPeriodoValue.setText(periods == 0 ? "Gs. 0" : formatCurrency(total / periods));
+
+        ReporteLineaTiempo best = dashboard.lineaTiempo().stream()
+                .max(java.util.Comparator.comparingDouble(ReporteLineaTiempo::ventas))
+                .orElse(null);
+        if (best == null || best.ventas() <= 0.000001d) {
+            mejorPeriodoValue.setText("Sin ventas");
+            return;
+        }
+        String label = esVistaMensual(filtro)
+                ? MONTH_LABEL.format(best.periodo())
+                : DAY_LABEL.format(best.periodo());
+        mejorPeriodoValue.setText(label + " · " + formatCompactCurrency(best.ventas()));
+    }
+
+    private void instalarTooltipPunto(
+            XYChart.Data<String, Number> data,
+            String periodoLabel,
+            String serie,
+            double value
+    ) {
+        data.nodeProperty().addListener((obs, oldNode, node) -> {
+            if (node != null) {
+                Tooltip.install(node, new Tooltip(periodoLabel + "\n" + serie + ": " + formatCurrency(value)));
+            }
+        });
+    }
+
+    private boolean esVistaMensual(FiltroReporte filtro) {
+        if (filtro.granularidad() == GranularidadReporte.MENSUAL) return true;
+        if (filtro.granularidad() == GranularidadReporte.DIARIO) return false;
+        return ChronoUnit.DAYS.between(filtro.desde(), filtro.hasta()) > 62;
+    }
+
+    private String resumenFiltros(FiltroReporte filtro) {
+        StringBuilder text = new StringBuilder(formatPeriod(filtro.desde(), filtro.hasta()));
+        text.append(" · ").append(esVistaMensual(filtro) ? "Mensual" : "Diario");
+
+        ReporteFiltroOpcion selectedClient = cliente.getValue();
+        if (selectedClient != null && selectedClient.id() > 0) {
+            text.append(" · Cliente: ").append(selectedClient.etiqueta());
+        }
+        ReporteFiltroOpcion selectedProduct = producto.getValue();
+        if (selectedProduct != null && selectedProduct.id() > 0) {
+            text.append(" · Producto: ").append(selectedProduct.etiqueta());
+        }
+        OpcionPago selectedPayment = pago.getValue();
+        if (selectedPayment != null && selectedPayment.metodoPago() != null) {
+            text.append(" · ").append(selectedPayment.label());
+        }
+        if (filtro.tipoVenta() != TipoVentaReporte.TODOS) {
+            text.append(" · ").append(filtro.tipoVenta().descripcion());
+        }
+        return text.toString();
+    }
+
+    private void restablecerFiltros() {
+        periodo.setValue("Este mes");
+        granularidad.setValue(GranularidadReporte.AUTO);
+        if (!cliente.getItems().isEmpty()) cliente.setValue(cliente.getItems().getFirst());
+        if (!producto.getItems().isEmpty()) producto.setValue(producto.getItems().getFirst());
+        if (!pago.getItems().isEmpty()) pago.setValue(pago.getItems().getFirst());
+        tipoVenta.setValue(TipoVentaReporte.TODOS);
+        aplicarPeriodo("Este mes");
+        recargar();
     }
 
     private VBox metricCard(String title, Label value, String hintText) {
@@ -514,6 +682,7 @@ public final class ReportesView extends BorderPane {
         hint.getStyleClass().add("report-metric-hint");
         hint.setWrapText(true);
         VBox card = new VBox(4, titleLabel, value, hint);
+        TooltipSupport.install(card, hint.getText());
         card.getStyleClass().add("report-metric-card");
         card.setMaxWidth(Double.MAX_VALUE);
         return card;
@@ -610,6 +779,24 @@ public final class ReportesView extends BorderPane {
     private String formatCurrency(double value) {
         NumberFormat format = NumberFormat.getIntegerInstance(new Locale("es", "PY"));
         return "Gs. " + format.format(Math.round(value));
+    }
+
+    private String formatPercent(double value) {
+        return String.format(new Locale("es", "PY"), "%.1f%%", value);
+    }
+
+    private String formatCompactCurrency(double value) {
+        double abs = Math.abs(value);
+        if (abs >= 1_000_000_000d) {
+            return "Gs. " + String.format(Locale.US, "%.1fB", value / 1_000_000_000d);
+        }
+        if (abs >= 1_000_000d) {
+            return "Gs. " + String.format(Locale.US, "%.1fM", value / 1_000_000d);
+        }
+        if (abs >= 1_000d) {
+            return "Gs. " + String.format(Locale.US, "%.0fk", value / 1_000d);
+        }
+        return formatCurrency(value);
     }
 
     private String formatQuantity(ProductoVendidoResumen item) {

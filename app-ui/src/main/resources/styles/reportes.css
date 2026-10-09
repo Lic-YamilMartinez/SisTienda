@@ -360,3 +360,76 @@
     -fx-font-size: 12px;
     -fx-font-weight: 800;
 }
+
+
+/* Dashboard ejecutivo */
+.report-filter-bar {
+    -fx-background-color: linear-gradient(to bottom, #ffffff, #fcfcfd);
+}
+
+.report-metric-card {
+    -fx-min-height: 92;
+}
+
+.report-analysis-card {
+    -fx-background-color: white;
+    -fx-border-color: #e4e7ec;
+    -fx-border-width: 1;
+}
+
+.report-line-chart {
+    -fx-padding: 4 0 0 0;
+}
+
+.report-line-chart .chart-series-line {
+    -fx-stroke-width: 2.8px;
+}
+
+.report-line-chart .default-color0.chart-series-line {
+    -fx-stroke: #ea580c;
+}
+
+.report-line-chart .default-color1.chart-series-line {
+    -fx-stroke: #64748b;
+}
+
+.report-line-chart .default-color2.chart-series-line {
+    -fx-stroke: #16a34a;
+}
+
+.report-line-chart .default-color0.chart-line-symbol {
+    -fx-background-color: #ea580c, white;
+}
+
+.report-line-chart .default-color1.chart-line-symbol {
+    -fx-background-color: #64748b, white;
+}
+
+.report-line-chart .default-color2.chart-line-symbol {
+    -fx-background-color: #16a34a, white;
+}
+
+.report-line-chart .chart-line-symbol {
+    -fx-background-radius: 6px;
+    -fx-padding: 4px;
+}
+
+.report-line-chart .chart-legend {
+    -fx-background-color: transparent;
+    -fx-padding: 2 0 8 0;
+}
+
+.report-line-chart .chart-legend-item {
+    -fx-text-fill: #475467;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+}
+
+.report-line-chart .axis-tick-mark,
+.report-line-chart .axis-minor-tick-mark {
+    -fx-stroke: #d0d5dd;
+}
+
+.report-line-chart .chart-horizontal-grid-lines {
+    -fx-stroke-dash-array: 3 4;
+}

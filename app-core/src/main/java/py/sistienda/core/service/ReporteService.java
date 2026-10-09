@@ -2,7 +2,9 @@ package py.sistienda.core.service;
 
 import py.sistienda.core.exception.ValidationException;
 import py.sistienda.core.model.DashboardReporte;
+import py.sistienda.core.model.FiltroReporte;
 import py.sistienda.core.model.MetodoPago;
+import py.sistienda.core.model.ReporteFiltroOpcion;
 import py.sistienda.core.model.ReporteDiario;
 import py.sistienda.core.model.VentaDetalle;
 import py.sistienda.core.model.VentaResumen;
@@ -30,13 +32,26 @@ public final class ReporteService {
     }
 
     public DashboardReporte dashboard(LocalDate desde, LocalDate hasta, MetodoPago metodoPago) {
-        validarRango(desde, hasta);
+        return dashboard(FiltroReporte.basico(desde, hasta, metodoPago));
+    }
+
+    public DashboardReporte dashboard(FiltroReporte filtro) {
+        Objects.requireNonNull(filtro);
+        validarRango(filtro.desde(), filtro.hasta());
         return new DashboardReporte(
-                reporteRepository.resumenPeriodo(desde, hasta, metodoPago),
-                reporteRepository.lineaTiempo(desde, hasta, metodoPago),
-                reporteRepository.productosMasVendidos(desde, hasta, metodoPago, 10),
-                reporteRepository.listarVentas(desde, hasta, metodoPago, 500)
+                reporteRepository.resumenPeriodo(filtro),
+                reporteRepository.lineaTiempo(filtro),
+                reporteRepository.productosMasVendidos(filtro, 10),
+                reporteRepository.listarVentas(filtro, 500)
         );
+    }
+
+    public List<ReporteFiltroOpcion> clientesDisponibles() {
+        return reporteRepository.clientesDisponibles();
+    }
+
+    public List<ReporteFiltroOpcion> productosDisponibles() {
+        return reporteRepository.productosDisponibles();
     }
 
     public VentaDetalle detalleVenta(long ventaId) {
