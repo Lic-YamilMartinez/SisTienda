@@ -215,20 +215,24 @@ public final class ReportesView extends BorderPane {
 
     private ScrollPane buildDashboard() {
         TilePane primaryMetrics = new TilePane(10, 10,
-                metricCard("FACTURACIÓN", ventasValue, "Ventas netas de devoluciones según el filtro"),
-                metricCard("COSTO MERCADERÍA", costoValue, "Costo histórico neto de mercadería"),
-                metricCard("GANANCIA COMERCIAL", gananciaValue, "Facturación - costo de mercadería"),
+                metricCard("VENTAS NETAS", ventasValue, "Facturación neta de devoluciones dentro del análisis seleccionado"),
+                metricCard("INVERSIÓN / COSTO", costoValue,
+                        "Costo histórico de la mercadería efectivamente vendida. Es la base invertida en lo vendido, no las compras del período."),
+                metricCard("GANANCIA COMERCIAL", gananciaValue, "Ventas netas - costo histórico de la mercadería vendida"),
+                metricCard("MARGEN BRUTO", margenValue, "Ganancia comercial como porcentaje de las ventas netas"),
                 metricCard("RESULTADO NETO", resultadoValue, resultadoHint)
         );
-        primaryMetrics.setPrefTileWidth(220);
+        primaryMetrics.setPrefTileWidth(205);
 
         TilePane secondaryMetrics = new TilePane(10, 10,
                 compactCard("TICKETS", ticketsValue),
                 compactCard("TICKET PROMEDIO", promedioValue),
+                compactCard("PROMEDIO POR PERÍODO", promedioPeriodoValue),
+                compactCard("MEJOR PERÍODO", mejorPeriodoValue),
                 compactCard("OTROS INGRESOS", ingresosValue),
                 compactCard("EGRESOS / GASTOS", egresosValue)
         );
-        secondaryMetrics.setPrefTileWidth(220);
+        secondaryMetrics.setPrefTileWidth(180);
 
         TilePane payments = new TilePane(10, 10,
                 paymentCard("EFECTIVO", efectivoValue),
@@ -238,15 +242,19 @@ public final class ReportesView extends BorderPane {
         );
         payments.setPrefTileWidth(220);
 
-        VBox chartCard = sectionCard("Evolución del período",
-                "Facturación y ganancia comercial netas. Las devoluciones descuentan en la fecha en que se procesan.", timeline);
-        VBox productCard = sectionCard("Productos que más facturaron",
-                "Top 10 neto del período, considerando las devoluciones registradas.", productos);
-        chartCard.setMinWidth(520);
-        productCard.setMinWidth(430);
+        VBox chartCard = sectionCard("Ventas, inversión y ganancia",
+                "Evolución neta por día o por mes. La línea de inversión representa el costo histórico de lo vendido; las devoluciones descuentan en la fecha procesada.",
+                timeline);
+        VBox productCard = sectionCard("Productos que explican la venta",
+                "Top 10 del análisis actual por facturación neta, con costo, ganancia y margen.", productos);
+        chartCard.setMinWidth(690);
+        chartCard.setPrefWidth(760);
+        productCard.setMinWidth(400);
+        productCard.setPrefWidth(430);
+
         FlowPane analysis = new FlowPane(10, 10, chartCard, productCard);
         analysis.setAlignment(Pos.TOP_LEFT);
-        analysis.setPrefWrapLength(980);
+        analysis.setPrefWrapLength(1180);
 
         VBox body = new VBox(10, primaryMetrics, secondaryMetrics, payments, analysis);
         body.setPadding(new Insets(10, 2, 14, 2));
