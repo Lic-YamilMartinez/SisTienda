@@ -235,11 +235,11 @@ public final class SqliteReporteRepository implements ReporteRepository {
         String bucket = mensual
                 ? "strftime('%Y-%m-01', fecha, 'localtime')"
                 : "date(fecha, 'localtime')";
-        String sql = """
+        String sql = ("""
                 WITH movimientos AS (
-                """ + movimientos.sql() + """
+                %s
                 )
-                SELECT """ + bucket + """ AS periodo,
+                SELECT %s AS periodo,
                        COALESCE(SUM(ventas), 0) AS ventas,
                        COALESCE(SUM(costo), 0) AS costo,
                        COALESCE(SUM(ganancia), 0) AS ganancia,
@@ -247,7 +247,7 @@ public final class SqliteReporteRepository implements ReporteRepository {
                 FROM movimientos
                 GROUP BY periodo
                 ORDER BY periodo
-                """;
+                """).formatted(movimientos.sql(), bucket);
 
         Map<LocalDate, ReporteLineaTiempo> encontrados = new LinkedHashMap<>();
         try (var connection = connectionFactory.open();
@@ -468,33 +468,41 @@ public final class SqliteReporteRepository implements ReporteRepository {
         appendDimensionFilters(refundWhere, refundParams, filtro, "v", "dd");
         params.addAll(refundParams);
 
-        String sql = """
+        String sql = ("""
                 SELECT v.id AS venta_id,
                        NULL AS devolucion_id,
                        v.fecha AS fecha,
                        d.producto_id,
-                       d.cantidad * (""" + ventaFactor + """) AS cantidad,
-                       d.subtotal * (""" + ventaFactor + """) AS ventas,
-                       (d.subtotal - d.ganancia_linea) * (""" + ventaFactor + """) AS costo,
-                       d.ganancia_linea * (""" + ventaFactor + """) AS ganancia,
+                       d.cantidad * (%s) AS cantidad,
+                       d.subtotal * (%s) AS ventas,
+                       (d.subtotal - d.ganancia_linea) * (%s) AS costo,
+                       d.ganancia_linea * (%s) AS ganancia,
                        1 AS es_venta
                 FROM venta_detalle d
                 JOIN venta v ON v.id = d.venta_id
-                """ + saleJoin + saleWhere + """
+                %s
+                %s
                 UNION ALL
                 SELECT dv.venta_id,
                        dv.id AS devolucion_id,
                        dv.fecha AS fecha,
                        dd.producto_id,
-                       -dd.cantidad * (""" + devolucionFactor + """) AS cantidad,
-                       -dd.subtotal * (""" + devolucionFactor + """) AS ventas,
-                       -(dd.subtotal - dd.ganancia_revertida) * (""" + devolucionFactor + """) AS costo,
-                       -dd.ganancia_revertida * (""" + devolucionFactor + """) AS ganancia,
+                       -dd.cantidad * (%s) AS cantidad,
+                       -dd.subtotal * (%s) AS ventas,
+                       -(dd.subtotal - dd.ganancia_revertida) * (%s) AS costo,
+                       -dd.ganancia_revertida * (%s) AS ganancia,
                        0 AS es_venta
                 FROM devolucion_detalle dd
                 JOIN devolucion dv ON dv.id = dd.devolucion_id
                 JOIN venta v ON v.id = dv.venta_id
-                """ + refundJoin + refundWhere;
+                %s
+                %s
+                """).formatted(
+                        ventaFactor, ventaFactor, ventaFactor, ventaFactor,
+                        saleJoin, saleWhere,
+                        devolucionFactor, devolucionFactor, devolucionFactor, devolucionFactor,
+                        refundJoin, refundWhere
+                );
 
         return new SqlPlan(sql, List.copyOf(params));
     }
