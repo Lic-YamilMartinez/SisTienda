@@ -775,6 +775,24 @@ public final class ReportesView extends BorderPane {
         return "Gs. " + format.format(Math.round(value));
     }
 
+    private String formatPercent(double value) {
+        return String.format(new Locale("es", "PY"), "%.1f%%", value);
+    }
+
+    private String formatCompactCurrency(double value) {
+        double abs = Math.abs(value);
+        if (abs >= 1_000_000_000d) {
+            return "Gs. " + String.format(Locale.US, "%.1fB", value / 1_000_000_000d);
+        }
+        if (abs >= 1_000_000d) {
+            return "Gs. " + String.format(Locale.US, "%.1fM", value / 1_000_000d);
+        }
+        if (abs >= 1_000d) {
+            return "Gs. " + String.format(Locale.US, "%.0fk", value / 1_000d);
+        }
+        return formatCurrency(value);
+    }
+
     private String formatQuantity(ProductoVendidoResumen item) {
         if (item.unidadMedida() == UnidadMedida.UN) {
             return NumberFormat.getIntegerInstance(new Locale("es", "PY")).format(Math.round(item.cantidad())) + " un";
