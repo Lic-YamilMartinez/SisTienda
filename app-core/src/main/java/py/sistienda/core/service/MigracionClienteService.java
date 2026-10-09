@@ -252,7 +252,7 @@ public final class MigracionClienteService {
 
     private String normalizar(String value) {
         if (value == null || value.isBlank()) return null;
-        return value.trim().replaceAll("\s+", " ");
+        return value.trim().replaceAll("\\s+", " ");
     }
 
     private String normalizarOpcional(String value, int max) {
