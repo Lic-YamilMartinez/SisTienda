@@ -290,6 +290,7 @@ public final class ReportesView extends BorderPane {
         periodo.valueProperty().addListener((obs, oldValue, newValue) -> {
             if (newValue != null && !"Personalizado".equals(newValue)) {
                 aplicarPeriodo(newValue);
+                recargar();
             }
         });
 
@@ -435,7 +436,10 @@ public final class ReportesView extends BorderPane {
         ticketCol.setPrefWidth(70);
         TableColumn<VentaResumen, String> usuarioCol = new TableColumn<>("Usuario");
         usuarioCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().usuario()));
-        usuarioCol.setPrefWidth(100);
+        usuarioCol.setPrefWidth(95);
+        TableColumn<VentaResumen, String> clienteCol = new TableColumn<>("Cliente");
+        clienteCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().clienteDisplay()));
+        clienteCol.setPrefWidth(145);
         TableColumn<VentaResumen, String> pagoCol = new TableColumn<>("Pago");
         pagoCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().metodoPago().descripcion()));
         pagoCol.setPrefWidth(110);
@@ -500,7 +504,7 @@ public final class ReportesView extends BorderPane {
             }
         });
 
-        ventas.getColumns().setAll(fechaCol, ticketCol, usuarioCol, pagoCol, totalCol, netoCol, estadoCol, actionCol);
+        ventas.getColumns().setAll(fechaCol, ticketCol, usuarioCol, clienteCol, pagoCol, totalCol, netoCol, estadoCol, actionCol);
         ventas.setRowFactory(view -> {
             var row = new javafx.scene.control.TableRow<VentaResumen>();
             row.setOnMouseClicked(event -> {
@@ -512,17 +516,19 @@ public final class ReportesView extends BorderPane {
 
     private void recargar() {
         ejecutar(() -> {
-            LocalDate from = desde.getValue() == null ? LocalDate.now() : desde.getValue();
-            LocalDate to = hasta.getValue() == null ? from : hasta.getValue();
-            OpcionPago selectedPayment = pago.getValue();
-            MetodoPago metodoPago = selectedPayment == null ? null : selectedPayment.metodoPago();
-            DashboardReporte dashboard = reporteService.dashboard(from, to, metodoPago);
+            FiltroReporte filtro = construirFiltro();
+            DashboardReporte dashboard = reporteService.dashboard(filtro);
             ReportePeriodoResumen resumen = dashboard.resumen();
 
             ventasValue.setText(formatCurrency(resumen.ventas()));
             costoValue.setText(formatCurrency(resumen.costoMercaderia()));
             gananciaValue.setText(formatCurrency(resumen.gananciaComercial()));
             resultadoValue.setText(formatCurrency(resumen.resultadoNetoOperativo()));
+            margenValue.setText(formatPercent(
+                    Math.abs(resumen.ventas()) <= 0.000001d
+                            ? 0d
+                            : (resumen.gananciaComercial() / resumen.ventas()) * 100d
+            ));
             ticketsValue.setText(Long.toString(resumen.tickets()));
             promedioValue.setText(formatCurrency(resumen.ticketPromedio()));
             ingresosValue.setText(formatCurrency(resumen.otrosIngresos()));
@@ -532,32 +538,131 @@ public final class ReportesView extends BorderPane {
             tarjetaValue.setText(formatCurrency(resumen.tarjeta()));
             fiadoValue.setText(formatCurrency(resumen.fiado()));
 
-            boolean filtered = metodoPago != null;
-            resultadoHint.setText(filtered
-                    ? "Global del período · no cambia con el filtro de pago"
+            resultadoHint.setText(filtro.tieneFiltroNegocio()
+                    ? "Global del período · no se altera por filtros de cliente, producto, pago o tipo"
                     : "Ganancia comercial + otros ingresos - egresos registrados");
-            filterSummary.setText(formatPeriod(from, to) + "  ·  " + (selectedPayment == null ? "Todos" : selectedPayment.label()));
+            filterSummary.setText(resumenFiltros(filtro));
 
-            cargarTimeline(dashboard, from, to);
+            cargarTimeline(dashboard, filtro);
+            cargarInsights(dashboard, filtro);
             productos.setItems(FXCollections.observableArrayList(dashboard.productosMasVendidos()));
             ventas.setItems(FXCollections.observableArrayList(dashboard.ventas()));
         });
     }
 
-    private void cargarTimeline(DashboardReporte dashboard, LocalDate from, LocalDate to) {
-        timeline.getData().clear();
-        XYChart.Series<String, Number> salesSeries = new XYChart.Series<>();
-        salesSeries.setName("Facturación");
-        XYChart.Series<String, Number> gainSeries = new XYChart.Series<>();
-        gainSeries.setName("Ganancia comercial");
+    private FiltroReporte construirFiltro() {
+        LocalDate from = desde.getValue() == null ? LocalDate.now() : desde.getValue();
+        LocalDate to = hasta.getValue() == null ? from : hasta.getValue();
+        OpcionPago selectedPayment = pago.getValue();
+        ReporteFiltroOpcion selectedClient = cliente.getValue();
+        ReporteFiltroOpcion selectedProduct = producto.getValue();
 
-        boolean monthly = ChronoUnit.DAYS.between(from, to) > 62;
+        return new FiltroReporte(
+                from,
+                to,
+                granularidad.getValue() == null ? GranularidadReporte.AUTO : granularidad.getValue(),
+                selectedPayment == null ? null : selectedPayment.metodoPago(),
+                selectedClient == null || selectedClient.id() <= 0 ? null : selectedClient.id(),
+                selectedProduct == null || selectedProduct.id() <= 0 ? null : selectedProduct.id(),
+                tipoVenta.getValue() == null ? TipoVentaReporte.TODOS : tipoVenta.getValue()
+        );
+    }
+
+    private void cargarTimeline(DashboardReporte dashboard, FiltroReporte filtro) {
+        timeline.getData().clear();
+        timeline.setCreateSymbols(dashboard.lineaTiempo().size() <= 40);
+
+        XYChart.Series<String, Number> salesSeries = new XYChart.Series<>();
+        salesSeries.setName("Ventas netas");
+        XYChart.Series<String, Number> costSeries = new XYChart.Series<>();
+        costSeries.setName("Inversión / costo");
+        XYChart.Series<String, Number> gainSeries = new XYChart.Series<>();
+        gainSeries.setName("Ganancia");
+
+        boolean monthly = esVistaMensual(filtro);
         for (ReporteLineaTiempo point : dashboard.lineaTiempo()) {
             String label = monthly ? MONTH_LABEL.format(point.periodo()) : DAY_LABEL.format(point.periodo());
-            salesSeries.getData().add(new XYChart.Data<>(label, point.ventas()));
-            gainSeries.getData().add(new XYChart.Data<>(label, point.gananciaComercial()));
+            var sales = new XYChart.Data<String, Number>(label, point.ventas());
+            var cost = new XYChart.Data<String, Number>(label, point.costoMercaderia());
+            var gain = new XYChart.Data<String, Number>(label, point.gananciaComercial());
+            instalarTooltipPunto(sales, label, "Ventas", point.ventas());
+            instalarTooltipPunto(cost, label, "Costo", point.costoMercaderia());
+            instalarTooltipPunto(gain, label, "Ganancia", point.gananciaComercial());
+            salesSeries.getData().add(sales);
+            costSeries.getData().add(cost);
+            gainSeries.getData().add(gain);
         }
-        timeline.getData().addAll(salesSeries, gainSeries);
+        timeline.getData().addAll(salesSeries, costSeries, gainSeries);
+    }
+
+    private void cargarInsights(DashboardReporte dashboard, FiltroReporte filtro) {
+        int periods = dashboard.lineaTiempo().size();
+        double total = dashboard.resumen().ventas();
+        promedioPeriodoValue.setText(periods == 0 ? "Gs. 0" : formatCurrency(total / periods));
+
+        ReporteLineaTiempo best = dashboard.lineaTiempo().stream()
+                .max(java.util.Comparator.comparingDouble(ReporteLineaTiempo::ventas))
+                .orElse(null);
+        if (best == null || best.ventas() <= 0.000001d) {
+            mejorPeriodoValue.setText("Sin ventas");
+            return;
+        }
+        String label = esVistaMensual(filtro)
+                ? MONTH_LABEL.format(best.periodo())
+                : DAY_LABEL.format(best.periodo());
+        mejorPeriodoValue.setText(label + " · " + formatCompactCurrency(best.ventas()));
+    }
+
+    private void instalarTooltipPunto(
+            XYChart.Data<String, Number> data,
+            String periodoLabel,
+            String serie,
+            double value
+    ) {
+        data.nodeProperty().addListener((obs, oldNode, node) -> {
+            if (node != null) {
+                Tooltip.install(node, new Tooltip(periodoLabel + "\n" + serie + ": " + formatCurrency(value)));
+            }
+        });
+    }
+
+    private boolean esVistaMensual(FiltroReporte filtro) {
+        if (filtro.granularidad() == GranularidadReporte.MENSUAL) return true;
+        if (filtro.granularidad() == GranularidadReporte.DIARIO) return false;
+        return ChronoUnit.DAYS.between(filtro.desde(), filtro.hasta()) > 62;
+    }
+
+    private String resumenFiltros(FiltroReporte filtro) {
+        StringBuilder text = new StringBuilder(formatPeriod(filtro.desde(), filtro.hasta()));
+        text.append(" · ").append(esVistaMensual(filtro) ? "Mensual" : "Diario");
+
+        ReporteFiltroOpcion selectedClient = cliente.getValue();
+        if (selectedClient != null && selectedClient.id() > 0) {
+            text.append(" · Cliente: ").append(selectedClient.etiqueta());
+        }
+        ReporteFiltroOpcion selectedProduct = producto.getValue();
+        if (selectedProduct != null && selectedProduct.id() > 0) {
+            text.append(" · Producto: ").append(selectedProduct.etiqueta());
+        }
+        OpcionPago selectedPayment = pago.getValue();
+        if (selectedPayment != null && selectedPayment.metodoPago() != null) {
+            text.append(" · ").append(selectedPayment.label());
+        }
+        if (filtro.tipoVenta() != TipoVentaReporte.TODOS) {
+            text.append(" · ").append(filtro.tipoVenta().descripcion());
+        }
+        return text.toString();
+    }
+
+    private void restablecerFiltros() {
+        periodo.setValue("Este mes");
+        granularidad.setValue(GranularidadReporte.AUTO);
+        if (!cliente.getItems().isEmpty()) cliente.setValue(cliente.getItems().getFirst());
+        if (!producto.getItems().isEmpty()) producto.setValue(producto.getItems().getFirst());
+        if (!pago.getItems().isEmpty()) pago.setValue(pago.getItems().getFirst());
+        tipoVenta.setValue(TipoVentaReporte.TODOS);
+        aplicarPeriodo("Este mes");
+        recargar();
     }
 
     private VBox metricCard(String title, Label value, String hintText) {
@@ -571,6 +676,7 @@ public final class ReportesView extends BorderPane {
         hint.getStyleClass().add("report-metric-hint");
         hint.setWrapText(true);
         VBox card = new VBox(4, titleLabel, value, hint);
+        TooltipSupport.install(card, hint.getText());
         card.getStyleClass().add("report-metric-card");
         card.setMaxWidth(Double.MAX_VALUE);
         return card;
