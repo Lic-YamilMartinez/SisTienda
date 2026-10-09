@@ -22,6 +22,7 @@ import py.sistienda.core.service.EmpresaService;
 import py.sistienda.core.service.ImportacionProductoService;
 import py.sistienda.core.service.InventarioService;
 import py.sistienda.core.service.LogoNegocioService;
+import py.sistienda.core.service.MigracionClienteService;
 import py.sistienda.core.service.MovimientoCajaService;
 import py.sistienda.core.service.PostventaService;
 import py.sistienda.core.service.ProductoService;
@@ -45,6 +46,7 @@ import py.sistienda.data.repository.SqliteEmpresaRepository;
 import py.sistienda.data.repository.SqliteImportacionProductoRepository;
 import py.sistienda.data.repository.SqliteInventarioRepository;
 import py.sistienda.data.repository.SqliteLogoNegocioRepository;
+import py.sistienda.data.repository.SqliteMigracionClienteRepository;
 import py.sistienda.data.repository.SqliteMovimientoCajaRepository;
 import py.sistienda.data.repository.SqliteMovimientoStockRepository;
 import py.sistienda.data.repository.SqlitePostventaRepository;
@@ -133,6 +135,10 @@ public class MainApp extends Application {
         var movimientoCajaService = new MovimientoCajaService(new SqliteMovimientoCajaRepository(connectionFactory));
         var arqueoCajaService = new ArqueoCajaService(new SqliteArqueoCajaRepository(connectionFactory));
         var clienteService = new ClienteService(new SqliteClienteRepository(connectionFactory), autorizacionService);
+        var migracionClienteService = new MigracionClienteService(
+                new SqliteMigracionClienteRepository(connectionFactory),
+                autorizacionService
+        );
         var ventaService = new VentaService(new SqliteVentaRepository(connectionFactory), clienteService);
         var inventarioService = new InventarioService(new SqliteInventarioRepository(connectionFactory), autorizacionService);
         var reporteService = new ReporteService(new SqliteReporteRepository(connectionFactory));
@@ -154,7 +160,7 @@ public class MainApp extends Application {
                         autorizacionService, usuario),
                 () -> new FiadoView(
                         ventaService, cajaService, reporteService, empresaService,
-                        configuracionPosService, usuario, autorizacionService
+                        configuracionPosService, migracionClienteService, usuario, autorizacionService
                 ),
                 () -> new InventarioView(productoService, inventarioService, usuario, autorizacionService),
                 () -> new ReposicionView(reposicionService),
