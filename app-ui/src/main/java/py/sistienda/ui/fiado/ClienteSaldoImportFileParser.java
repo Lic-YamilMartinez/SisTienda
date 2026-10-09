@@ -234,7 +234,7 @@ final class ClienteSaldoImportFileParser {
     private static String normalize(String value) {
         if (value == null) return "";
         String normalized = Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
-                .replaceAll("\p{M}", "")
+                .replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT);
         return normalized.replaceAll("[^a-z0-9_]", "");
     }
