@@ -156,6 +156,8 @@ public final class ReportesView extends BorderPane {
         VBox heading = new VBox(2, eyebrow, title, subtitle);
 
         filterSummary.getStyleClass().add("report-filter-summary");
+        filterSummary.setWrapText(true);
+        filterSummary.setMaxWidth(620);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox titleRow = new HBox(12, heading, spacer, filterSummary);
@@ -394,6 +396,7 @@ public final class ReportesView extends BorderPane {
         TableColumn<ProductoVendidoResumen, String> product = new TableColumn<>("Producto");
         product.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().producto()));
         product.setPrefWidth(155);
+        TooltipSupport.fullText(product);
 
         TableColumn<ProductoVendidoResumen, String> qty = new TableColumn<>("Cant.");
         qty.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatQuantity(cell.getValue())));
@@ -440,9 +443,11 @@ public final class ReportesView extends BorderPane {
         TableColumn<VentaResumen, String> clienteCol = new TableColumn<>("Cliente");
         clienteCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().clienteDisplay()));
         clienteCol.setPrefWidth(145);
+        TooltipSupport.fullText(clienteCol);
         TableColumn<VentaResumen, String> pagoCol = new TableColumn<>("Pago");
         pagoCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(cell.getValue().metodoPago().descripcion()));
         pagoCol.setPrefWidth(110);
+        TooltipSupport.fullText(pagoCol);
         TableColumn<VentaResumen, String> totalCol = new TableColumn<>("Original");
         totalCol.setCellValueFactory(cell -> new ReadOnlyStringWrapper(formatCurrency(cell.getValue().total())));
         totalCol.setPrefWidth(105);
@@ -592,6 +597,7 @@ public final class ReportesView extends BorderPane {
             costSeries.getData().add(cost);
             gainSeries.getData().add(gain);
         }
+        timelineX.setTickLabelRotation(dashboard.lineaTiempo().size() > 12 ? -45d : 0d);
         timeline.getData().addAll(salesSeries, costSeries, gainSeries);
     }
 
