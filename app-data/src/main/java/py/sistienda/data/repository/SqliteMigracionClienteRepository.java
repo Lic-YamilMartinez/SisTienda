@@ -68,9 +68,11 @@ public final class SqliteMigracionClienteRepository implements MigracionClienteR
                 return new SaldoInicialClienteResultado(
                         id, clienteId, monto, fechaReferencia, referencia, observacion
                 );
-            } catch (Exception e) {
-                connection.rollback();
-                if (e instanceof ValidationException validation) throw validation;
+            } catch (RuntimeException e) {
+                rollbackQuietly(connection, e);
+                throw e;
+            } catch (SQLException e) {
+                rollbackQuietly(connection, e);
                 throw e;
             }
         } catch (SQLException e) {
@@ -138,9 +140,11 @@ public final class SqliteMigracionClienteRepository implements MigracionClienteR
                         saldos,
                         total
                 );
-            } catch (Exception e) {
-                connection.rollback();
-                if (e instanceof ValidationException validation) throw validation;
+            } catch (RuntimeException e) {
+                rollbackQuietly(connection, e);
+                throw e;
+            } catch (SQLException e) {
+                rollbackQuietly(connection, e);
                 throw e;
             }
         } catch (SQLException e) {
@@ -286,6 +290,14 @@ public final class SqliteMigracionClienteRepository implements MigracionClienteR
         if (lote == null || lote.isBlank()) return referenciaFila;
         if (referenciaFila == null || referenciaFila.isBlank()) return lote;
         return lote + " · " + referenciaFila;
+    }
+
+    private void rollbackQuietly(Connection connection, Exception original) {
+        try {
+            connection.rollback();
+        } catch (SQLException rollbackError) {
+            original.addSuppressed(rollbackError);
+        }
     }
 
     private boolean esSaldoDuplicado(SQLException e) {
