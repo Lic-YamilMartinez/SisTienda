@@ -2,8 +2,10 @@ package py.sistienda.core.service;
 
 import org.junit.jupiter.api.Test;
 import py.sistienda.core.exception.ValidationException;
+import py.sistienda.core.model.FiltroReporte;
 import py.sistienda.core.model.MetodoPago;
 import py.sistienda.core.model.ProductoVendidoResumen;
+import py.sistienda.core.model.ReporteFiltroOpcion;
 import py.sistienda.core.model.ReporteDiario;
 import py.sistienda.core.model.ReporteLineaTiempo;
 import py.sistienda.core.model.ReportePeriodoResumen;
@@ -80,6 +82,36 @@ class ReporteServiceTest {
         @Override
         public List<VentaResumen> listarVentas(LocalDate fecha) {
             return listarVentas(fecha, fecha, null, 1000);
+        }
+
+        @Override
+        public ReportePeriodoResumen resumenPeriodo(FiltroReporte filtro) {
+            return resumenPeriodo(filtro.desde(), filtro.hasta(), filtro.metodoPago());
+        }
+
+        @Override
+        public List<ReporteLineaTiempo> lineaTiempo(FiltroReporte filtro) {
+            return lineaTiempo(filtro.desde(), filtro.hasta(), filtro.metodoPago());
+        }
+
+        @Override
+        public List<ProductoVendidoResumen> productosMasVendidos(FiltroReporte filtro, int limite) {
+            return productosMasVendidos(filtro.desde(), filtro.hasta(), filtro.metodoPago(), limite);
+        }
+
+        @Override
+        public List<VentaResumen> listarVentas(FiltroReporte filtro, int limite) {
+            return listarVentas(filtro.desde(), filtro.hasta(), filtro.metodoPago(), limite);
+        }
+
+        @Override
+        public List<ReporteFiltroOpcion> clientesDisponibles() {
+            return List.of(new ReporteFiltroOpcion(1L, "Cliente"));
+        }
+
+        @Override
+        public List<ReporteFiltroOpcion> productosDisponibles() {
+            return List.of(new ReporteFiltroOpcion(1L, "Producto"));
         }
 
         @Override
